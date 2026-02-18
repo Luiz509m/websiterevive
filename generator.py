@@ -23,9 +23,10 @@ Erstelle NUR eine einzelne HTML-Datei mit inline CSS. Halte es einfach:
 - Muss mit <!DOCTYPE html> beginnen und mit </html> enden"""
 
     message = client.messages.create(
-        model="claude-opus-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=8000,
         messages=[{"role": "user", "content": prompt}]
     )
     
+
     return message.content[0].text
