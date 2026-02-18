@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>WebsiteRevive</title>
+  <style>
+    body { font-family: sans-serif; max-width: 650px; margin: 80px auto; padding: 20px; }
+    input, button { width: 100%; padding: 12px; margin: 8px 0; font-size: 16px; box-sizing: border-box; }
+    button { background: #4F46E5; color: white; border: none; cursor: pointer; border-radius: 6px; }
+    #loading { display: none; text-align: center; color: #666; margin: 20px 0; }
+    #download-btn { display: none; background: #10B981; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>🔄 WebsiteRevive</h1>
+  <p>Gib deine URL ein und wähle deine Farben.</p>
+
+  <input type="text" id="url" placeholder="https://deine-website.ch" />
+  <label>Primärfarbe:</label>
+  <input type="color" id="color1" value="#4F46E5" />
+  <label>Sekundärfarbe:</label>
+  <input type="color" id="color2" value="#10B981" />
+  <button onclick="start()">Website analysieren →</button>
+
+  <div id="loading">⏳ Claude generiert deine neue Website... (ca. 30 Sekunden)</div>
+  <button id="download-btn" onclick="download()" style="display:none">⬇️ Website herunterladen</button>
+
+  <script>
+    let generatedHTML = ""
+
+    async function start() {
+      const url = document.getElementById('url').value
+      const color1 = document.getElementById('color1').value
+      const color2 = document.getElementById('color2').value
+
+      if (!url) { alert('Bitte URL eingeben!'); return; }
+
+      document.getElementById('loading').style.display = 'block'
+      document.getElementById('download-btn').style.display = 'none'
+
+      const res = await fetch('http://localhost:8000/analyze', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ url, colors: [color1, color2] })
+      })
+      const data = await res.json()
+
+      generatedHTML = data.html.replace(/```html/g, '').replace(/```/g, '').trim()
+
+      document.getElementById('loading').style.display = 'none'
+      document.getElementById('download-btn').style.display = 'block'
+
+      // Öffne in neuem Tab
+      const blob = new Blob([generatedHTML], {type: 'text/html'})
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank')
+    }
+
+    function download() {
+      const blob = new Blob([generatedHTML], { type: 'text/html' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = 'meine-neue-website.html'
+      a.click()
+    }
+  </script>
+</body>
+</html>
