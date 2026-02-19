@@ -1,3 +1,7 @@
+import os
+import anthropic
+
+async def generate_website(title: str, texts: list, colors: list) -> str:
 import anthropic
 
 async def generate_website(title: str, texts: list, colors: list) -> str:
@@ -30,4 +34,5 @@ Erstelle NUR eine einzelne HTML-Datei mit inline CSS. Halte es einfach:
     
 
     return message.content[0].text
+
 
