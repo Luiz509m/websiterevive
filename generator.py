@@ -2,10 +2,7 @@ import os
 import anthropic
 
 async def generate_website(title: str, texts: list, colors: list) -> str:
-import anthropic
-
-async def generate_website(title: str, texts: list, colors: list) -> str:
-  client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     
     primary_color = colors[0] if len(colors) > 0 else "#4F46E5"
     secondary_color = colors[1] if len(colors) > 1 else "#10B981"
@@ -32,7 +29,4 @@ Erstelle NUR eine einzelne HTML-Datei mit inline CSS. Halte es einfach:
         messages=[{"role": "user", "content": prompt}]
     )
     
-
     return message.content[0].text
-
-
