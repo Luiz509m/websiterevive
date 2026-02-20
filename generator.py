@@ -55,6 +55,11 @@ SEKUNDÄRFARBE: {secondary_color}
 VERFÜGBARE BILDER (diese URLs direkt einsetzen wo Bilder gefragt sind):
 {images_text}
 
+BILDER-REGEL:
+Falls keine echten Produktbilder verfügbar sind, erstelle schöne CSS-Platzhalter 
+mit Farbverläufen die zur Marke passen. Verwende KEINE kaputten img-Tags.
+Nutze div-Elemente mit background-gradient als Ersatz.
+
 REGELN:
 - Ersetze JEDEN {{{{PLATZHALTER}}}} mit echtem Inhalt
 - {{{{PRIMARY_COLOR}}}} = {primary_color}
@@ -75,3 +80,4 @@ TEMPLATE:
     )
 
     return message.content[0].text
+
