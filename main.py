@@ -21,14 +21,14 @@ async def analyze(data: dict):
     url = data.get("url")
     colors = data.get("colors")
     
-    # Website crawlen
     result = await crawl_website(url)
     
-    # Neue Website generieren
     generated_html = await generate_website(
         title=result["title"],
         texts=result["texts"],
-        colors=colors
+        colors=colors,
+        images=result["images"],
+        meta_description=result["meta_description"]
     )
     
     return {
