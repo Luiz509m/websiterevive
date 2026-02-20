@@ -1,16 +1,1 @@
-[tool.poetry]
-name = "websiterevive"
-version = "0.1.0"
-description = ""
 
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "*"
-uvicorn = "*"
-httpx = "*"
-beautifulsoup4 = "*"
-anthropic = "*"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
