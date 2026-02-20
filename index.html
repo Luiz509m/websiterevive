@@ -38,7 +38,7 @@
       document.getElementById('loading').style.display = 'block'
       document.getElementById('download-btn').style.display = 'none'
 
-      const res = await fetch('http://localhost:8000/analyze', {
+      const res = await fetch('https://websiterevive-backend.onrender.com/analyze', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ url, colors: [color1, color2] })
@@ -65,4 +65,5 @@
     }
   </script>
 </body>
+
 </html>
