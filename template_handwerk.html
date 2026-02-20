@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{BRAND_NAME}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: {{PRIMARY_COLOR}};
+      --secondary: {{SECONDARY_COLOR}};
+      --warm-white: #faf8f5;
+      --warm-cream: #f2ede4;
+      --warm-tan: #e8dfd0;
+      --warm-brown: #8b6914;
+      --dark: #1c1917;
+      --dark-2: #292524;
+      --text: #1c1917;
+      --text-2: #57534e;
+      --text-3: #a8a29e;
+      --border: #e7e2d9;
+      --accent: var(--primary);
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--warm-white);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; width: 100%;
+      z-index: 1000;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 52px;
+      background: rgba(250,248,245,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Lora', serif;
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: 0.3px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .nav-links a {
+      font-size: 0.85rem;
+      color: var(--text-2);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--text);
+      color: var(--warm-white) !important;
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding-top: 72px;
+      overflow: hidden;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px 52px 80px;
+      background: var(--warm-white);
+      position: relative;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--warm-brown);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.2s forwards;
+    }
+
+    .hero-tag::before {
+      content: '';
+      width: 24px; height: 1px;
+      background: var(--warm-brown);
+    }
+
+    .hero h1 {
+      font-family: 'Lora', serif;
+      font-size: clamp(2.8rem, 4.5vw, 5rem);
+      font-weight: 500;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.4s forwards;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--warm-brown);
+    }
+
+    .hero-desc {
+      font-size: 1rem;
+      color: var(--text-2);
+      line-height: 1.8;
+      max-width: 460px;
+      margin-bottom: 48px;
+      font-weight: 300;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.6s forwards;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 64px;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.8s forwards;
+    }
+
+    .btn-warm {
+      background: var(--text);
+      color: var(--warm-white);
+      padding: 14px 32px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .btn-warm:hover { opacity: 0.85; }
+
+    .btn-warm-outline {
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: gap 0.2s;
+    }
+
+    .btn-warm-outline:hover { gap: 14px; }
+
+    .hero-facts {
+      display: flex;
+      gap: 40px;
+      padding-top: 40px;
+      border-top: 1px solid var(--border);
+      opacity: 0;
+      animation: fadeUp 0.8s ease 1s forwards;
+    }
+
+    .hero-fact-number {
+      font-family: 'Lora', serif;
+      font-size: 2.2rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .hero-fact-label {
+      font-size: 0.75rem;
+      color: var(--text-3);
+      font-weight: 400;
+    }
+
+    .hero-right {
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Hero slideshow */
+    .hero-slides {
+      position: absolute;
+      inset: 0;
+    }
+
+    .hero-slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transform: scale(1.05);
+      transition: opacity 1.5s ease, transform 8s ease;
+    }
+
+    .hero-slide.active {
+      opacity: 1;
+      transform: scale(1.0);
+    }
+
+    .hero-slide-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, var(--warm-white) 0%, transparent 15%);
+    }
+
+    .hero-slide-dots {
+      position: absolute;
+      bottom: 32px;
+      left: 32px;
+      display: flex;
+      gap: 8px;
+      z-index: 2;
+    }
+
+    .hero-slide-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .hero-slide-dot.active {
+      background: white;
+      width: 24px;
+      border-radius: 3px;
+    }
+
+    /* ── STRIP ── */
+    .strip {
+      background: var(--dark);
+      padding: 20px 52px;
+      display: flex;
+      gap: 60px;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .strip-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 1px;
+    }
+
+    .strip-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--warm-brown);
+      flex-shrink: 0;
+    }
+
+    /* ── ABOUT ── */
+    .about-section {
+      padding: 120px 52px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 100px;
+      align-items: center;
+      background: var(--warm-white);
+    }
+
+    .about-image-wrap {
+      position: relative;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.9s ease;
+    }
+
+    .about-image-wrap.visible { opacity:1; transform:translateY(0); }
+
+    .about-image-main {
+      width: 100%;
+      aspect-ratio: 4/5;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .about-image-accent {
+      position: absolute;
+      bottom: -40px;
+      right: -40px;
+      width: 55%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 6px solid var(--warm-white);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+    }
+
+    .about-badge {
+      position: absolute;
+      top: 40px;
+      left: -24px;
+      background: var(--warm-brown);
+      color: white;
+      padding: 20px 28px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .about-badge-year {
+      font-family: 'Lora', serif;
+      font-size: 2rem;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .about-badge-text {
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    .about-content {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.9s ease 0.2s;
+    }
+
+    .about-content.visible { opacity:1; transform:translateY(0); }
+
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--warm-brown);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .section-tag::before {
+      content: '';
+      width: 20px; height: 1px;
+      background: var(--warm-brown);
+    }
+
+    .section-title {
+      font-family: 'Lora', serif;
+      font-size: clamp(2rem, 3vw, 3rem);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.3px;
+      margin-bottom: 24px;
+    }
+
+    .section-title em { font-style: italic; color: var(--warm-brown); }
+
+    .section-body {
+      font-size: 0.95rem;
+      color: var(--text-2);
+      line-height: 1.85;
+      margin-bottom: 20px;
+      font-weight: 300;
+    }
+
+    /* ── SERVICES ── */
+    .services-section {
+      padding: 120px 52px;
+      background: var(--warm-cream);
+    }
+
+    .services-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 64px;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .service-card {
+      background: var(--warm-white);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .service-card.anim { transition: all 0.7s ease; }
+    .service-card.visible { opacity:1; transform:translateY(0); }
+    .service-card:nth-child(2) { transition-delay: 0.1s; }
+    .service-card:nth-child(3) { transition-delay: 0.2s; }
+
+    .service-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+    }
+
+    .service-image {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+
+    .service-info {
+      padding: 28px;
+    }
+
+    .service-tag {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--warm-brown);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .service-name {
+      font-family: 'Lora', serif;
+      font-size: 1.3rem;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .service-desc {
+      font-size: 0.85rem;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+
+    /* ── FULL WIDTH IMAGE ── */
+    .fullwidth-section {
+      height: 60vh;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fullwidth-section img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.55);
+    }
+
+    .fullwidth-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 0 52px;
+    }
+
+    .fullwidth-content blockquote {
+      font-family: 'Lora', serif;
+      font-size: clamp(1.5rem, 3vw, 2.8rem);
+      font-style: italic;
+      color: white;
+      line-height: 1.4;
+      max-width: 800px;
+      margin: 0 auto 24px;
+    }
+
+    .fullwidth-content cite {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── PROCESS ── */
+    .process-section {
+      padding: 120px 52px;
+      background: var(--warm-white);
+    }
+
+    .process-header { text-align: center; margin-bottom: 80px; }
+
+    .process-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 40px;
+      position: relative;
+    }
+
+    .process-steps::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: 12%;
+      right: 12%;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .process-step {
+      text-align: center;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease;
+    }
+
+    .process-step.visible { opacity:1; transform:translateY(0); }
+    .process-step:nth-child(2) { transition-delay: 0.1s; }
+    .process-step:nth-child(3) { transition-delay: 0.2s; }
+    .process-step:nth-child(4) { transition-delay: 0.3s; }
+
+    .process-num {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--warm-white);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-family: 'Lora', serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--warm-brown);
+      position: relative;
+      z-index: 1;
+    }
+
+    .process-title {
+      font-family: 'Lora', serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+
+    .process-desc {
+      font-size: 0.82rem;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 120px 52px;
+      background: var(--dark);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .cta-content h2 {
+      font-family: 'Lora', serif;
+      font-size: clamp(2rem, 3.5vw, 3.5rem);
+      font-weight: 500;
+      color: white;
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+
+    .cta-content h2 em { font-style: italic; color: var(--warm-brown); }
+
+    .cta-content p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.8;
+      margin-bottom: 40px;
+    }
+
+    .cta-contact {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .contact-icon {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .contact-label {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .contact-value {
+      font-size: 0.95rem;
+      color: white;
+    }
+
+    .contact-value a {
+      color: white;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .contact-value a:hover { color: var(--warm-brown); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0f0e0d;
+      padding: 60px 52px 36px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 60px;
+      margin-bottom: 48px;
+    }
+
+    .footer-brand {
+      font-family: 'Lora', serif;
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: white;
+      margin-bottom: 16px;
+    }
+
+    .footer-desc {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.3);
+      line-height: 1.8;
+      max-width: 280px;
+    }
+
+    .footer-col-title {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 20px;
+    }
+
+    .footer-col ul { list-style: none; }
+    .footer-col ul li { margin-bottom: 10px; }
+    .footer-col ul li a {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.25);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-col ul li a:hover { color: rgba(255,255,255,0.6); }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 28px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .footer-copy {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.18);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(20px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-right { height: 50vw; }
+      .hero-left { padding: 80px 20px 60px; }
+      .about-section { grid-template-columns:1fr; padding:80px 20px; gap:60px; }
+      .services-section { padding:80px 20px; }
+      .services-grid { grid-template-columns:1fr; }
+      .process-section { padding:80px 20px; }
+      .process-steps { grid-template-columns:1fr 1fr; }
+      .process-steps::before { display:none; }
+      .cta-section { grid-template-columns:1fr; padding:80px 20px; }
+      footer { padding:48px 20px 32px; }
+      .footer-top { grid-template-columns:1fr; gap:40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+    <ul class="nav-links">
+      <li><a href="#services">Leistungen</a></li>
+      <li><a href="#about">Über uns</a></li>
+      <li><a href="#contact">Kontakt</a></li>
+    </ul>
+    <a href="#contact" class="nav-cta">Anfrage stellen</a>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-left">
+      <p class="hero-tag">{{HERO_TAG}}</p>
+      <h1>{{HERO_TITLE_LINE1}}<br><em>{{HERO_TITLE_LINE2}}</em></h1>
+      <p class="hero-desc">{{HERO_DESCRIPTION}}</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-warm">Jetzt anfragen</a>
+        <a href="#services" class="btn-warm-outline">Leistungen ansehen →</a>
+      </div>
+      <div class="hero-facts">
+        <div>
+          <div class="hero-fact-number">{{STAT_1_NUMBER}}</div>
+          <div class="hero-fact-label">{{STAT_1_LABEL}}</div>
+        </div>
+        <div>
+          <div class="hero-fact-number">{{STAT_2_NUMBER}}</div>
+          <div class="hero-fact-label">{{STAT_2_LABEL}}</div>
+        </div>
+        <div>
+          <div class="hero-fact-number">{{STAT_3_NUMBER}}</div>
+          <div class="hero-fact-label">{{STAT_3_LABEL}}</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-slides">
+        <div class="hero-slide active" style="background-image:url('{{HERO_IMAGE_1}}')"></div>
+        <div class="hero-slide" style="background-image:url('{{HERO_IMAGE_2}}')"></div>
+        <div class="hero-slide" style="background-image:url('{{HERO_IMAGE_3}}')"></div>
+      </div>
+      <div class="hero-slide-overlay"></div>
+      <div class="hero-slide-dots">
+        <div class="hero-slide-dot active" onclick="goToSlide(0)"></div>
+        <div class="hero-slide-dot" onclick="goToSlide(1)"></div>
+        <div class="hero-slide-dot" onclick="goToSlide(2)"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dark strip -->
+  <div class="strip">
+    <div class="strip-item"><div class="strip-dot"></div>{{STRIP_1}}</div>
+    <div class="strip-item"><div class="strip-dot"></div>{{STRIP_2}}</div>
+    <div class="strip-item"><div class="strip-dot"></div>{{STRIP_3}}</div>
+    <div class="strip-item"><div class="strip-dot"></div>{{STRIP_4}}</div>
+    <div class="strip-item"><div class="strip-dot"></div>{{STRIP_5}}</div>
+  </div>
+
+  <!-- About -->
+  <section class="about-section" id="about">
+    <div class="about-image-wrap">
+      <img class="about-image-main" src="{{ABOUT_IMAGE_1}}" alt="{{BRAND_NAME}}">
+      <img class="about-image-accent" src="{{ABOUT_IMAGE_2}}" alt="{{BRAND_NAME}}">
+      <div class="about-badge">
+        <div class="about-badge-year">{{FOUNDING_YEAR}}</div>
+        <div class="about-badge-text">Gegründet</div>
+      </div>
+    </div>
+    <div class="about-content">
+      <p class="section-tag">Über uns</p>
+      <h2 class="section-title">{{ABOUT_TITLE}}<br><em>{{ABOUT_TITLE_EM}}</em></h2>
+      <p class="section-body">{{ABOUT_TEXT_1}}</p>
+      <p class="section-body">{{ABOUT_TEXT_2}}</p>
+      <a href="#contact" class="btn-warm" style="display:inline-block;margin-top:24px">Kontakt aufnehmen</a>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="services-section" id="services">
+    <div class="services-header">
+      <div>
+        <p class="section-tag">Was wir anbieten</p>
+        <h2 class="section-title">{{SERVICES_TITLE}} <em>{{SERVICES_TITLE_EM}}</em></h2>
+      </div>
+      <a href="#contact" class="btn-warm-outline">Alle Leistungen →</a>
+    </div>
+    <div class="services-grid">
+      <div class="service-card anim">
+        <img class="service-image" src="{{SERVICE_1_IMAGE}}" alt="{{SERVICE_1_NAME}}">
+        <div class="service-info">
+          <p class="service-tag">{{SERVICE_1_TAG}}</p>
+          <h3 class="service-name">{{SERVICE_1_NAME}}</h3>
+          <p class="service-desc">{{SERVICE_1_DESC}}</p>
+        </div>
+      </div>
+      <div class="service-card anim">
+        <img class="service-image" src="{{SERVICE_2_IMAGE}}" alt="{{SERVICE_2_NAME}}">
+        <div class="service-info">
+          <p class="service-tag">{{SERVICE_2_TAG}}</p>
+          <h3 class="service-name">{{SERVICE_2_NAME}}</h3>
+          <p class="service-desc">{{SERVICE_2_DESC}}</p>
+        </div>
+      </div>
+      <div class="service-card anim">
+        <img class="service-image" src="{{SERVICE_3_IMAGE}}" alt="{{SERVICE_3_NAME}}">
+        <div class="service-info">
+          <p class="service-tag">{{SERVICE_3_TAG}}</p>
+          <h3 class="service-name">{{SERVICE_3_NAME}}</h3>
+          <p class="service-desc">{{SERVICE_3_DESC}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Full width quote -->
+  <section class="fullwidth-section">
+    <img src="{{FULLWIDTH_IMAGE}}" alt="{{BRAND_NAME}}">
+    <div class="fullwidth-content">
+      <blockquote>{{BRAND_QUOTE}}</blockquote>
+      <cite>— {{BRAND_NAME}}</cite>
+    </div>
+  </section>
+
+  <!-- Process -->
+  <section class="process-section">
+    <div class="process-header">
+      <p class="section-tag" style="justify-content:center;display:flex">So arbeiten wir</p>
+      <h2 class="section-title" style="text-align:center">{{PROCESS_TITLE}} <em>{{PROCESS_TITLE_EM}}</em></h2>
+    </div>
+    <div class="process-steps">
+      <div class="process-step">
+        <div class="process-num">01</div>
+        <h3 class="process-title">{{PROCESS_1_TITLE}}</h3>
+        <p class="process-desc">{{PROCESS_1_DESC}}</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">02</div>
+        <h3 class="process-title">{{PROCESS_2_TITLE}}</h3>
+        <p class="process-desc">{{PROCESS_2_DESC}}</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">03</div>
+        <h3 class="process-title">{{PROCESS_3_TITLE}}</h3>
+        <p class="process-desc">{{PROCESS_3_DESC}}</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">04</div>
+        <h3 class="process-title">{{PROCESS_4_TITLE}}</h3>
+        <p class="process-desc">{{PROCESS_4_DESC}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / Contact -->
+  <section class="cta-section" id="contact">
+    <div class="cta-content">
+      <h2>{{CTA_TITLE}}<br><em>{{CTA_TITLE_EM}}</em></h2>
+      <p>{{CTA_TEXT}}</p>
+      <a href="mailto:{{CONTACT_EMAIL}}" class="btn-warm">Anfrage senden</a>
+    </div>
+    <div class="cta-contact">
+      <div class="contact-item">
+        <div class="contact-icon">📍</div>
+        <div>
+          <div class="contact-label">Adresse</div>
+          <div class="contact-value">{{CONTACT_ADDRESS}}</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">📞</div>
+        <div>
+          <div class="contact-label">Telefon</div>
+          <div class="contact-value"><a href="tel:{{CONTACT_PHONE}}">{{CONTACT_PHONE}}</a></div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">✉️</div>
+        <div>
+          <div class="contact-label">E-Mail</div>
+          <div class="contact-value"><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">{{BRAND_NAME}}</div>
+        <p class="footer-desc">{{FOOTER_DESC}}</p>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Leistungen</p>
+        <ul>
+          <li><a href="#">{{FOOTER_LINK_1}}</a></li>
+          <li><a href="#">{{FOOTER_LINK_2}}</a></li>
+          <li><a href="#">{{FOOTER_LINK_3}}</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Rechtliches</p>
+        <ul>
+          <li><a href="#">Datenschutz</a></li>
+          <li><a href="#">Impressum</a></li>
+          <li><a href="#">AGB</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© {{YEAR}} {{BRAND_NAME}}. Alle Rechte vorbehalten.</p>
+      <p class="footer-copy">Handwerk mit Leidenschaft seit {{FOUNDING_YEAR}}</p>
+    </div>
+  </footer>
+
+  <script>
+    // Hero Slideshow
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.hero-slide');
+    const dots = document.querySelectorAll('.hero-slide-dot');
+
+    function goToSlide(i) {
+      slides[currentSlide].classList.remove('active');
+      dots[currentSlide].classList.remove('active');
+      currentSlide = i;
+      slides[currentSlide].classList.add('active');
+      dots[currentSlide].classList.add('active');
+    }
+
+    setInterval(() => goToSlide((currentSlide + 1) % slides.length), 5000);
+
+    // Scroll animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.about-image-wrap, .about-content, .service-card, .process-step')
+      .forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
