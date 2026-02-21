@@ -13,7 +13,7 @@ app.add_middleware(
 )
 
 @app.get("/")
-def health():
+def root():
     return {"status": "ok"}
 
 @app.post("/analyze")
