@@ -1293,131 +1293,10 @@ wrTextMode(true);
 <\/script>`;
     }
 
-   function injectEditor(html, c1, c2) {
-  const blurOverlay = `
-<style>
-  #wr-blur-wrap {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: calc(100vh - 650px);
-    min-height: 300px;
-    pointer-events: none;
-    z-index: 9000;
-  }
-  #wr-blur-overlay {
-    position: fixed;
-    top: 700px; left: 0; right: 0; bottom: 0;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    background: rgba(0,0,0,0.45);
-    z-index: 9001;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-  }
-  #wr-blur-overlay.unlocked { display: none; }
-  .wr-unlock-card {
-    background: rgba(12,12,14,0.95);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 20px;
-    padding: 36px 48px;
-    text-align: center;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
-    font-family: -apple-system, sans-serif;
-    max-width: 420px;
-    width: 90%;
-  }
-  .wr-unlock-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #f0eeea;
-    margin-bottom: 8px;
-  }
-  .wr-unlock-sub {
-    font-size: 0.85rem;
-    color: rgba(240,238,234,0.45);
-    margin-bottom: 28px;
-    line-height: 1.6;
-  }
-  .wr-unlock-price {
-    font-size: 2.8rem;
-    font-weight: 700;
-    color: #f0eeea;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .wr-unlock-price sup {
-    font-size: 1rem;
-    font-weight: 400;
-    vertical-align: top;
-    margin-top: 8px;
-    color: rgba(240,238,234,0.5);
-  }
-  .wr-unlock-once {
-    font-size: 0.75rem;
-    color: rgba(240,238,234,0.3);
-    margin-bottom: 24px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .wr-unlock-btn {
-    width: 100%;
-    padding: 16px;
-    background: #c8f135;
-    color: #0c0c0e;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-  .wr-unlock-btn:hover { background: #d4f544; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(200,241,53,0.25); }
-  .wr-unlock-features {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-top: 20px;
-  }
-  .wr-unlock-feat {
-    font-size: 0.72rem;
-    color: rgba(240,238,234,0.3);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .wr-unlock-feat::before { content: '✓'; color: #c8f135; }
-</style>
-
-<div id="wr-blur-overlay">
-  <div class="wr-unlock-card">
-    <div class="wr-unlock-title">Deine neue Website ist bereit ✨</div>
-    <div class="wr-unlock-sub">Schalte die komplette Website frei und lade sie herunter — einmalig, kein Abo.</div>
-    <div class="wr-unlock-price"><sup>CHF </sup>29</div>
-    <div class="wr-unlock-once">Einmalige Zahlung</div>
-    <button class="wr-unlock-btn" onclick="wrUnlock()">Jetzt freischalten & herunterladen</button>
-    <div class="wr-unlock-features">
-      <span class="wr-unlock-feat">Download HTML</span>
-      <span class="wr-unlock-feat">Editor inklusive</span>
-      <span class="wr-unlock-feat">Kein Abo</span>
-    </div>
-  </div>
-</div>
-
-<script>
-function wrUnlock() {
-  // Stripe kommt hier rein — für jetzt direkt freischalten
-  document.getElementById('wr-blur-overlay').classList.add('unlocked');
-}
-<\/script>
-`;
-
-  const editorScript = buildEditorScript(c1, c2);
-  return html.replace(/<body([^>]*)>/i, `<body$1>\n${blurOverlay}\n${editorScript}`);
-}
+    function injectEditor(html, c1, c2) {
+      const script = buildEditorScript(c1, c2);
+      return html.replace(/<body([^>]*)>/i, `<body$1>\n${script}`);
+    }
 
     // ── MAIN START ──
     async function start() {
@@ -1454,18 +1333,21 @@ function wrUnlock() {
       }, 9000);
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
+
         const res = await fetch('https://websiterevive-backend.onrender.com/analyze', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    url,
-    colors: [c1, c2],
-    uploaded_images: uploadedImages.map(i => i.dataUrl)
-  }),
-  signal: AbortSignal.timeout(120000)
-});
-          })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url,
+            colors: [c1, c2],
+            uploaded_images: uploadedImages.map(i => i.dataUrl)
+          }),
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         const data = await res.json();
         generatedHTML = data.html.replace(/```html/g,'').replace(/```/g,'').trim();
@@ -1486,7 +1368,11 @@ function wrUnlock() {
       } catch(e) {
         clearInterval(interval);
         document.getElementById('loading').style.display = 'none';
-        alert('Fehler beim Generieren. Bitte versuche es nochmal.');
+        if (e.name === 'AbortError') {
+          alert('Timeout — der Server braucht zu lange. Warte 30 Sekunden und versuche es nochmal.');
+        } else {
+          alert('Fehler beim Generieren. Bitte versuche es nochmal.');
+        }
         console.error(e);
       }
 
@@ -1524,5 +1410,3 @@ function wrUnlock() {
   </script>
 </body>
 </html>
-
-
