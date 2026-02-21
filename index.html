@@ -1455,12 +1455,15 @@ function wrUnlock() {
 
       try {
         const res = await fetch('https://websiterevive-backend.onrender.com/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url,
-            colors: [c1, c2],
-            uploaded_images: uploadedImages.map(i => i.dataUrl)
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    url,
+    colors: [c1, c2],
+    uploaded_images: uploadedImages.map(i => i.dataUrl)
+  }),
+  signal: AbortSignal.timeout(120000)
+});
           })
         });
 
@@ -1521,4 +1524,5 @@ function wrUnlock() {
   </script>
 </body>
 </html>
+
 
