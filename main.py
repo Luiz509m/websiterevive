@@ -20,18 +20,17 @@ def health():
 async def analyze(data: dict):
     url = data.get("url")
     colors = data.get("colors")
-    
+    uploaded_images = data.get("uploaded_images", [])
+
     result = await crawl_website(url)
-    
+
     generated_html = await generate_website(
         title=result["title"],
         texts=result["texts"],
         colors=colors,
         images=result["images"],
-        meta_description=result["meta_description"]
+        meta_description=result["meta_description"],
+        uploaded_images=uploaded_images
     )
-    
-    return {
-        "html": generated_html,
-        "original": result
-    }
+
+    return {"html": generated_html, "original": result}
