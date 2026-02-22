@@ -7,11 +7,16 @@ def load_template(name: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
-def shorten_template(template: str) -> str:
-    template = re.sub(r'/\*[\s\S]*?\*/', '', template)
-    template = re.sub(r'<!--.*?-->', '', template, flags=re.DOTALL)
-    template = re.sub(r'\n\s*\n', '\n', template)
-    return template.strip()
+def split_template(template: str):
+    # CSS extrahieren
+    css_match = re.search(r'<style>([\s\S]*?)</style>', template)
+    css = css_match.group(0) if css_match else ''
+    # Template ohne CSS (Claude braucht nur HTML-Struktur)
+    html_only = re.sub(r'<style>[\s\S]*?</style>', '<STYLE_PLACEHOLDER>', template)
+    # Kommentare und Leerzeilen entfernen
+    html_only = re.sub(r'<!--.*?-->', '', html_only, flags=re.DOTALL)
+    html_only = re.sub(r'\n\s*\n', '\n', html_only)
+    return html_only.strip(), css
 
 async def detect_branch(client, title: str, meta_description: str) -> str:
     response = client.messages.create(
@@ -36,45 +41,40 @@ async def generate_website(title: str, texts: list, colors: list, images: list =
     branch = await detect_branch(client, title, meta_description)
 
     if branch == "tech":
-        template = shorten_template(load_template("template_tech.html"))
+        html_only, css = split_template(load_template("template_tech.html"))
     elif branch == "handwerk":
-        template = shorten_template(load_template("template_handwerk.html"))
+        html_only, css = split_template(load_template("template_handwerk.html"))
     else:
-        template = shorten_template(load_template("template_rolex.html"))
+        html_only, css = split_template(load_template("template_rolex.html"))
 
-    crawled_urls = [img["src"] for img in images[:6]] if images else []
-    crawled_text = "\n".join(crawled_urls) if crawled_urls else "Keine gecrawlten Bilder"
+    crawled_urls = [img["src"] for img in images[:4]] if images else []
+    crawled_text = "\n".join(crawled_urls) if crawled_urls else "Keine Bilder"
 
     uploaded_text = ""
     if uploaded_images:
-        uploaded_text = f"\n\nVOM KUNDEN HOCHGELADENE BILDER — höchste Priorität:"
-        for i, img_data in enumerate(uploaded_images[:5]):
+        uploaded_text = "\nHOCHGELADENE BILDER (Priorität):"
+        for i, img_data in enumerate(uploaded_images[:3]):
             uploaded_text += f"\nBild {i+1}: {img_data}"
 
-    texts_formatted = "\n".join([f"- {t}" for t in texts[:15]])
+    texts_formatted = "\n".join([f"- {t}" for t in texts[:12]])
 
-    prompt = f"""Du bist ein weltklasse Webdesigner. Fülle alle {{{{PLATZHALTER}}}} im Template mit echten Inhalten aus.
+    prompt = f"""Fülle alle {{{{PLATZHALTER}}}} im HTML-Template aus.
 
-UNTERNEHMEN: {title}
+FIRMA: {title}
 BESCHREIBUNG: {meta_description}
-INHALTE:
-{texts_formatted}
-
-FARBEN: Primär={primary_color}, Sekundär={secondary_color}
-
-BILDER (gecrawlt): {crawled_text}
-{uploaded_text}
+TEXTE: {texts_formatted}
+PRIMÄRFARBE: {primary_color}
+SEKUNDÄRFARBE: {secondary_color}
+BILDER: {crawled_text}{uploaded_text}
 
 REGELN:
-- Ersetze JEDEN {{{{PLATZHALTER}}}} mit echtem Inhalt
+- Jeden {{{{PLATZHALTER}}}} ersetzen
 - {{{{PRIMARY_COLOR}}}}={primary_color}, {{{{SECONDARY_COLOR}}}}={secondary_color}, {{{{YEAR}}}}=2025
-- Bevorzuge hochgeladene Bilder, dann gecrawlte, sonst CSS-Gradient
-- Niemals leere src="" verwenden
+- Keine leeren src="" verwenden
 - Nur HTML zurückgeben, keine Erklärungen
-- Beginnt mit <!DOCTYPE html> und endet mit </html>
 
 TEMPLATE:
-{template}"""
+{html_only}"""
 
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -82,4 +82,7 @@ TEMPLATE:
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return message.content[0].text
+    result = message.content[0].text
+    # CSS wieder einfügen
+    result = result.replace('<STYLE_PLACEHOLDER>', css)
+    return result
