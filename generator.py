@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import anthropic
 
 def load_template(name: str) -> str:
@@ -7,16 +8,13 @@ def load_template(name: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
-def split_template(template: str):
-    # CSS extrahieren
-    css_match = re.search(r'<style>([\s\S]*?)</style>', template)
-    css = css_match.group(0) if css_match else ''
-    # Template ohne CSS (Claude braucht nur HTML-Struktur)
-    html_only = re.sub(r'<style>[\s\S]*?</style>', '<STYLE_PLACEHOLDER>', template)
-    # Kommentare und Leerzeilen entfernen
-    html_only = re.sub(r'<!--.*?-->', '', html_only, flags=re.DOTALL)
-    html_only = re.sub(r'\n\s*\n', '\n', html_only)
-    return html_only.strip(), css
+def extract_placeholders(template: str) -> list:
+    return list(set(re.findall(r'\{\{([^}]+)\}\}', template)))
+
+def fill_template(template: str, values: dict) -> str:
+    for key, value in values.items():
+        template = template.replace(f'{{{{{key}}}}}', str(value))
+    return template
 
 async def detect_branch(client, title: str, meta_description: str) -> str:
     response = client.messages.create(
@@ -41,48 +39,55 @@ async def generate_website(title: str, texts: list, colors: list, images: list =
     branch = await detect_branch(client, title, meta_description)
 
     if branch == "tech":
-        html_only, css = split_template(load_template("template_tech.html"))
+        template = load_template("template_tech.html")
     elif branch == "handwerk":
-        html_only, css = split_template(load_template("template_handwerk.html"))
+        template = load_template("template_handwerk.html")
     else:
-        html_only, css = split_template(load_template("template_rolex.html"))
+        template = load_template("template_rolex.html")
+
+    placeholders = extract_placeholders(template)
 
     crawled_urls = [img["src"] for img in images[:4]] if images else []
-    crawled_text = "\n".join(crawled_urls) if crawled_urls else "Keine Bilder"
+    images_text = "\n".join(crawled_urls) if crawled_urls else "Keine Bilder"
 
     uploaded_text = ""
     if uploaded_images:
-        uploaded_text = "\nHOCHGELADENE BILDER (Priorität):"
+        uploaded_text = "\nHOCHGELADENE BILDER (als src verwenden):"
         for i, img_data in enumerate(uploaded_images[:3]):
             uploaded_text += f"\nBild {i+1}: {img_data}"
 
     texts_formatted = "\n".join([f"- {t}" for t in texts[:12]])
 
-    prompt = f"""Fülle alle {{{{PLATZHALTER}}}} im HTML-Template aus.
+    prompt = f"""Du bist ein Webdesigner. Erstelle Inhalte für eine Website.
 
 FIRMA: {title}
 BESCHREIBUNG: {meta_description}
 TEXTE: {texts_formatted}
 PRIMÄRFARBE: {primary_color}
 SEKUNDÄRFARBE: {secondary_color}
-BILDER: {crawled_text}{uploaded_text}
+BILDER: {images_text}{uploaded_text}
+
+Gib ein JSON-Objekt zurück mit Werten für diese Platzhalter:
+{json.dumps(placeholders, ensure_ascii=False)}
 
 REGELN:
-- Jeden {{{{PLATZHALTER}}}} ersetzen
-- {{{{PRIMARY_COLOR}}}}={primary_color}, {{{{SECONDARY_COLOR}}}}={secondary_color}, {{{{YEAR}}}}=2025
-- Keine leeren src="" verwenden
-- Nur HTML zurückgeben, keine Erklärungen
-
-TEMPLATE:
-{html_only}"""
+- PRIMARY_COLOR = {primary_color}
+- SECONDARY_COLOR = {secondary_color}  
+- YEAR = 2025
+- Für Bilder: echte URLs oder Base64 aus hochgeladenen Bildern verwenden
+- Verkaufsstarke, überzeugende Texte schreiben
+- NUR JSON zurückgeben, kein anderer Text"""
 
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=8000,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}]
     )
 
-    result = message.content[0].text
-    # CSS wieder einfügen
-    result = result.replace('<STYLE_PLACEHOLDER>', css)
-    return result
+    raw = message.content[0].text.strip()
+    raw = re.sub(r'^```json\s*', '', raw)
+    raw = re.sub(r'^```\s*', '', raw)
+    raw = re.sub(r'\s*```$', '', raw)
+
+    values = json.loads(raw)
+    return fill_template(template, values)
