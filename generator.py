@@ -72,10 +72,10 @@ Gib ein JSON-Objekt zurück mit Werten für diese Platzhalter:
 
 REGELN:
 - PRIMARY_COLOR = {primary_color}
-- SECONDARY_COLOR = {secondary_color}  
+- SECONDARY_COLOR = {secondary_color}
 - YEAR = 2025
-- Für Bilder: echte URLs oder Base64 aus hochgeladenen Bildern verwenden
-- Verkaufsstarke, überzeugende Texte schreiben
+- Für Bilder: echte URLs verwenden, nie leer lassen
+- Verkaufsstarke Texte schreiben
 - NUR JSON zurückgeben, kein anderer Text"""
 
     message = client.messages.create(
