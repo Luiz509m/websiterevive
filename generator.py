@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import httpx
 import anthropic
 
 def load_template(name: str) -> str:
@@ -16,6 +17,29 @@ def fill_template(template: str, values: dict) -> str:
         template = template.replace(f'{{{{{key}}}}}', str(value))
     return template
 
+async def get_unsplash_images(query: str, count: int = 6) -> list:
+    """Holt hochwertige Bilder von Unsplash basierend auf dem Suchbegriff"""
+    access_key = os.environ.get("UNSPLASH_ACCESS_KEY")
+    if not access_key:
+        return []
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(
+                "https://api.unsplash.com/search/photos",
+                params={
+                    "query": query,
+                    "per_page": count,
+                    "orientation": "landscape",
+                    "content_filter": "high"
+                },
+                headers={"Authorization": f"Client-ID {access_key}"},
+                timeout=10
+            )
+            data = res.json()
+            return [photo["urls"]["regular"] for photo in data.get("results", [])]
+    except Exception:
+        return []
+
 async def detect_branch(client, title: str, meta_description: str) -> str:
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -30,14 +54,25 @@ async def detect_branch(client, title: str, meta_description: str) -> str:
     else:
         return "luxury"
 
+async def get_unsplash_query(branch: str, title: str, meta_description: str) -> str:
+    """Erstellt einen passenden Unsplash-Suchbegriff basierend auf der Branche"""
+    queries = {
+        "luxury": f"{title} luxury premium brand lifestyle",
+        "tech": f"{title} technology software modern office",
+        "handwerk": f"{title} craft local business artisan"
+    }
+    return queries.get(branch, title)
+
 async def generate_website(title: str, texts: list, colors: list, images: list = [], meta_description: str = "", uploaded_images: list = []) -> str:
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
     primary_color = colors[0] if len(colors) > 0 else "#1a1a1a"
     secondary_color = colors[1] if len(colors) > 1 else "#c9a84c"
 
+    # Branche erkennen
     branch = await detect_branch(client, title, meta_description)
 
+    # Template laden
     if branch == "tech":
         template = load_template("template_tech.html")
     elif branch == "handwerk":
@@ -45,41 +80,67 @@ async def generate_website(title: str, texts: list, colors: list, images: list =
     else:
         template = load_template("template_rolex.html")
 
+    # Platzhalter extrahieren
     placeholders = extract_placeholders(template)
 
-    crawled_urls = [img["src"] for img in images[:4]] if images else []
-    images_text = "\n".join(crawled_urls) if crawled_urls else "Keine Bilder"
+    # Unsplash Bilder holen
+    unsplash_query = await get_unsplash_query(branch, title, meta_description)
+    unsplash_images = await get_unsplash_images(unsplash_query, count=8)
 
-    uploaded_text = ""
+    # Alle verfügbaren Bilder zusammenstellen (Priorität: hochgeladen > gecrawlt > unsplash)
+    all_images = []
     if uploaded_images:
-        uploaded_text = "\nHOCHGELADENE BILDER (als src verwenden):"
-        for i, img_data in enumerate(uploaded_images[:3]):
-            uploaded_text += f"\nBild {i+1}: {img_data}"
+        all_images.extend(uploaded_images[:3])
+    crawled_urls = [img["src"] for img in images[:3]] if images else []
+    all_images.extend(crawled_urls)
+    all_images.extend(unsplash_images)
 
-    texts_formatted = "\n".join([f"- {t}" for t in texts[:12]])
+    images_text = "\n".join([f"- {url}" for url in all_images[:8]]) if all_images else "Keine Bilder verfügbar"
 
-    prompt = f"""Du bist ein Webdesigner. Erstelle Inhalte für eine Website.
+    texts_formatted = "\n".join([f"- {t}" for t in texts[:15]])
 
-FIRMA: {title}
+    # Platzhalter Kategorien für bessere Anweisungen
+    image_placeholders = [p for p in placeholders if "IMAGE" in p.upper() or "IMG" in p.upper()]
+    text_placeholders = [p for p in placeholders if "IMAGE" not in p.upper() and "IMG" not in p.upper()]
+
+    prompt = f"""Du bist ein weltklasse Webdesigner und Texter. Erstelle professionelle, verkaufsstarke Inhalte für diese Website.
+
+UNTERNEHMEN: {title}
+BRANCHE: {branch}
 BESCHREIBUNG: {meta_description}
-TEXTE: {texts_formatted}
-PRIMÄRFARBE: {primary_color}
-SEKUNDÄRFARBE: {secondary_color}
-BILDER: {images_text}{uploaded_text}
 
-Gib ein JSON-Objekt zurück mit Werten für diese Platzhalter:
-{json.dumps(placeholders, ensure_ascii=False)}
+ORIGINALE WEBSITE-INHALTE:
+{texts_formatted}
 
-REGELN:
-- PRIMARY_COLOR = {primary_color}
-- SECONDARY_COLOR = {secondary_color}
-- YEAR = 2025
-- Für Bilder: echte URLs verwenden, nie leer lassen
-- Verkaufsstarke Texte schreiben
-- NUR JSON zurückgeben, kein anderer Text"""
+DESIGN:
+- Primärfarbe: {primary_color}
+- Sekundärfarbe: {secondary_color}
+
+VERFÜGBARE BILDER (verwende diese URLs direkt):
+{images_text}
+
+AUFGABE:
+Erstelle ein JSON-Objekt mit Werten für alle Platzhalter.
+
+TEXT-PLATZHALTER (überzeugend, professionell, zur Marke passend):
+{json.dumps(text_placeholders, ensure_ascii=False, indent=2)}
+
+BILD-PLATZHALTER (verteile die verfügbaren Bilder-URLs sinnvoll):
+{json.dumps(image_placeholders, ensure_ascii=False, indent=2)}
+
+WICHTIGE REGELN:
+- PRIMARY_COLOR = "{primary_color}"
+- SECONDARY_COLOR = "{secondary_color}"
+- YEAR = "2025"
+- Texte müssen zur echten Firma passen — verwende die originalen Inhalte als Basis
+- Jeden Bild-Platzhalter mit einer echten URL aus der Bilderliste füllen
+- Niemals leere Strings für Bilder verwenden
+- Verkaufsstarke Headlines, überzeugende Beschreibungen
+- Auf Deutsch schreiben ausser die Firma ist klar englischsprachig
+- NUR gültiges JSON zurückgeben, absolut kein anderer Text"""
 
     message = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model="claude-sonnet-4-6",
         max_tokens=4000,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -90,4 +151,5 @@ REGELN:
     raw = re.sub(r'\s*```$', '', raw)
 
     values = json.loads(raw)
-    return fill_template(template, values)
+    result = fill_template(template, values)
+    return result
