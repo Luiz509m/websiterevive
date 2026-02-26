@@ -122,7 +122,7 @@ TEMPLATE:
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=12000,
+        max_tokens=7000,
         messages=[{"role": "user", "content": prompt}]
     )
 
@@ -135,3 +135,4 @@ TEMPLATE:
     result = result.replace('___CSS_PLACEHOLDER___', css)
 
     return result
+
