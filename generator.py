@@ -1,6 +1,5 @@
 import os
 import re
-import json
 import httpx
 import anthropic
 
@@ -9,16 +8,16 @@ def load_template(name: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
-def extract_placeholders(template: str) -> list:
-    return list(set(re.findall(r'\{\{([^}]+)\}\}', template)))
+def strip_template(template: str):
+    """Entfernt CSS um Tokens zu sparen — Claude braucht nur die HTML Struktur"""
+    css_match = re.search(r'(<style>[\s\S]*?</style>)', template)
+    css = css_match.group(1) if css_match else ''
+    stripped = re.sub(r'<style>[\s\S]*?</style>', '___CSS_PLACEHOLDER___', template)
+    stripped = re.sub(r'<!--.*?-->', '', stripped, flags=re.DOTALL)
+    stripped = re.sub(r'\n\s*\n\s*\n', '\n\n', stripped)
+    return stripped.strip(), css
 
-def fill_template(template: str, values: dict) -> str:
-    for key, value in values.items():
-        template = template.replace(f'{{{{{key}}}}}', str(value))
-    return template
-
-async def get_unsplash_images(query: str, count: int = 6) -> list:
-    """Holt hochwertige Bilder von Unsplash basierend auf dem Suchbegriff"""
+async def get_unsplash_images(query: str, count: int = 8) -> list:
     access_key = os.environ.get("UNSPLASH_ACCESS_KEY")
     if not access_key:
         return []
@@ -54,15 +53,6 @@ async def detect_branch(client, title: str, meta_description: str) -> str:
     else:
         return "luxury"
 
-async def get_unsplash_query(branch: str, title: str, meta_description: str) -> str:
-    """Erstellt einen passenden Unsplash-Suchbegriff basierend auf der Branche"""
-    queries = {
-        "luxury": f"{title} luxury premium brand lifestyle",
-        "tech": f"{title} technology software modern office",
-        "handwerk": f"{title} craft local business artisan"
-    }
-    return queries.get(branch, title)
-
 async def generate_website(title: str, texts: list, colors: list, images: list = [], meta_description: str = "", uploaded_images: list = []) -> str:
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
@@ -72,22 +62,25 @@ async def generate_website(title: str, texts: list, colors: list, images: list =
     # Branche erkennen
     branch = await detect_branch(client, title, meta_description)
 
-    # Template laden
+    # Template laden und CSS trennen
     if branch == "tech":
-        template = load_template("template_tech.html")
+        full_template = load_template("template_tech.html")
     elif branch == "handwerk":
-        template = load_template("template_handwerk.html")
+        full_template = load_template("template_handwerk.html")
     else:
-        template = load_template("template_rolex.html")
+        full_template = load_template("template_rolex.html")
 
-    # Platzhalter extrahieren
-    placeholders = extract_placeholders(template)
+    template_stripped, css = strip_template(full_template)
 
     # Unsplash Bilder holen
-    unsplash_query = await get_unsplash_query(branch, title, meta_description)
-    unsplash_images = await get_unsplash_images(unsplash_query, count=8)
+    unsplash_queries = {
+        "luxury": f"{title} luxury lifestyle premium",
+        "tech": f"{title} technology modern digital",
+        "handwerk": f"{title} handcraft local artisan"
+    }
+    unsplash_images = await get_unsplash_images(unsplash_queries.get(branch, title), count=8)
 
-    # Alle verfügbaren Bilder zusammenstellen (Priorität: hochgeladen > gecrawlt > unsplash)
+    # Bilder zusammenstellen (Priorität: hochgeladen > gecrawlt > unsplash)
     all_images = []
     if uploaded_images:
         all_images.extend(uploaded_images[:3])
@@ -95,74 +88,50 @@ async def generate_website(title: str, texts: list, colors: list, images: list =
     all_images.extend(crawled_urls)
     all_images.extend(unsplash_images)
 
-    images_text = "\n".join([f"- {url}" for url in all_images[:8]]) if all_images else "Keine Bilder verfügbar"
+    images_list = "\n".join([f"{i+1}. {url}" for i, url in enumerate(all_images[:8])]) if all_images else "Keine Bilder — CSS Gradienten verwenden"
 
     texts_formatted = "\n".join([f"- {t}" for t in texts[:15]])
 
-    # Platzhalter Kategorien für bessere Anweisungen
-    image_placeholders = [p for p in placeholders if "IMAGE" in p.upper() or "IMG" in p.upper()]
-    text_placeholders = [p for p in placeholders if "IMAGE" not in p.upper() and "IMG" not in p.upper()]
-
-    prompt = f"""Du bist ein weltklasse Webdesigner und Texter. Erstelle professionelle, verkaufsstarke Inhalte für diese Website.
+    prompt = f"""Du bist ein weltklasse Webdesigner. Fülle alle {{{{PLATZHALTER}}}} im HTML-Template mit echten, überzeugenden Inhalten aus.
 
 UNTERNEHMEN: {title}
 BRANCHE: {branch}
 BESCHREIBUNG: {meta_description}
 
-ORIGINALE WEBSITE-INHALTE:
+ORIGINAL-INHALTE:
 {texts_formatted}
 
 DESIGN:
-- Primärfarbe: {primary_color}
-- Sekundärfarbe: {secondary_color}
+- {{{{PRIMARY_COLOR}}}} = {primary_color}
+- {{{{SECONDARY_COLOR}}}} = {secondary_color}
+- {{{{YEAR}}}} = 2025
 
-VERFÜGBARE BILDER (verwende diese URLs direkt):
-{images_text}
+VERFÜGBARE BILDER (direkt als src verwenden):
+{images_list}
 
-AUFGABE:
-Erstelle ein JSON-Objekt mit Werten für alle Platzhalter.
+REGELN:
+- Jeden {{{{PLATZHALTER}}}} ersetzen
+- Bilder-URLs sinnvoll verteilen
+- Verkaufsstarke deutsche Texte
+- ___CSS_PLACEHOLDER___ NICHT ersetzen — exakt so lassen
+- Nur HTML zurückgeben, keine Erklärungen
+- Beginnt mit <!DOCTYPE html>, endet mit </html>
 
-TEXT-PLATZHALTER (überzeugend, professionell, zur Marke passend):
-{json.dumps(text_placeholders, ensure_ascii=False, indent=2)}
-
-BILD-PLATZHALTER (verteile die verfügbaren Bilder-URLs sinnvoll):
-{json.dumps(image_placeholders, ensure_ascii=False, indent=2)}
-
-WICHTIGE REGELN:
-- PRIMARY_COLOR = "{primary_color}"
-- SECONDARY_COLOR = "{secondary_color}"
-- YEAR = "2025"
-- Texte müssen zur echten Firma passen — verwende die originalen Inhalte als Basis
-- Jeden Bild-Platzhalter mit einer echten URL aus der Bilderliste füllen
-- Niemals leere Strings für Bilder verwenden
-- Verkaufsstarke Headlines, überzeugende Beschreibungen
-- Auf Deutsch schreiben ausser die Firma ist klar englischsprachig
-- NUR gültiges JSON zurückgeben, absolut kein anderer Text"""
+TEMPLATE:
+{template_stripped}"""
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=8000,
+        max_tokens=12000,
         messages=[{"role": "user", "content": prompt}]
     )
 
-    raw = message.content[0].text.strip()
-    raw = re.sub(r'^```json\s*', '', raw)
-    raw = re.sub(r'^```\s*', '', raw)
-    raw = re.sub(r'\s*```$', '', raw)
+    result = message.content[0].text.strip()
+    result = re.sub(r'^```html\s*', '', result)
+    result = re.sub(r'^```\s*', '', result)
+    result = re.sub(r'\s*```$', '', result)
 
-    try:
-        values = json.loads(raw)
-    except json.JSONDecodeError:
-        lines = raw.split('\n')
-        while lines and not lines[-1].strip().endswith((',', '{')):
-            lines.pop()
-        raw = '\n'.join(lines)
-        if not raw.endswith('}'):
-            raw += '\n}'
-        try:
-            values = json.loads(raw)
-        except json.JSONDecodeError:
-            values = {}
+    # CSS wieder einfügen
+    result = result.replace('___CSS_PLACEHOLDER___', css)
 
-    result = fill_template(template, values)
     return result
