@@ -61,7 +61,8 @@ async def generate_website(title: str, texts: list, colors: list, images: list =
 
     # Branche erkennen
     branch = await detect_branch(client, title, meta_description)
-
+import asyncio
+    await asyncio.sleep(2)
     # Template laden und CSS trennen
     if branch == "tech":
         full_template = load_template("template_tech.html")
@@ -135,4 +136,5 @@ TEMPLATE:
     result = result.replace('___CSS_PLACEHOLDER___', css)
 
     return result
+
 
