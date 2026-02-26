@@ -1297,14 +1297,23 @@ wrTextMode(true);
       const script = buildEditorScript(c1, c2);
       return html.replace(/<body([^>]*)>/i, `<body$1>\n${script}`);
     }
-
+async function wakeUpServer() {
+  try {
+    await fetch('https://websiterevive-backend.onrender.com/', { method: 'GET' });
+  } catch(e) {}
+}
     // ── MAIN START ──
     async function start() {
       const url = document.getElementById('urlInput').value.trim();
       if (!url) { document.getElementById('urlInput').focus(); return; }
 
-      const c1 = document.getElementById('color1').value;
+     const c1 = document.getElementById('color1').value;
       const c2 = document.getElementById('color2').value;
+
+      // Server aufwecken
+      document.getElementById('loadingLabel').textContent = 'Server wird gestartet...';
+      document.getElementById('loading').style.display = 'flex';
+      await wakeUpServer();
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
@@ -1334,7 +1343,7 @@ wrTextMode(true);
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000);
+        const timeoutId = setTimeout(() => controller.abort(), 180000);
 
         const res = await fetch('https://websiterevive-backend.onrender.com/analyze', {
           method: 'POST',
@@ -1410,3 +1419,4 @@ wrTextMode(true);
   </script>
 </body>
 </html>
+
