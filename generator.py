@@ -139,7 +139,7 @@ WICHTIGE REGELN:
 - Auf Deutsch schreiben ausser die Firma ist klar englischsprachig
 - NUR gültiges JSON zurückgeben, absolut kein anderer Text"""
 
-   message = client.messages.create(
+    message = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=8000,
         messages=[{"role": "user", "content": prompt}]
@@ -166,4 +166,3 @@ WICHTIGE REGELN:
 
     result = fill_template(template, values)
     return result
-
