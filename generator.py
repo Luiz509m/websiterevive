@@ -169,6 +169,13 @@ async def generate_website(
         "luxury": "template_rolex.html"
     }
     full_template = load_template(template_map[branch])
+
+    # Farben und feste Werte DIREKT ersetzen — vor dem CSS-Strip
+    # (PRIMARY_COLOR/SECONDARY_COLOR sind im CSS Block)
+    full_template = full_template.replace('{{PRIMARY_COLOR}}', primary_color)
+    full_template = full_template.replace('{{SECONDARY_COLOR}}', secondary_color)
+    full_template = full_template.replace('{{YEAR}}', '2025')
+
     template_stripped, css = strip_css(full_template)
 
     # Schritt 3: Bilder zusammenstellen
@@ -199,33 +206,37 @@ async def generate_website(
     texts_formatted = "\n".join([f"- {t}" for t in texts[:20]])
 
     # Schritt 5: Prompt aufbauen
-    prompt = f"""Du bist ein weltklasse Webdesigner. Fülle alle {{{{PLATZHALTER}}}} im HTML-Template mit professionellen, überzeugenden Inhalten aus.
+    # Bildliste mit Zuweisung erklären
+    image_assignment = ""
+    if all_images:
+        image_assignment = f"""
+BILD-ZUWEISUNG (wichtig!):
+- HERO_IMAGE_1, HERO_IMAGE_2, HERO_IMAGE_3 → Bild 1, 2, 3 (beste/grösste Bilder)
+- PRODUCT Bilder → Verschiedene Bilder für verschiedene Produkte
+- INTRO_IMAGE, CRAFT_IMAGE, BANNER_IMAGE → Weitere Bilder der Reihe nach
+- Jedes Bild nur 1-2x verwenden — keine Wiederholungen"""
 
-━━━ UNTERNEHMEN ━━━
-Name: {title}
-Branche: {branch}
-Beschreibung: {meta_description}
+    prompt = f"""Du bist ein weltklasse Webdesigner. Fülle alle {{{{PLATZHALTER}}}} im HTML-Template aus.
 
-━━━ ORIGINAL-INHALTE DER WEBSITE ━━━
+FIRMA: {title}
+BRANCHE: {branch}
+BESCHREIBUNG: {meta_description}
+
+ORIGINAL-TEXTE:
 {texts_formatted}
 
-━━━ DESIGN ━━━
-{{{{PRIMARY_COLOR}}}} → {primary_color}
-{{{{SECONDARY_COLOR}}}} → {secondary_color}
-{{{{YEAR}}}} → 2025
-
-━━━ VERFÜGBARE BILDER ━━━
-Verwende diese URLs direkt als img src — verteile sie sinnvoll:
+BILDER (URLs direkt verwenden):
 {images_text}
+{image_assignment}
 
-━━━ REGELN ━━━
-1. Jeden einzelnen {{{{PLATZHALTER}}}} ersetzen — keinen auslassen
-2. Bilder sinnvoll zuweisen: Hero-Bild = bestes Bild, Galerie = verschiedene Bilder
-3. Texte basieren auf den Original-Inhalten — nicht erfinden was nicht da ist
-4. Verkaufsstarke, professionelle Formulierungen auf Deutsch
-5. ___CSS___ NICHT ersetzen — exakt so lassen
-6. Nur HTML zurückgeben — keine Erklärungen, kein Markdown
-7. Beginnt mit <!DOCTYPE html> und endet mit </html>
+REGELN:
+1. Jeden {{{{PLATZHALTER}}}} ersetzen — keinen auslassen
+2. PRIMARY_COLOR/SECONDARY_COLOR/YEAR sind bereits ersetzt — nicht nochmals ersetzen
+3. Texte basieren auf Original-Inhalten — authentisch und überzeugend
+4. Auf Deutsch schreiben
+5. ___CSS___ EXAKT so lassen — nicht verändern
+6. Nur HTML zurückgeben — kein Markdown, keine Erklärungen
+7. Beginnt mit <!DOCTYPE html>, endet mit </html>
 
 TEMPLATE:
 {template_stripped}"""
