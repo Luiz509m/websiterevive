@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{BRAND_NAME}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: {{PRIMARY_COLOR}};
+      --secondary: {{SECONDARY_COLOR}};
+      --black: #0f0f0f;
+      --bg: #f4f3f0;
+      --bg-dark: #eae9e4;
+      --text: #0f0f0f;
+      --text-muted: #7a7870;
+      --border: rgba(15,15,15,0.08);
+      --white: #ffffff;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 68px; background: rgba(244,243,240,0); transition: background 0.3s; }
+    nav.scrolled { background: rgba(244,243,240,0.94); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; color: var(--black); text-decoration: none; }
+    .nav-links { display: flex; gap: 36px; list-style: none; position: absolute; left: 50%; transform: translateX(-50%); }
+    .nav-links a { font-size: 0.8rem; font-weight: 400; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { display: inline-flex; align-items: center; font-size: 0.8rem; font-weight: 500; color: var(--white); background: var(--black); padding: 10px 22px; border-radius: 6px; text-decoration: none; transition: background 0.2s; }
+    .nav-cta:hover { background: var(--primary); }
+    .hero { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; padding-top: 68px; }
+    .hero-left { display: flex; flex-direction: column; justify-content: center; padding: 80px 48px; border-right: 1px solid var(--border); }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--white); border: 1px solid var(--border); border-radius: 100px; padding: 6px 16px 6px 8px; margin-bottom: 48px; width: fit-content; opacity: 0; animation: fadeUp 0.6s ease 0.2s forwards; }
+    .hero-badge-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; }
+    .hero-badge-text { font-size: 0.72rem; font-weight: 500; color: var(--text-muted); }
+    .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(3rem, 5.5vw, 6rem); font-weight: 800; line-height: 1.0; letter-spacing: -2px; color: var(--black); margin-bottom: 28px; opacity: 0; animation: fadeUp 0.7s ease 0.4s forwards; }
+    .hero h1 span { color: var(--primary); }
+    .hero-sub { font-size: 1rem; font-weight: 300; color: var(--text-muted); line-height: 1.7; max-width: 440px; margin-bottom: 48px; opacity: 0; animation: fadeUp 0.7s ease 0.6s forwards; }
+    .hero-actions { display: flex; align-items: center; gap: 20px; opacity: 0; animation: fadeUp 0.7s ease 0.8s forwards; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 500; color: var(--white); background: var(--black); padding: 14px 28px; border-radius: 8px; text-decoration: none; transition: all 0.2s; }
+    .btn-primary:hover { background: var(--primary); transform: translateY(-1px); }
+    .btn-ghost { font-size: 0.82rem; font-weight: 400; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .btn-ghost:hover { color: var(--text); }
+    .hero-stats { display: flex; gap: 40px; margin-top: 64px; padding-top: 40px; border-top: 1px solid var(--border); opacity: 0; animation: fadeUp 0.7s ease 1s forwards; }
+    .hero-stat-num { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 700; color: var(--black); letter-spacing: -1px; }
+    .hero-stat-label { font-size: 0.75rem; font-weight: 400; color: var(--text-muted); margin-top: 2px; }
+    .hero-right { position: relative; overflow: hidden; background: var(--bg-dark); }
+    .hero-right img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
+    .hero-float-card { position: absolute; bottom: 48px; left: 32px; right: 32px; background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.8); border-radius: 12px; padding: 24px; display: flex; align-items: center; gap: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+    .hero-float-icon { width: 44px; height: 44px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem; }
+    .hero-float-title { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--black); margin-bottom: 2px; }
+    .hero-float-sub { font-size: 0.75rem; color: var(--text-muted); }
+    .hero-float-badge { margin-left: auto; background: #e8f5e8; color: #2d7a2d; font-size: 0.65rem; font-weight: 600; padding: 4px 10px; border-radius: 100px; white-space: nowrap; }
+    .logos { padding: 48px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 24px; }
+    .logos-label { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+    .logos-list { display: flex; gap: 48px; flex-wrap: wrap; }
+    .logos-item { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600; color: rgba(15,15,15,0.2); }
+    .features { padding: 140px 48px; }
+    .features-header { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; margin-bottom: 80px; }
+    .features-label { font-size: 0.72rem; font-weight: 500; color: var(--primary); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .features-label::before { content: ''; width: 20px; height: 2px; background: var(--primary); }
+    .features h2 { font-family: 'Syne', sans-serif; font-size: clamp(2.5rem, 4vw, 4rem); font-weight: 800; line-height: 1.05; letter-spacing: -1.5px; color: var(--black); }
+    .features-intro { display: flex; flex-direction: column; justify-content: flex-end; gap: 24px; }
+    .features-intro p { font-size: 0.92rem; font-weight: 300; color: var(--text-muted); line-height: 1.8; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
+    .feature-item { background: var(--bg); padding: 48px 40px; transition: background 0.2s; }
+    .feature-item:hover { background: var(--white); }
+    .feature-num { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; color: var(--primary); margin-bottom: 28px; }
+    .feature-title { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--black); letter-spacing: -0.3px; margin-bottom: 14px; }
+    .feature-desc { font-size: 0.83rem; font-weight: 300; color: var(--text-muted); line-height: 1.75; }
+    .showcase { background: var(--black); padding: 140px 48px; color: var(--white); }
+    .showcase-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 64px; }
+    .showcase h2 { font-family: 'Syne', sans-serif; font-size: clamp(2.5rem, 4vw, 4rem); font-weight: 800; letter-spacing: -1.5px; line-height: 1.05; }
+    .showcase h2 span { color: var(--primary); }
+    .showcase-link { font-size: 0.8rem; color: rgba(255,255,255,0.4); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 2px; }
+    .showcase-link:hover { color: var(--white); }
+    .showcase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+    .showcase-item { position: relative; overflow: hidden; aspect-ratio: 4/3; }
+    .showcase-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; transition: opacity 0.3s, transform 0.5s; }
+    .showcase-item:hover img { opacity: 0.9; transform: scale(1.04); }
+    .showcase-item-overlay { position: absolute; inset: 0; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; background: linear-gradient(to top, rgba(15,15,15,0.8) 0%, transparent 50%); }
+    .showcase-item-tag { font-size: 0.65rem; font-weight: 500; color: var(--primary); margin-bottom: 6px; }
+    .showcase-item-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: var(--white); }
+    .process { padding: 140px 48px; }
+    .process-label { font-size: 0.72rem; font-weight: 500; color: var(--primary); margin-bottom: 60px; display: flex; align-items: center; gap: 8px; }
+    .process-label::before { content: ''; width: 20px; height: 2px; background: var(--primary); }
+    .process-step { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 40px; align-items: start; padding: 48px 0; border-bottom: 1px solid var(--border); }
+    .process-step:first-of-type { border-top: 1px solid var(--border); }
+    .process-step-num { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); padding-top: 4px; }
+    .process-step-title { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--black); letter-spacing: -0.5px; }
+    .process-step-desc { font-size: 0.85rem; font-weight: 300; color: var(--text-muted); line-height: 1.75; }
+    .contact { background: var(--bg-dark); padding: 140px 48px; }
+    .contact-inner { max-width: 800px; margin: 0 auto; text-align: center; }
+    .contact-label { font-size: 0.72rem; font-weight: 500; color: var(--primary); margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .contact-label::before, .contact-label::after { content: ''; width: 20px; height: 2px; background: var(--primary); }
+    .contact h2 { font-family: 'Syne', sans-serif; font-size: clamp(2.5rem, 5vw, 5rem); font-weight: 800; letter-spacing: -2px; line-height: 1.0; color: var(--black); margin-bottom: 24px; }
+    .contact h2 span { color: var(--primary); }
+    .contact-sub { font-size: 0.95rem; font-weight: 300; color: var(--text-muted); line-height: 1.7; margin-bottom: 48px; }
+    .contact-buttons { display: flex; gap: 16px; justify-content: center; margin-bottom: 64px; }
+    .contact-details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+    .contact-detail { background: var(--bg); padding: 28px 24px; text-align: left; }
+    .contact-detail-label { font-size: 0.65rem; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .contact-detail-value { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--black); }
+    .contact-detail-value a { color: inherit; text-decoration: none; }
+    .contact-detail-value a:hover { color: var(--primary); }
+    footer { background: var(--black); padding: 40px 48px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-logo { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: var(--white); }
+    .footer-links { display: flex; gap: 32px; list-style: none; }
+    .footer-links a { font-size: 0.75rem; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 0.72rem; color: rgba(255,255,255,0.2); }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .reveal { opacity: 0; transform: translateY(28px); transition: all 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-left { padding: 60px 20px; border-right: none; }
+      .hero-right { height: 320px; }
+      .logos { padding: 32px 20px; }
+      .features { padding: 80px 20px; }
+      .features-header { grid-template-columns: 1fr; gap: 32px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .showcase { padding: 80px 20px; }
+      .showcase-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .showcase-grid { grid-template-columns: 1fr; }
+      .process { padding: 80px 20px; }
+      .process-step { grid-template-columns: 1fr; gap: 12px; }
+      .contact { padding: 80px 20px; }
+      .contact-details-grid { grid-template-columns: 1fr; }
+      .contact-buttons { flex-direction: column; align-items: center; }
+      footer { flex-direction: column; gap: 20px; padding: 28px 20px; text-align: center; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <nav id="nav">
+    <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+    <ul class="nav-links">
+      <li><a href="#features">Leistungen</a></li>
+      <li><a href="#showcase">Referenzen</a></li>
+      <li><a href="#contact">Kontakt</a></li>
+    </ul>
+    <a href="#contact" class="nav-cta">Jetzt starten →</a>
+  </nav>
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        <span class="hero-badge-text">{{HERO_EYEBROW}}</span>
+      </div>
+      <h1>{{HERO_TITLE_LINE1}}<br><span>{{HERO_TITLE_LINE2}}</span></h1>
+      <p class="hero-sub">{{HERO_TAGLINE}}</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Jetzt starten →</a>
+        <a href="#features" class="btn-ghost">Mehr erfahren</a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-num">{{VALUE_1_NUM}}</div>
+          <div class="hero-stat-label">{{VALUE_1_TITLE}}</div>
+        </div>
+        <div>
+          <div class="hero-stat-num">{{VALUE_2_NUM}}</div>
+          <div class="hero-stat-label">{{VALUE_2_TITLE}}</div>
+        </div>
+        <div>
+          <div class="hero-stat-num">{{VALUE_3_NUM}}</div>
+          <div class="hero-stat-label">{{VALUE_3_TITLE}}</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <img src="{{HERO_IMAGE_1}}" alt="{{BRAND_NAME}}">
+      <div class="hero-float-card">
+        <div class="hero-float-icon">⚡</div>
+        <div>
+          <div class="hero-float-title">{{HERO_FLOAT_TITLE}}</div>
+          <div class="hero-float-sub">{{HERO_FLOAT_SUB}}</div>
+        </div>
+        <div class="hero-float-badge">{{HERO_FLOAT_BADGE}}</div>
+      </div>
+    </div>
+  </section>
+  <div class="logos reveal">
+    <span class="logos-label">Vertraut von Unternehmen</span>
+    <div class="logos-list">
+      <span class="logos-item">{{CLIENT_1}}</span>
+      <span class="logos-item">{{CLIENT_2}}</span>
+      <span class="logos-item">{{CLIENT_3}}</span>
+      <span class="logos-item">{{CLIENT_4}}</span>
+      <span class="logos-item">{{CLIENT_5}}</span>
+    </div>
+  </div>
+  <section class="features" id="features">
+    <div class="features-header reveal">
+      <div>
+        <p class="features-label">{{FEATURES_LABEL}}</p>
+        <h2>{{FEATURES_TITLE}}</h2>
+      </div>
+      <div class="features-intro">
+        <p>{{FEATURES_INTRO}}</p>
+        <a href="#contact" class="btn-primary" style="width:fit-content">Gespräch vereinbaren →</a>
+      </div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-item reveal">
+        <div class="feature-num">01</div>
+        <h3 class="feature-title">{{PRODUCT_1_NAME}}</h3>
+        <p class="feature-desc">{{PRODUCT_1_DESC}}</p>
+      </div>
+      <div class="feature-item reveal">
+        <div class="feature-num">02</div>
+        <h3 class="feature-title">{{PRODUCT_2_NAME}}</h3>
+        <p class="feature-desc">{{PRODUCT_2_DESC}}</p>
+      </div>
+      <div class="feature-item reveal">
+        <div class="feature-num">03</div>
+        <h3 class="feature-title">{{PRODUCT_3_NAME}}</h3>
+        <p class="feature-desc">{{PRODUCT_3_DESC}}</p>
+      </div>
+    </div>
+  </section>
+  <section class="showcase" id="showcase">
+    <div class="showcase-header reveal">
+      <h2>{{SHOWCASE_TITLE}}<br><span>{{SHOWCASE_TITLE_EM}}</span></h2>
+      <a href="#contact" class="showcase-link">Alle Referenzen →</a>
+    </div>
+    <div class="showcase-grid">
+      <div class="showcase-item">
+        <img src="{{GALLERY_IMAGE_1}}" alt="Referenz">
+        <div class="showcase-item-overlay">
+          <p class="showcase-item-tag">{{PRODUCT_1_TAG}}</p>
+          <p class="showcase-item-title">{{PORTFOLIO_ITEM_1}}</p>
+        </div>
+      </div>
+      <div class="showcase-item">
+        <img src="{{GALLERY_IMAGE_2}}" alt="Referenz">
+        <div class="showcase-item-overlay">
+          <p class="showcase-item-tag">{{PRODUCT_2_TAG}}</p>
+          <p class="showcase-item-title">{{PORTFOLIO_ITEM_2}}</p>
+        </div>
+      </div>
+      <div class="showcase-item">
+        <img src="{{GALLERY_IMAGE_3}}" alt="Referenz">
+        <div class="showcase-item-overlay">
+          <p class="showcase-item-tag">{{PRODUCT_3_TAG}}</p>
+          <p class="showcase-item-title">{{PORTFOLIO_ITEM_3}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="process" id="process">
+    <p class="process-label reveal">{{PROCESS_LABEL}}</p>
+    <div class="process-step reveal">
+      <span class="process-step-num">01</span>
+      <h3 class="process-step-title">{{PROCESS_1_TITLE}}</h3>
+      <p class="process-step-desc">{{PROCESS_1_DESC}}</p>
+    </div>
+    <div class="process-step reveal">
+      <span class="process-step-num">02</span>
+      <h3 class="process-step-title">{{PROCESS_2_TITLE}}</h3>
+      <p class="process-step-desc">{{PROCESS_2_DESC}}</p>
+    </div>
+    <div class="process-step reveal">
+      <span class="process-step-num">03</span>
+      <h3 class="process-step-title">{{PROCESS_3_TITLE}}</h3>
+      <p class="process-step-desc">{{PROCESS_3_DESC}}</p>
+    </div>
+  </section>
+  <section class="contact" id="contact">
+    <div class="contact-inner reveal">
+      <p class="contact-label">{{CONTACT_LABEL}}</p>
+      <h2>{{CONTACT_TITLE}}<br><span>{{CONTACT_TITLE_EM}}</span></h2>
+      <p class="contact-sub">{{CONTACT_TEXT}}</p>
+      <div class="contact-buttons">
+        <a href="mailto:{{CONTACT_EMAIL}}" class="btn-primary">E-Mail schreiben →</a>
+        <a href="tel:{{CONTACT_PHONE}}" class="btn-ghost">Direkt anrufen</a>
+      </div>
+      <div class="contact-details-grid">
+        <div class="contact-detail">
+          <p class="contact-detail-label">Adresse</p>
+          <p class="contact-detail-value">{{CONTACT_ADDRESS}}</p>
+        </div>
+        <div class="contact-detail">
+          <p class="contact-detail-label">Telefon</p>
+          <p class="contact-detail-value"><a href="tel:{{CONTACT_PHONE}}">{{CONTACT_PHONE}}</a></p>
+        </div>
+        <div class="contact-detail">
+          <p class="contact-detail-label">Öffnungszeiten</p>
+          <p class="contact-detail-value">{{CONTACT_HOURS}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <footer>
+    <div class="footer-logo">{{BRAND_NAME}}</div>
+    <ul class="footer-links">
+      <li><a href="#features">Leistungen</a></li>
+      <li><a href="#showcase">Referenzen</a></li>
+      <li><a href="#contact">Kontakt</a></li>
+      <li><a href="#">Datenschutz</a></li>
+    </ul>
+    <p class="footer-copy">© {{YEAR}} {{BRAND_NAME}}</p>
+  </footer>
+  <script>
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 60); });
+    const observer = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }); }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
