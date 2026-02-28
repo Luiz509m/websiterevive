@@ -213,7 +213,7 @@ TEMPLATE:
 
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=7000,
+        max_tokens=9000,
         messages=[{"role": "user", "content": prompt}]
     )
 
@@ -230,3 +230,4 @@ TEMPLATE:
         result = inject_uploaded_images(result, uploaded_images)
 
     return result
+
