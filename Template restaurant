@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{BRAND_NAME}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Barlow+Condensed:wght@300;400;500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: {{PRIMARY_COLOR}};
+      --secondary: {{SECONDARY_COLOR}};
+      --black: #0a0a08;
+      --dark: #141410;
+      --mid: #2a2a24;
+      --cream: #f5f0e8;
+      --cream-dark: #e8e0d0;
+      --white: #ffffff;
+      --text-muted: rgba(245,240,232,0.55);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Barlow', sans-serif;
+      background: var(--black);
+      color: var(--cream);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 52px;
+      height: 72px;
+      background: rgba(10,10,8,0.0);
+      transition: background 0.4s;
+    }
+
+    nav.scrolled {
+      background: rgba(10,10,8,0.95);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--white);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 40px;
+      list-style: none;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .nav-links a {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--white);
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.4);
+      padding: 10px 24px;
+      transition: all 0.2s;
+    }
+
+    .nav-cta:hover {
+      background: var(--white);
+      color: var(--black);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      height: 100vh;
+      min-height: 600px;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .hero-bg img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform-origin: center;
+      animation: kenBurns 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes kenBurns {
+      from { transform: scale(1.0) translate(0, 0); }
+      to { transform: scale(1.08) translate(-2%, -1%); }
+    }
+
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top,
+        rgba(10,10,8,0.9) 0%,
+        rgba(10,10,8,0.5) 40%,
+        rgba(10,10,8,0.15) 70%,
+        rgba(10,10,8,0.3) 100%
+      );
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 0 52px 72px;
+      max-width: 900px;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.3s forwards;
+    }
+
+    .hero h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: clamp(4rem, 9vw, 10rem);
+      font-weight: 700;
+      line-height: 0.92;
+      letter-spacing: -1px;
+      text-transform: uppercase;
+      color: var(--white);
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.5s forwards;
+    }
+
+    .hero h1 em {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-weight: 400;
+      text-transform: none;
+      color: var(--primary);
+    }
+
+    .hero-sub {
+      font-size: 1rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      max-width: 480px;
+      line-height: 1.7;
+      margin-bottom: 40px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.7s forwards;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.9s forwards;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--black);
+      background: var(--primary);
+      padding: 16px 36px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-ghost {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 2px;
+      transition: all 0.2s;
+    }
+
+    .btn-ghost:hover { color: var(--white); border-color: var(--white); }
+
+    .hero-scroll {
+      position: absolute;
+      bottom: 36px;
+      right: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 1.2s forwards;
+    }
+
+    .hero-scroll span {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      writing-mode: vertical-rl;
+    }
+
+    .hero-scroll-line {
+      width: 1px;
+      height: 60px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
+      animation: scrollLine 2s ease-in-out infinite;
+    }
+
+    @keyframes scrollLine {
+      0%, 100% { transform: scaleY(1); opacity: 1; }
+      50% { transform: scaleY(0.5); opacity: 0.4; }
+    }
+
+    /* ── TICKER ── */
+    .ticker {
+      background: var(--primary);
+      padding: 14px 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .ticker-inner {
+      display: inline-flex;
+      animation: ticker 30s linear infinite;
+    }
+
+    .ticker-item {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--black);
+      padding: 0 48px;
+    }
+
+    .ticker-item::before {
+      content: '✦';
+      margin-right: 48px;
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* ── INTRO ── */
+    .intro {
+      padding: 140px 52px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 100px;
+      align-items: center;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .intro-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .intro-label::before {
+      content: '';
+      width: 32px;
+      height: 1px;
+      background: var(--primary);
+    }
+
+    .intro h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 4vw, 4rem);
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      color: var(--cream);
+      margin-bottom: 32px;
+    }
+
+    .intro h2 em {
+      font-style: italic;
+      color: var(--primary);
+    }
+
+    .intro-body {
+      font-size: 0.95rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      line-height: 1.85;
+      margin-bottom: 16px;
+    }
+
+    .intro-stat {
+      display: inline-block;
+      margin-top: 32px;
+      border-top: 1px solid rgba(245,240,232,0.1);
+      padding-top: 32px;
+    }
+
+    .intro-stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 3.5rem;
+      font-weight: 400;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .intro-stat-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .intro-image {
+      position: relative;
+    }
+
+    .intro-image img {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+    }
+
+    .intro-image-tag {
+      position: absolute;
+      bottom: -24px;
+      left: -24px;
+      background: var(--primary);
+      color: var(--black);
+      padding: 20px 28px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── MENU HIGHLIGHTS ── */
+    .menu {
+      padding: 0 52px 140px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 64px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid rgba(245,240,232,0.08);
+    }
+
+    .section-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 3.5vw, 3.5rem);
+      font-weight: 400;
+      color: var(--cream);
+      letter-spacing: -0.5px;
+    }
+
+    .section-title em { font-style: italic; color: var(--primary); }
+
+    .section-link {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(245,240,232,0.2);
+      padding-bottom: 2px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .section-link:hover { color: var(--cream); }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+    }
+
+    .menu-item {
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .menu-item img {
+      width: 100%;
+      aspect-ratio: 4/5;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+
+    .menu-item:hover img { transform: scale(1.05); }
+
+    .menu-item-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(10,10,8,0.9) 0%, transparent 50%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 32px;
+    }
+
+    .menu-item-tag {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .menu-item-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+
+    .menu-item-desc {
+      font-size: 0.82rem;
+      font-weight: 300;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.5;
+    }
+
+    /* ── GALLERY ── */
+    .gallery {
+      padding: 0 0 140px;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-rows: 300px 300px;
+      gap: 3px;
+    }
+
+    .gallery-item {
+      overflow: hidden;
+    }
+
+    .gallery-item:first-child {
+      grid-row: 1 / 3;
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+
+    .gallery-item:hover img { transform: scale(1.03); }
+
+    .gallery-cta {
+      padding: 80px 52px;
+      text-align: center;
+    }
+
+    .gallery-cta p {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 3vw, 3rem);
+      font-weight: 400;
+      font-style: italic;
+      color: var(--cream);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.4;
+    }
+
+    /* ── EXPERIENCE ── */
+    .experience {
+      background: var(--dark);
+      padding: 140px 52px;
+    }
+
+    .experience-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: rgba(245,240,232,0.06);
+      max-width: 1100px;
+      margin: 80px auto 0;
+    }
+
+    .exp-item {
+      background: var(--dark);
+      padding: 52px 44px;
+    }
+
+    .exp-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 4rem;
+      font-weight: 400;
+      color: var(--primary);
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    .exp-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--cream);
+      margin-bottom: 12px;
+    }
+
+    .exp-text {
+      font-size: 0.85rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+
+    /* ── CONTACT ── */
+    .contact {
+      padding: 140px 52px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 100px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .contact h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 4vw, 4rem);
+      font-weight: 400;
+      color: var(--cream);
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .contact h2 em { font-style: italic; color: var(--primary); }
+
+    .contact-sub {
+      font-size: 0.9rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    .contact-detail {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .contact-item {
+      border-top: 1px solid rgba(245,240,232,0.08);
+      padding-top: 28px;
+    }
+
+    .contact-item-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .contact-item-value {
+      font-size: 1rem;
+      color: var(--cream);
+      font-weight: 300;
+    }
+
+    .contact-item-value a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .contact-item-value a:hover { color: var(--primary); }
+
+    .contact-map {
+      background: var(--mid);
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .contact-map img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+    }
+
+    .contact-map-label {
+      position: relative;
+      z-index: 1;
+      background: var(--black);
+      padding: 20px 32px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--white);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--dark);
+      border-top: 1px solid rgba(245,240,232,0.06);
+      padding: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--cream);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--cream); }
+
+    .footer-copy {
+      font-size: 0.78rem;
+      color: rgba(245,240,232,0.2);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: all 0.8s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero-content { padding: 0 20px 60px; }
+      .hero-scroll { display: none; }
+      .intro { grid-template-columns: 1fr; gap: 48px; padding: 80px 20px; }
+      .menu { padding: 0 20px 80px; }
+      .menu-grid { grid-template-columns: 1fr; }
+      .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+      .gallery-item:first-child { grid-row: auto; }
+      .experience { padding: 80px 20px; }
+      .experience-grid { grid-template-columns: 1fr; }
+      .contact { grid-template-columns: 1fr; gap: 48px; padding: 80px 20px; }
+      footer { flex-direction: column; gap: 24px; text-align: center; padding: 36px 20px; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav id="nav">
+    <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+    <ul class="nav-links">
+      <li><a href="#menu">Speisekarte</a></li>
+      <li><a href="#gallery">Galerie</a></li>
+      <li><a href="#contact">Kontakt</a></li>
+    </ul>
+    <a href="#contact" class="nav-cta">Reservieren</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg">
+      <img src="{{HERO_IMAGE_1}}" alt="{{BRAND_NAME}}">
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">{{HERO_EYEBROW}}</p>
+      <h1>{{HERO_TITLE_LINE1}}<br><em>{{HERO_TITLE_LINE2}}</em></h1>
+      <p class="hero-sub">{{HERO_TAGLINE}}</p>
+      <div class="hero-actions">
+        <a href="#menu" class="btn-primary">Speisekarte →</a>
+        <a href="#contact" class="btn-ghost">Tisch reservieren</a>
+      </div>
+    </div>
+    <div class="hero-scroll">
+      <span>Scroll</span>
+      <div class="hero-scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-inner">
+      <span class="ticker-item">{{TICKER_1}}</span>
+      <span class="ticker-item">{{TICKER_2}}</span>
+      <span class="ticker-item">{{TICKER_3}}</span>
+      <span class="ticker-item">{{TICKER_4}}</span>
+      <span class="ticker-item">{{TICKER_1}}</span>
+      <span class="ticker-item">{{TICKER_2}}</span>
+      <span class="ticker-item">{{TICKER_3}}</span>
+      <span class="ticker-item">{{TICKER_4}}</span>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <section class="intro reveal" id="about">
+    <div class="intro-text">
+      <p class="intro-label">{{INTRO_LABEL}}</p>
+      <h2>{{INTRO_TITLE}}<br><em>{{INTRO_TITLE_EM}}</em></h2>
+      <p class="intro-body">{{INTRO_TEXT_1}}</p>
+      <p class="intro-body">{{INTRO_TEXT_2}}</p>
+      <div class="intro-stat">
+        <div class="intro-stat-num">{{FOUNDING_YEAR}}</div>
+        <div class="intro-stat-label">Gegründet</div>
+      </div>
+    </div>
+    <div class="intro-image">
+      <img src="{{INTRO_IMAGE}}" alt="{{BRAND_NAME}}">
+      <div class="intro-image-tag">{{INTRO_TAG}}</div>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="menu" id="menu">
+    <div class="section-header reveal">
+      <div>
+        <p class="section-label">{{MENU_LABEL}}</p>
+        <h2 class="section-title">{{MENU_TITLE}} <em>{{MENU_TITLE_EM}}</em></h2>
+      </div>
+      <a href="#" class="section-link">Vollständige Karte →</a>
+    </div>
+    <div class="menu-grid">
+      <div class="menu-item reveal">
+        <img src="{{PRODUCT_1_IMAGE}}" alt="{{PRODUCT_1_NAME}}">
+        <div class="menu-item-overlay">
+          <p class="menu-item-tag">{{PRODUCT_1_TAG}}</p>
+          <h3 class="menu-item-name">{{PRODUCT_1_NAME}}</h3>
+          <p class="menu-item-desc">{{PRODUCT_1_DESC}}</p>
+        </div>
+      </div>
+      <div class="menu-item reveal">
+        <img src="{{PRODUCT_2_IMAGE}}" alt="{{PRODUCT_2_NAME}}">
+        <div class="menu-item-overlay">
+          <p class="menu-item-tag">{{PRODUCT_2_TAG}}</p>
+          <h3 class="menu-item-name">{{PRODUCT_2_NAME}}</h3>
+          <p class="menu-item-desc">{{PRODUCT_2_DESC}}</p>
+        </div>
+      </div>
+      <div class="menu-item reveal">
+        <img src="{{PRODUCT_3_IMAGE}}" alt="{{PRODUCT_3_NAME}}">
+        <div class="menu-item-overlay">
+          <p class="menu-item-tag">{{PRODUCT_3_TAG}}</p>
+          <h3 class="menu-item-name">{{PRODUCT_3_NAME}}</h3>
+          <p class="menu-item-desc">{{PRODUCT_3_DESC}}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="gallery" id="gallery">
+    <div class="gallery-grid">
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_1}}" alt="Galerie">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_2}}" alt="Galerie">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_3}}" alt="Galerie">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_4}}" alt="Galerie">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_5}}" alt="Galerie">
+      </div>
+    </div>
+    <div class="gallery-cta reveal">
+      <p><em>{{GALLERY_QUOTE}}</em></p>
+      <a href="#contact" class="btn-primary">Jetzt reservieren →</a>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE -->
+  <section class="experience" id="experience">
+    <div style="text-align:center; max-width:600px; margin:0 auto;" class="reveal">
+      <p class="section-label" style="justify-content:center">{{EXP_LABEL}}</p>
+      <h2 class="section-title">{{EXP_TITLE}} <em>{{EXP_TITLE_EM}}</em></h2>
+    </div>
+    <div class="experience-grid">
+      <div class="exp-item reveal">
+        <div class="exp-num">{{VALUE_1_NUM}}</div>
+        <div class="exp-title">{{VALUE_1_TITLE}}</div>
+        <p class="exp-text">{{VALUE_1_TEXT}}</p>
+      </div>
+      <div class="exp-item reveal">
+        <div class="exp-num">{{VALUE_2_NUM}}</div>
+        <div class="exp-title">{{VALUE_2_TITLE}}</div>
+        <p class="exp-text">{{VALUE_2_TEXT}}</p>
+      </div>
+      <div class="exp-item reveal">
+        <div class="exp-num">{{VALUE_3_NUM}}</div>
+        <div class="exp-title">{{VALUE_3_TITLE}}</div>
+        <p class="exp-text">{{VALUE_3_TEXT}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="reveal">
+      <h2>{{CONTACT_TITLE}}<br><em>{{CONTACT_TITLE_EM}}</em></h2>
+      <p class="contact-sub">{{CONTACT_TEXT}}</p>
+      <a href="{{CONTACT_RESERVATION_LINK}}" class="btn-primary" style="display:inline-flex;margin-bottom:48px">Tisch reservieren →</a>
+      <div class="contact-detail">
+        <div class="contact-item">
+          <p class="contact-item-label">Adresse</p>
+          <p class="contact-item-value">{{CONTACT_ADDRESS}}</p>
+        </div>
+        <div class="contact-item">
+          <p class="contact-item-label">Öffnungszeiten</p>
+          <p class="contact-item-value">{{CONTACT_HOURS}}</p>
+        </div>
+        <div class="contact-item">
+          <p class="contact-item-label">Telefon</p>
+          <p class="contact-item-value"><a href="tel:{{CONTACT_PHONE}}">{{CONTACT_PHONE}}</a></p>
+        </div>
+        <div class="contact-item">
+          <p class="contact-item-label">Email</p>
+          <p class="contact-item-value"><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a></p>
+        </div>
+      </div>
+    </div>
+    <div class="contact-map reveal">
+      <img src="{{CONTACT_IMAGE}}" alt="Restaurant Innen">
+      <div class="contact-map-label">{{BRAND_NAME}}</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">{{BRAND_NAME}}</div>
+    <ul class="footer-links">
+      <li><a href="#menu">Speisekarte</a></li>
+      <li><a href="#about">Über Uns</a></li>
+      <li><a href="#contact">Kontakt</a></li>
+      <li><a href="#">Datenschutz</a></li>
+    </ul>
+    <p class="footer-copy">© {{YEAR}} {{BRAND_NAME}}</p>
+  </footer>
+
+  <script>
+    // Nav scroll effect
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 60);
+    });
+
+    // Reveal on scroll
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
