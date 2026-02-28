@@ -11,34 +11,19 @@ def load_template(name: str) -> str:
 
 
 def strip_css(template: str) -> tuple:
-    """
-    Trennt CSS vom HTML-Template.
-    Claude bekommt nur die HTML-Struktur — spart ~70% Tokens.
-    CSS wird nach der Generierung wieder eingefügt.
-    """
+    """Trennt CSS vom HTML. Claude bekommt nur HTML-Struktur — spart ~70% Tokens."""
     css_match = re.search(r'(<style>[\s\S]*?</style>)', template)
     css = css_match.group(1) if css_match else ''
-
-    # CSS durch Platzhalter ersetzen
     stripped = re.sub(r'<style>[\s\S]*?</style>', '___CSS___', template)
-
-    # HTML-Kommentare entfernen
     stripped = re.sub(r'<!--[\s\S]*?-->', '', stripped)
-
-    # Mehrfache Leerzeilen reduzieren
     stripped = re.sub(r'\n{3,}', '\n\n', stripped)
-
     return stripped.strip(), css
 
 
 def inject_uploaded_images(html: str, uploaded_images: list) -> str:
-    """
-    Ersetzt die ersten N img src-Attribute mit hochgeladenen Bildern.
-    So müssen die Base64-Daten nicht durch die API — spart massiv Tokens.
-    """
+    """Ersetzt img src mit hochgeladenen Bildern — NACH der API, kein Base64 nötig."""
     if not uploaded_images:
         return html
-
     count = 0
     max_replacements = min(len(uploaded_images), 4)
 
@@ -46,42 +31,25 @@ def inject_uploaded_images(html: str, uploaded_images: list) -> str:
         nonlocal count
         if count >= max_replacements:
             return match.group(0)
-
         full_tag = match.group(0)
-
-        # Logo und kleine Bilder überspringen
-        tag_lower = full_tag.lower()
-        if any(kw in tag_lower for kw in ['logo', 'icon', 'favicon', 'avatar']):
+        if any(kw in full_tag.lower() for kw in ['logo', 'icon', 'favicon']):
             return full_tag
-
         new_src = uploaded_images[count]
         count += 1
+        return re.sub(r'src=["\'][^"\']*["\']', f'src="{new_src}"', full_tag)
 
-        # src Attribut ersetzen
-        result = re.sub(r'src=["\'][^"\']*["\']', f'src="{new_src}"', full_tag)
-        return result
-
-    # Alle img Tags mit src ersetzen
-    html = re.sub(r'<img[^>]+src=["\'][^"\']*["\'][^>]*>', replace_src, html)
-    return html
+    return re.sub(r'<img[^>]+src=["\'][^"\']*["\'][^>]*>', replace_src, html)
 
 
 async def get_unsplash_images(query: str, count: int = 8) -> list:
-    """Holt hochwertige Bilder von Unsplash passend zur Branche"""
     access_key = os.environ.get("UNSPLASH_ACCESS_KEY")
     if not access_key:
         return []
-
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(
                 "https://api.unsplash.com/search/photos",
-                params={
-                    "query": query,
-                    "per_page": count,
-                    "orientation": "landscape",
-                    "content_filter": "high"
-                },
+                params={"query": query, "per_page": count, "orientation": "landscape", "content_filter": "high"},
                 headers={"Authorization": f"Client-ID {access_key}"},
                 timeout=10
             )
@@ -92,57 +60,68 @@ async def get_unsplash_images(query: str, count: int = 8) -> list:
 
 
 async def detect_branch(client, title: str, meta_description: str) -> str:
-    """Erkennt die Branche des Unternehmens"""
+    """Erkennt eine von 4 Branchen."""
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=15,
         messages=[{
             "role": "user",
-            "content": f"Welche Branche? Antworte NUR mit einem Wort: luxury, tech, oder handwerk.\nFirma: {title}\nBeschreibung: {meta_description}"
+            "content": f"""Welche Kategorie passt am besten? Antworte NUR mit einem Wort.
+Kategorien: restaurant, luxury, tech, handwerk
+Firma: {title}
+Beschreibung: {meta_description}
+Beispiele: Restaurant/Café/Bar → restaurant | Anwalt/Immobilien/Beratung/Luxus → luxury | Software/IT/Digital/App → tech | Schreiner/Elektriker/Sanitär/Bäcker/Salon → handwerk"""
         }]
     )
     branch = response.content[0].text.strip().lower()
-    if "tech" in branch:
+    if "restaurant" in branch or "café" in branch or "cafe" in branch:
+        return "restaurant"
+    elif "tech" in branch or "software" in branch or "it" in branch:
         return "tech"
-    elif "handwerk" in branch:
+    elif "handwerk" in branch or "hand" in branch:
         return "handwerk"
     else:
         return "luxury"
 
 
 def build_unsplash_query(branch: str, title: str, meta_description: str) -> str:
-    """Baut einen spezifischen Unsplash-Suchbegriff"""
-    # Wichtige Keywords aus dem Titel extrahieren
-    # Z.B. "Restaurant Zum Löwen" -> "restaurant food dining"
-    title_lower = title.lower()
-    desc_lower = meta_description.lower()
-    combined = title_lower + " " + desc_lower
+    """Spezifischer Unsplash-Query je nach Branche und Firmeninhalt."""
+    combined = (title + " " + meta_description).lower()
 
-    # Branchenspezifische Queries
-    if "restaurant" in combined or "gastro" in combined or "küche" in combined:
-        return "restaurant food gourmet dining"
-    elif "hotel" in combined or "lodge" in combined:
-        return "hotel luxury interior design"
-    elif "bäcker" in combined or "konditor" in combined or "bakery" in combined:
-        return "bakery bread pastry artisan"
-    elif "salon" in combined or "friseur" in combined or "beauty" in combined:
-        return "beauty salon hair styling"
-    elif "fitnes" in combined or "sport" in combined or "gym" in combined:
-        return "fitness gym workout modern"
-    elif "immobilien" in combined or "real estate" in combined:
-        return "real estate luxury property interior"
-    elif "zahnarzt" in combined or "arzt" in combined or "klinik" in combined:
-        return "medical clinic professional healthcare"
-    elif "software" in combined or "app" in combined or "digital" in combined:
-        return "technology software modern office"
-    elif "handwerk" in combined or "bau" in combined or "sanitär" in combined:
-        return "craftsman workshop professional tools"
+    if branch == "restaurant":
+        if "sushi" in combined or "japan" in combined: return "japanese sushi restaurant food"
+        if "pizza" in combined or "itali" in combined: return "italian pizza restaurant pasta"
+        if "burger" in combined: return "gourmet burger restaurant"
+        if "café" in combined or "cafe" in combined or "kaffee" in combined: return "cafe coffee interior cozy"
+        if "bar" in combined or "cocktail" in combined: return "cocktail bar restaurant interior"
+        return "restaurant fine dining food photography"
+
     elif branch == "luxury":
-        return f"{title} luxury premium lifestyle elegant"
+        if "immobilien" in combined or "real estate" in combined: return "luxury real estate interior design"
+        if "hotel" in combined: return "luxury hotel interior architecture"
+        if "anwalt" in combined or "law" in combined: return "professional law office corporate"
+        if "finance" in combined or "finanz" in combined: return "corporate finance professional office"
+        if "beauty" in combined or "wellness" in combined: return "luxury wellness spa beauty"
+        return "luxury professional services elegant interior"
+
     elif branch == "tech":
-        return f"{title} technology innovation digital modern"
-    else:
-        return f"{title} professional business quality"
+        if "web" in combined or "app" in combined: return "modern tech office software development"
+        if "ai" in combined or "künstlich" in combined: return "artificial intelligence technology modern"
+        if "cloud" in combined: return "cloud computing server technology"
+        return "technology startup modern office workspace"
+
+    elif branch == "handwerk":
+        if "schreiner" in combined or "holz" in combined or "möbel" in combined: return "woodworking craftsman workshop furniture"
+        if "elektr" in combined: return "electrician professional work tools"
+        if "sanitär" in combined or "heizung" in combined or "installation" in combined: return "plumbing professional craftsman work"
+        if "bäcker" in combined or "bakery" in combined or "konditor" in combined: return "artisan bakery bread pastry"
+        if "salon" in combined or "friseur" in combined or "coiffeur" in combined: return "hair salon beauty professional"
+        if "maler" in combined or "paint" in combined: return "professional painter craftsman work"
+        if "garten" in combined or "landschaft" in combined: return "landscaping garden professional"
+        if "bau" in combined or "construction" in combined: return "construction professional building craftsman"
+        return "craftsman workshop professional trade"
+
+    return f"{title} professional service quality"
 
 
 async def generate_website(
@@ -159,89 +138,79 @@ async def generate_website(
     primary_color = colors[0] if len(colors) > 0 else "#1a1a1a"
     secondary_color = colors[1] if len(colors) > 1 else "#c9a84c"
 
-    # Schritt 1: Branche erkennen
+    # 1. Branche erkennen
     branch = await detect_branch(client, title, meta_description)
 
-    # Schritt 2: Template laden und CSS trennen
+    # 2. Template laden, Farben direkt ersetzen, dann CSS trennen
     template_map = {
+        "restaurant": "template_restaurant.html",
+        "luxury": "template_luxury.html",
         "tech": "template_tech.html",
-        "handwerk": "template_handwerk.html",
-        "luxury": "template_rolex.html"
+        "handwerk": "template_handwerk.html"
     }
     full_template = load_template(template_map[branch])
 
-    # Farben und feste Werte DIREKT ersetzen — vor dem CSS-Strip
-    # (PRIMARY_COLOR/SECONDARY_COLOR sind im CSS Block)
+    # Farben VOR CSS-Strip ersetzen (sie sind im CSS Block)
     full_template = full_template.replace('{{PRIMARY_COLOR}}', primary_color)
     full_template = full_template.replace('{{SECONDARY_COLOR}}', secondary_color)
     full_template = full_template.replace('{{YEAR}}', '2025')
 
     template_stripped, css = strip_css(full_template)
 
-    # Schritt 3: Bilder zusammenstellen
-    # Priorität: gecrawlte Bilder > Unsplash
-    # Hochgeladene Bilder werden NACH der Generierung eingefügt (kein Base64 in API)
-
+    # 3. Bilder zusammenstellen
     unsplash_query = build_unsplash_query(branch, title, meta_description)
     unsplash_images = await get_unsplash_images(unsplash_query, count=8)
 
-    # Gecrawlte Bilder von der Original-Website
-    crawled_urls = []
-    for img in images[:8]:
-        src = img.get("src", "")
-        if src and src.startswith("http"):
-            crawled_urls.append(src)
+    crawled_urls = [img.get("src", "") for img in images[:8] if img.get("src", "").startswith("http")]
 
-    # Finale Bildliste: gecrawlte zuerst, dann Unsplash als Ergänzung
-    all_images = []
-    all_images.extend(crawled_urls)
-    # Unsplash nur bis max 8 total
+    all_images = crawled_urls[:4]
     remaining = 8 - len(all_images)
-    if remaining > 0:
-        all_images.extend(unsplash_images[:remaining])
+    all_images.extend(unsplash_images[:remaining])
 
-    images_text = "\n".join([f"{i+1}. {url}" for i, url in enumerate(all_images)]) if all_images else "Keine Bilder verfügbar — CSS Gradienten verwenden"
+    images_text = "\n".join([f"{i+1}. {url}" for i, url in enumerate(all_images)]) if all_images else "Keine Bilder — Gradient-Hintergründe verwenden"
 
-    # Schritt 4: Texte formatieren
+    # 4. Texte
     texts_formatted = "\n".join([f"- {t}" for t in texts[:20]])
 
-    # Schritt 5: Prompt aufbauen
-    # Bildliste mit Zuweisung erklären
-    image_assignment = ""
-    if all_images:
-        image_assignment = f"""
-BILD-ZUWEISUNG (wichtig!):
-- HERO_IMAGE_1, HERO_IMAGE_2, HERO_IMAGE_3 → Bild 1, 2, 3 (beste/grösste Bilder)
-- PRODUCT Bilder → Verschiedene Bilder für verschiedene Produkte
-- INTRO_IMAGE, CRAFT_IMAGE, BANNER_IMAGE → Weitere Bilder der Reihe nach
-- Jedes Bild nur 1-2x verwenden — keine Wiederholungen"""
+    # 5. Template-spezifische Hinweise
+    branch_hints = {
+        "restaurant": "HERO_IMAGE_1=bestes Food-Foto | PRODUCT_x_IMAGE=verschiedene Gerichte | Texte: appetitlich und einladend",
+        "luxury": "HERO_IMAGE_1=bestes hochwertiges Foto | Texte: exklusiv, vertrauenswürdig, professionell | CRAFT_QUOTE=inspirierendes Zitat",
+        "tech": "HERO_FLOAT_TITLE=ein kurzer Vorteil (z.B. '98% Kundenzufriedenheit') | CLIENT_x=Kundennahmen oder Branchen | Texte: klar, kompetent, modern",
+        "handwerk": "TRUST_x=kurze Vertrauensaussagen (z.B. '20 Jahre Erfahrung', 'Schweizer Qualität') | VALUE_x_NUM=Zahlen (z.B. '500+', '20', '100%') | Texte: verlässlich, lokal, kompetent"
+    }
 
-    prompt = f"""Du bist ein weltklasse Webdesigner. Fülle alle {{{{PLATZHALTER}}}} im HTML-Template aus.
+    prompt = f"""Du bist ein professioneller Webdesigner. Fülle ALLE {{{{PLATZHALTER}}}} im Template mit echten, überzeugenden Inhalten aus.
 
 FIRMA: {title}
-BRANCHE: {branch}
+KATEGORIE: {branch}
 BESCHREIBUNG: {meta_description}
 
-ORIGINAL-TEXTE:
+ORIGINAL-INHALTE DER WEBSITE:
 {texts_formatted}
 
-BILDER (URLs direkt verwenden):
+VERFÜGBARE BILDER (diese URLs direkt als src einsetzen):
 {images_text}
-{image_assignment}
 
-REGELN:
-1. Jeden {{{{PLATZHALTER}}}} ersetzen — keinen auslassen
-2. PRIMARY_COLOR/SECONDARY_COLOR/YEAR sind bereits ersetzt — nicht nochmals ersetzen
-3. Texte basieren auf Original-Inhalten — authentisch und überzeugend
-4. Auf Deutsch schreiben
-5. ___CSS___ EXAKT so lassen — nicht verändern
-6. Nur HTML zurückgeben — kein Markdown, keine Erklärungen
-7. Beginnt mit <!DOCTYPE html>, endet mit </html>
+BILD-STRATEGIE:
+- HERO_IMAGE_1 → Bestes, eindrucksvollstes Bild (Bild 1 oder 2)
+- GALLERY/PRODUCT Bilder → verschiedene Bilder, keine Wiederholungen
+- INTRO_IMAGE, BANNER_IMAGE → weitere Bilder der Reihe nach
+
+BRANCHEN-HINWEISE: {branch_hints[branch]}
+
+PFLICHT-REGELN:
+1. JEDEN {{{{PLATZHALTER}}}} ersetzen — keinen einzigen auslassen
+2. PRIMARY_COLOR, SECONDARY_COLOR, YEAR sind bereits ersetzt — nicht nochmals einsetzen
+3. ___CSS___ EXAKT so lassen — niemals verändern
+4. Nur fertiges HTML zurückgeben — kein Markdown, keine Erklärungen
+5. Beginnt mit <!DOCTYPE html>, endet mit </html>
+6. Texte auf Deutsch — authentisch und überzeugend, basierend auf Original-Inhalten
+7. Für unbekannte Werte (Telefon, Email, Adresse) sinnvolle Platzhalter einsetzen wie "+41 XX XXX XX XX"
 
 TEMPLATE:
 {template_stripped}"""
 
-    # Schritt 6: Website generieren
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=7000,
@@ -249,17 +218,14 @@ TEMPLATE:
     )
 
     result = message.content[0].text.strip()
-
-    # Markdown Code-Blöcke entfernen
     result = re.sub(r'^```html\s*', '', result)
     result = re.sub(r'^```\s*', '', result)
     result = re.sub(r'\s*```$', '', result)
 
-    # Schritt 7: CSS wieder einfügen
+    # CSS wieder einfügen
     result = result.replace('___CSS___', css)
 
-    # Schritt 8: Hochgeladene Bilder nachträglich einfügen
-    # (Base64 geht NICHT durch die API — wird direkt im HTML ersetzt)
+    # Hochgeladene Bilder nachträglich einsetzen
     if uploaded_images:
         result = inject_uploaded_images(result, uploaded_images)
 
