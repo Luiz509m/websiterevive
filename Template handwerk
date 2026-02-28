@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{BRAND_NAME}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: {{PRIMARY_COLOR}};
+      --secondary: {{SECONDARY_COLOR}};
+      --black: #111108;
+      --dark: #1c1c18;
+      --mid: #2e2e28;
+      --warm: #f6f4ee;
+      --warm-dark: #ece9e0;
+      --text: #111108;
+      --text-muted: #7a7868;
+      --border: rgba(17,17,8,0.1);
+      --white: #ffffff;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--warm); color: var(--text); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 52px; height: 72px; transition: background 0.3s; }
+    nav.scrolled { background: rgba(246,244,238,0.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 2px; color: var(--white); text-decoration: none; transition: color 0.3s; }
+    nav.scrolled .nav-logo { color: var(--black); }
+    .nav-links { display: flex; gap: 36px; list-style: none; position: absolute; left: 50%; transform: translateX(-50%); }
+    .nav-links a { font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.7); text-decoration: none; letter-spacing: 0.3px; transition: color 0.2s; }
+    nav.scrolled .nav-links a { color: var(--text-muted); }
+    .nav-links a:hover { color: var(--white); }
+    nav.scrolled .nav-links a:hover { color: var(--text); }
+    .nav-cta { font-size: 0.78rem; font-weight: 600; color: var(--black); background: var(--primary); padding: 10px 24px; text-decoration: none; transition: opacity 0.2s; letter-spacing: 0.3px; }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero { position: relative; height: 100vh; min-height: 680px; overflow: hidden; display: flex; align-items: flex-end; }
+    .hero-bg { position: absolute; inset: 0; }
+    .hero-bg img { width: 100%; height: 100%; object-fit: cover; animation: kenBurns 18s ease-in-out infinite alternate; }
+    @keyframes kenBurns { from { transform: scale(1.0); } to { transform: scale(1.06) translateX(-2%); } }
+    .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(17,17,8,0.88) 0%, rgba(17,17,8,0.45) 40%, rgba(17,17,8,0.2) 100%); }
+    .hero-content { position: relative; z-index: 2; padding: 0 52px 72px; width: 100%; }
+    .hero-eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 4px; text-transform: uppercase; color: var(--primary); margin-bottom: 16px; opacity: 0; animation: fadeUp 0.8s ease 0.3s forwards; }
+    .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(5rem, 11vw, 14rem); line-height: 0.88; letter-spacing: 1px; color: var(--white); margin-bottom: 32px; opacity: 0; animation: fadeUp 0.8s ease 0.5s forwards; }
+    .hero h1 span { color: var(--primary); }
+    .hero-bottom { display: flex; align-items: flex-end; justify-content: space-between; opacity: 0; animation: fadeUp 0.8s ease 0.8s forwards; }
+    .hero-sub { font-size: 0.95rem; font-weight: 300; color: rgba(255,255,255,0.55); line-height: 1.75; max-width: 420px; }
+    .hero-actions { display: flex; gap: 16px; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; color: var(--black); background: var(--primary); padding: 16px 32px; text-decoration: none; transition: opacity 0.2s; letter-spacing: 0.3px; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-outline { display: inline-flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 500; color: var(--white); border: 1px solid rgba(255,255,255,0.3); padding: 16px 32px; text-decoration: none; transition: all 0.2s; }
+    .btn-outline:hover { background: rgba(255,255,255,0.08); }
+
+    /* TRUST BAR */
+    .trust-bar { background: var(--black); padding: 28px 52px; display: flex; align-items: center; justify-content: space-between; }
+    .trust-item { display: flex; align-items: center; gap: 12px; }
+    .trust-icon { color: var(--primary); font-size: 1.3rem; }
+    .trust-text { font-size: 0.82rem; font-weight: 500; color: rgba(246,244,238,0.7); }
+    .trust-sep { width: 1px; height: 32px; background: rgba(255,255,255,0.1); }
+
+    /* ABOUT */
+    .about { padding: 140px 52px; display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: center; max-width: 1300px; margin: 0 auto; }
+    .about-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--primary); margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+    .about-label::before { content: ''; width: 24px; height: 2px; background: var(--primary); }
+    .about h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 5vw, 6rem); line-height: 0.9; letter-spacing: 1px; color: var(--black); margin-bottom: 32px; }
+    .about h2 span { color: var(--primary); }
+    .about-body { font-size: 0.95rem; font-weight: 300; color: var(--text-muted); line-height: 1.85; margin-bottom: 16px; }
+    .about-stats { display: flex; gap: 48px; margin-top: 48px; padding-top: 40px; border-top: 2px solid var(--warm-dark); }
+    .about-stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; color: var(--primary); line-height: 1; letter-spacing: 1px; }
+    .about-stat-label { font-size: 0.78rem; font-weight: 500; color: var(--text-muted); margin-top: 4px; }
+    .about-image { position: relative; }
+    .about-image img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+    .about-image-tag { position: absolute; bottom: -20px; right: -20px; background: var(--primary); color: var(--black); padding: 24px 28px; font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 2px; line-height: 1.2; }
+
+    /* SERVICES */
+    .services { background: var(--black); padding: 140px 52px; }
+    .services-header { margin-bottom: 80px; }
+    .services-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--primary); margin-bottom: 20px; }
+    .services h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3.5rem, 6vw, 7rem); line-height: 0.9; letter-spacing: 1px; color: var(--white); }
+    .services h2 span { color: var(--primary); }
+    .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: rgba(255,255,255,0.04); }
+    .service-item { background: var(--black); padding: 52px 44px; border-top: 2px solid rgba(255,255,255,0.06); transition: border-color 0.2s; cursor: default; }
+    .service-item:hover { border-color: var(--primary); }
+    .service-num { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: rgba(255,255,255,0.05); line-height: 1; margin-bottom: 28px; }
+    .service-bar { width: 32px; height: 2px; background: var(--primary); margin-bottom: 24px; }
+    .service-title { font-size: 1.1rem; font-weight: 600; color: var(--white); margin-bottom: 14px; }
+    .service-desc { font-size: 0.83rem; font-weight: 300; color: rgba(246,244,238,0.4); line-height: 1.8; }
+
+    /* GALLERY */
+    .gallery { padding: 0; }
+    .gallery-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 400px 240px; gap: 3px; }
+    .gallery-item { overflow: hidden; }
+    .gallery-item:first-child { grid-row: 1 / 3; }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+    .gallery-item:hover img { transform: scale(1.04); }
+
+    /* PROCESS */
+    .process { padding: 140px 52px; background: var(--warm-dark); }
+    .process-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 80px; }
+    .process-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--primary); margin-bottom: 16px; }
+    .process h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 5vw, 5.5rem); line-height: 0.9; letter-spacing: 1px; color: var(--black); }
+    .process-intro { font-size: 0.9rem; font-weight: 300; color: var(--text-muted); line-height: 1.8; max-width: 360px; }
+    .process-steps { display: flex; flex-direction: column; }
+    .process-step { display: grid; grid-template-columns: 100px 1fr 1fr; gap: 48px; align-items: start; padding: 48px 0; border-bottom: 1px solid var(--border); }
+    .process-step:first-of-type { border-top: 1px solid var(--border); }
+    .process-step-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--primary); line-height: 1; letter-spacing: 1px; }
+    .process-step-title { font-size: 1.2rem; font-weight: 600; color: var(--black); margin-bottom: 8px; }
+    .process-step-desc { font-size: 0.85rem; font-weight: 300; color: var(--text-muted); line-height: 1.75; }
+
+    /* CONTACT */
+    .contact { background: var(--black); padding: 140px 52px; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; max-width: 1200px; margin: 0 auto; }
+    .contact-eyebrow { font-size: 0.7rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--primary); margin-bottom: 24px; }
+    .contact h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3.5rem, 6vw, 7rem); line-height: 0.9; letter-spacing: 1px; color: var(--white); margin-bottom: 28px; }
+    .contact h2 span { color: var(--primary); }
+    .contact-sub { font-size: 0.9rem; font-weight: 300; color: rgba(246,244,238,0.45); line-height: 1.8; margin-bottom: 48px; }
+    .contact-details { display: flex; flex-direction: column; gap: 0; }
+    .contact-item { padding: 28px 0; border-bottom: 1px solid rgba(255,255,255,0.07); display: grid; grid-template-columns: 100px 1fr; gap: 24px; }
+    .contact-item-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: rgba(246,244,238,0.3); padding-top: 3px; }
+    .contact-item-value { font-size: 0.95rem; font-weight: 400; color: rgba(246,244,238,0.75); }
+    .contact-item-value a { color: inherit; text-decoration: none; transition: color 0.2s; }
+    .contact-item-value a:hover { color: var(--primary); }
+    .contact-cta-block { background: var(--dark); padding: 48px; display: flex; flex-direction: column; gap: 24px; }
+    .contact-cta-block h3 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; color: var(--white); letter-spacing: 1px; line-height: 0.9; }
+    .contact-cta-block p { font-size: 0.85rem; font-weight: 300; color: rgba(246,244,238,0.4); line-height: 1.7; }
+    .contact-cta-image { margin-top: 8px; overflow: hidden; }
+    .contact-cta-image img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+
+    /* FOOTER */
+    footer { background: var(--mid); padding: 40px 52px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 2px; color: var(--white); }
+    .footer-links { display: flex; gap: 32px; list-style: none; }
+    .footer-links a { font-size: 0.75rem; font-weight: 400; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 0.72rem; color: rgba(255,255,255,0.2); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .reveal { opacity: 0; transform: translateY(32px); transition: all 0.8s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero-content { padding: 0 20px 48px; }
+      .hero-bottom { flex-direction: column; gap: 24px; align-items: flex-start; }
+      .trust-bar { flex-direction: column; gap: 16px; padding: 24px 20px; }
+      .trust-sep { display: none; }
+      .about { grid-template-columns: 1fr; gap: 48px; padding: 80px 20px; }
+      .about-image-tag { bottom: 0; right: 0; }
+      .services { padding: 80px 20px; }
+      .services-grid { grid-template-columns: 1fr; }
+      .gallery-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+      .gallery-item:first-child { grid-row: auto; }
+      .process { padding: 80px 20px; }
+      .process-header { flex-direction: column; gap: 24px; }
+      .process-step { grid-template-columns: 1fr; gap: 8px; }
+      .contact { padding: 80px 20px; }
+      .contact-grid { grid-template-columns: 1fr; gap: 48px; }
+      footer { flex-direction: column; gap: 20px; padding: 28px 20px; text-align: center; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav id="nav">
+    <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+    <ul class="nav-links">
+      <li><a href="#services">Leistungen</a></li>
+      <li><a href="#gallery">Referenzen</a></li>
+      <li><a href="#contact">Kontakt</a></li>
+    </ul>
+    <a href="#contact" class="nav-cta">Offerte anfordern</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-bg">
+      <img src="{{HERO_IMAGE_1}}" alt="{{BRAND_NAME}}">
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">{{HERO_EYEBROW}}</p>
+      <h1>{{HERO_TITLE_LINE1}}<br><span>{{HERO_TITLE_LINE2}}</span></h1>
+      <div class="hero-bottom">
+        <p class="hero-sub">{{HERO_TAGLINE}}</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn-primary">Offerte anfordern →</a>
+          <a href="#services" class="btn-outline">Leistungen ansehen</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="trust-bar">
+    <div class="trust-item">
+      <span class="trust-icon">✓</span>
+      <span class="trust-text">{{TRUST_1}}</span>
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <span class="trust-icon">✓</span>
+      <span class="trust-text">{{TRUST_2}}</span>
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <span class="trust-icon">✓</span>
+      <span class="trust-text">{{TRUST_3}}</span>
+    </div>
+    <div class="trust-sep"></div>
+    <div class="trust-item">
+      <span class="trust-icon">✓</span>
+      <span class="trust-text">{{TRUST_4}}</span>
+    </div>
+  </div>
+
+  <section class="about" id="about">
+    <div class="reveal">
+      <p class="about-label">{{INTRO_LABEL}}</p>
+      <h2>{{INTRO_TITLE}}<br><span>{{INTRO_TITLE_EM}}</span></h2>
+      <p class="about-body">{{INTRO_TEXT_1}}</p>
+      <p class="about-body">{{INTRO_TEXT_2}}</p>
+      <div class="about-stats">
+        <div>
+          <div class="about-stat-num">{{VALUE_1_NUM}}</div>
+          <div class="about-stat-label">{{VALUE_1_TITLE}}</div>
+        </div>
+        <div>
+          <div class="about-stat-num">{{VALUE_2_NUM}}</div>
+          <div class="about-stat-label">{{VALUE_2_TITLE}}</div>
+        </div>
+        <div>
+          <div class="about-stat-num">{{VALUE_3_NUM}}</div>
+          <div class="about-stat-label">{{VALUE_3_TITLE}}</div>
+        </div>
+      </div>
+    </div>
+    <div class="about-image reveal">
+      <img src="{{INTRO_IMAGE}}" alt="{{BRAND_NAME}}">
+      <div class="about-image-tag">Seit<br>{{FOUNDING_YEAR}}</div>
+    </div>
+  </section>
+
+  <section class="services" id="services">
+    <div class="services-header reveal">
+      <p class="services-label">{{SERVICES_LABEL}}</p>
+      <h2>{{SERVICES_TITLE}}<br><span>{{SERVICES_TITLE_EM}}</span></h2>
+    </div>
+    <div class="services-grid">
+      <div class="service-item reveal">
+        <div class="service-num">01</div>
+        <div class="service-bar"></div>
+        <h3 class="service-title">{{PRODUCT_1_NAME}}</h3>
+        <p class="service-desc">{{PRODUCT_1_DESC}}</p>
+      </div>
+      <div class="service-item reveal">
+        <div class="service-num">02</div>
+        <div class="service-bar"></div>
+        <h3 class="service-title">{{PRODUCT_2_NAME}}</h3>
+        <p class="service-desc">{{PRODUCT_2_DESC}}</p>
+      </div>
+      <div class="service-item reveal">
+        <div class="service-num">03</div>
+        <div class="service-bar"></div>
+        <h3 class="service-title">{{PRODUCT_3_NAME}}</h3>
+        <p class="service-desc">{{PRODUCT_3_DESC}}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="gallery" id="gallery">
+    <div class="gallery-grid">
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_1}}" alt="Referenz">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_2}}" alt="Referenz">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_3}}" alt="Referenz">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_4}}" alt="Referenz">
+      </div>
+      <div class="gallery-item">
+        <img src="{{GALLERY_IMAGE_5}}" alt="Referenz">
+      </div>
+    </div>
+  </section>
+
+  <section class="process" id="process">
+    <div class="process-header reveal">
+      <div>
+        <p class="process-label">{{PROCESS_LABEL}}</p>
+        <h2>{{PROCESS_TITLE}}</h2>
+      </div>
+      <p class="process-intro">{{PROCESS_INTRO}}</p>
+    </div>
+    <div class="process-step reveal">
+      <div class="process-step-num">01</div>
+      <h3 class="process-step-title">{{PROCESS_1_TITLE}}</h3>
+      <p class="process-step-desc">{{PROCESS_1_DESC}}</p>
+    </div>
+    <div class="process-step reveal">
+      <div class="process-step-num">02</div>
+      <h3 class="process-step-title">{{PROCESS_2_TITLE}}</h3>
+      <p class="process-step-desc">{{PROCESS_2_DESC}}</p>
+    </div>
+    <div class="process-step reveal">
+      <div class="process-step-num">03</div>
+      <h3 class="process-step-title">{{PROCESS_3_TITLE}}</h3>
+      <p class="process-step-desc">{{PROCESS_3_DESC}}</p>
+    </div>
+  </section>
+
+  <section class="contact" id="contact">
+    <div class="contact-grid">
+      <div class="reveal">
+        <p class="contact-eyebrow">{{CONTACT_LABEL}}</p>
+        <h2>{{CONTACT_TITLE}}<br><span>{{CONTACT_TITLE_EM}}</span></h2>
+        <p class="contact-sub">{{CONTACT_TEXT}}</p>
+        <a href="tel:{{CONTACT_PHONE}}" class="btn-primary" style="display:inline-flex;margin-bottom:48px">Jetzt anrufen →</a>
+        <div class="contact-details">
+          <div class="contact-item">
+            <span class="contact-item-label">Adresse</span>
+            <span class="contact-item-value">{{CONTACT_ADDRESS}}</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-item-label">Telefon</span>
+            <span class="contact-item-value"><a href="tel:{{CONTACT_PHONE}}">{{CONTACT_PHONE}}</a></span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-item-label">Email</span>
+            <span class="contact-item-value"><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a></span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-item-label">Öffnungszeiten</span>
+            <span class="contact-item-value">{{CONTACT_HOURS}}</span>
+          </div>
+        </div>
+      </div>
+      <div class="reveal">
+        <div class="contact-cta-block">
+          <h3>{{CRAFT_TITLE}}</h3>
+          <p>{{CRAFT_TEXT}}</p>
+          <a href="#contact" class="btn-primary" style="display:inline-flex;width:fit-content">Offerte anfordern →</a>
+        </div>
+        <div class="contact-cta-image">
+          <img src="{{BANNER_IMAGE}}" alt="{{BRAND_NAME}}">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">{{BRAND_NAME}}</div>
+    <ul class="footer-links">
+      <li><a href="#services">Leistungen</a></li>
+      <li><a href="#gallery">Referenzen</a></li>
+      <li><a href="#contact">Kontakt</a></li>
+      <li><a href="#">Datenschutz</a></li>
+    </ul>
+    <p class="footer-copy">© {{YEAR}} {{BRAND_NAME}}</p>
+  </footer>
+
+  <script>
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 60);
+    });
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+
+</body>
+</html>
