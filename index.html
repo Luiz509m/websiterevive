@@ -1,0 +1,2426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebsiteRevive — Your website, revived.</title>
+  <meta name="description" content="Paste your URL. Get a fully optimized, faster, higher-converting website in minutes. AI-powered website regeneration.">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    :root {
+      --mint:        #3DFFD0;
+      --mint-soft:   #A8FFE8;
+      --mint-dim:    #1CC9A0;
+      --black:       #0D0F0E;
+      --surface:     #141817;
+      --surface2:    #1C2120;
+      --surface3:    #242B29;
+      --border:      rgba(61,255,208,0.1);
+      --border-mid:  rgba(61,255,208,0.18);
+      --border-strong: rgba(61,255,208,0.28);
+      --text:        #E8F5F1;
+      --muted:       #7A9990;
+      --muted-light: #9FBFB8;
+      --white:       #FFFFFF;
+      --red:         #FF5A5A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--black);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.65;
+      letter-spacing: 0.2px;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(61,255,208,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(61,255,208,0.022) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section { position: relative; z-index: 1; }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      background: rgba(13,15,14,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .nav-logo img {
+      height: 32px;
+      width: auto;
+      display: block;
+    }
+
+    .nav-links {
+      display: none;
+      list-style: none;
+      gap: 36px;
+    }
+
+    .nav-links a {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--mint); }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .nav-login {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 1px;
+      display: none;
+    }
+
+    .nav-login:hover { color: var(--text); }
+
+    .btn-nav {
+      padding: 9px 22px;
+      background: var(--mint);
+      color: var(--black);
+      border: none;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-nav:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 88px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Glow behind headline */
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(61,255,208,0.09) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(61,255,208,0.07);
+      border: 1px solid var(--border-mid);
+      border-radius: 999px;
+      padding: 7px 18px;
+      font-size: 11px;
+      color: var(--mint);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--mint);
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: blink 2.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(44px, 9vw, 82px);
+      font-weight: 800;
+      line-height: 1.02;
+      color: var(--white);
+      margin-bottom: 22px;
+      position: relative;
+      z-index: 1;
+      letter-spacing: -1px;
+    }
+
+    .hero-title .accent { color: var(--mint); }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--muted-light);
+      max-width: 480px;
+      margin: 0 auto 44px;
+      line-height: 1.75;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* URL INPUT */
+    .url-form {
+      position: relative;
+      z-index: 1;
+      max-width: 580px;
+      margin: 0 auto 18px;
+    }
+
+    .url-input-wrap {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1.5px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 6px 6px 6px 18px;
+      gap: 10px;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .url-input-wrap:focus-within {
+      border-color: var(--mint);
+      box-shadow: 0 0 0 3px rgba(61,255,208,0.1);
+    }
+
+    .url-prefix {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .url-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      color: var(--text);
+      min-width: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .url-input::placeholder { color: var(--muted); }
+
+    .btn-revive {
+      padding: 13px 28px;
+      background: var(--mint);
+      color: var(--black);
+      border: none;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: opacity 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-revive:hover {
+      opacity: 0.88;
+      box-shadow: 0 4px 24px rgba(61,255,208,0.3);
+    }
+
+    .hero-note {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-note span {
+      color: rgba(122,153,144,0.5);
+      margin: 0 8px;
+    }
+
+    /* HERO SOCIAL PROOF */
+    .hero-proof {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 24px 40px;
+      margin-top: 56px;
+      padding-top: 48px;
+      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
+    }
+
+    .proof-item {
+      text-align: center;
+    }
+
+    .proof-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .proof-num .accent { color: var(--mint); }
+
+    .proof-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .proof-sep {
+      width: 1px;
+      height: 36px;
+      background: var(--border);
+    }
+
+    /* ── BROWSER MOCKUP ── */
+    .mockup-section {
+      padding: 0 0 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mockup-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.55), 0 0 0 1px rgba(61,255,208,0.06);
+    }
+
+    .browser-chrome {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .b-dots { display: flex; gap: 7px; }
+    .b-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .b-dot-r { background: rgba(255,95,86,0.5); }
+    .b-dot-y { background: rgba(255,189,46,0.5); }
+    .b-dot-g { background: rgba(61,255,208,0.5); }
+
+    .b-url {
+      flex: 1;
+      background: var(--surface3);
+      border-radius: 7px;
+      padding: 6px 14px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .compare-pane {
+      padding: 28px 24px;
+    }
+
+    .compare-pane.before {
+      border-right: 1px solid var(--border);
+      background: #110e10;
+    }
+
+    .compare-pane.after {
+      background: var(--surface);
+    }
+
+    .compare-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .compare-pane.before .compare-label { color: rgba(255,90,90,0.7); }
+    .compare-pane.after .compare-label { color: var(--mint); }
+
+    .compare-label-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .before .compare-label-dot { background: rgba(255,90,90,0.7); }
+    .after .compare-label-dot { background: var(--mint); }
+
+    /* Skeleton lines */
+    .sk { height: 9px; border-radius: 5px; margin-bottom: 9px; }
+    .before .sk { background: rgba(255,255,255,0.06); }
+    .after .sk { background: rgba(61,255,208,0.13); }
+    .sk.h-lg { height: 52px; border-radius: 8px; margin-bottom: 14px; }
+    .sk.h-btn { height: 34px; border-radius: 7px; width: 110px; }
+    .before .sk.h-btn { background: rgba(255,255,255,0.08); }
+    .after .sk.h-btn { background: rgba(61,255,208,0.25); }
+    .sk.w100 { width: 100%; }
+    .sk.w80 { width: 80%; }
+    .sk.w60 { width: 60%; }
+    .sk.w40 { width: 40%; }
+
+    .score-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .score-chip {
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .score-chip.bad {
+      background: rgba(255,90,90,0.1);
+      border: 1px solid rgba(255,90,90,0.2);
+      color: rgba(255,110,110,0.9);
+    }
+
+    .score-chip.good {
+      background: rgba(61,255,208,0.1);
+      border: 1px solid var(--border-mid);
+      color: var(--mint);
+    }
+
+    /* ── TRUSTED STRIP ── */
+    .trusted-strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .trusted-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .trusted-label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .trusted-logos {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .t-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.18);
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+
+    /* ── SECTION SHARED ── */
+    .sec-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--mint);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .sec-tag::before { content: '●'; font-size: 7px; }
+
+    .sec-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(26px, 4.5vw, 42px);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.08;
+      letter-spacing: -0.5px;
+    }
+
+    .sec-title .accent { color: var(--mint); }
+
+    .sec-desc {
+      font-size: 14px;
+      color: var(--muted-light);
+      line-height: 1.75;
+      max-width: 480px;
+    }
+
+    /* ── PROBLEM SECTION ── */
+    .problem-section {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .problem-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+
+    .problem-left .sec-desc { margin-top: 14px; }
+
+    .problem-list {
+      list-style: none;
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .problem-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      transition: border-color 0.2s;
+    }
+
+    .problem-item:hover { border-color: var(--border-mid); }
+
+    .problem-icon {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: rgba(255,90,90,0.08);
+      border: 1px solid rgba(255,90,90,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .problem-icon svg { width: 17px; height: 17px; }
+
+    .problem-item-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 4px;
+    }
+
+    .problem-item-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* Stats side */
+    .stats-right {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 22px;
+      transition: border-color 0.2s;
+    }
+
+    .stat-box:hover { border-color: var(--border-mid); }
+
+    .stat-box.wide {
+      grid-column: span 2;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--mint);
+      line-height: 1;
+      margin-bottom: 6px;
+      letter-spacing: -1px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      line-height: 1.5;
+    }
+
+    .stat-icon-wrap {
+      width: 52px; height: 52px;
+      background: rgba(61,255,208,0.07);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon-wrap svg { width: 22px; height: 22px; }
+
+    /* ── PROCESS ── */
+    .process-section {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .process-header {
+      margin-bottom: 56px;
+      max-width: 560px;
+    }
+
+    .process-header .sec-desc { margin-top: 14px; }
+
+    .process-steps {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .p-step {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .p-step:last-child { border-bottom: none; }
+    .p-step:hover { background: rgba(61,255,208,0.02); }
+
+    .p-step-num-col {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 0;
+      border-right: 1px solid var(--border);
+    }
+
+    .p-step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: rgba(61,255,208,0.22);
+      letter-spacing: -0.5px;
+    }
+
+    .p-step-body {
+      padding: 32px 28px;
+    }
+
+    .p-step-eyebrow {
+      font-size: 10px;
+      color: var(--mint);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .p-step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+
+    .p-step-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.75;
+      max-width: 540px;
+    }
+
+    .p-step-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 13px;
+      font-size: 11px;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+
+    .chip::before {
+      content: '';
+      width: 5px; height: 5px;
+      background: var(--mint);
+      border-radius: 50%;
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+
+    /* ── FEATURES ── */
+    .features-section {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .features-head {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .features-head .sec-desc {
+      margin: 14px auto 0;
+      text-align: center;
+      max-width: 440px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      transition: border-color 0.22s, background 0.22s, transform 0.18s;
+    }
+
+    .feat-card:hover {
+      border-color: var(--border-mid);
+      background: var(--surface2);
+      transform: translateY(-2px);
+    }
+
+    .feat-icon {
+      width: 46px; height: 46px;
+      background: rgba(61,255,208,0.07);
+      border: 1px solid var(--border-mid);
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .feat-icon svg { width: 21px; height: 21px; }
+
+    .feat-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+
+    .feat-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.72;
+      margin-bottom: 16px;
+      flex: 1;
+    }
+
+    .feat-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .feat-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 12px;
+      color: var(--muted-light);
+    }
+
+    .feat-list li::before {
+      content: '✓';
+      color: var(--mint);
+      font-weight: 700;
+      flex-shrink: 0;
+      font-size: 11px;
+      margin-top: 1px;
+    }
+
+    /* ── TESTIMONIALS ── */
+    .testimonials-section {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .testimonials-head {
+      margin-bottom: 48px;
+    }
+
+    .testimonials-head .sec-desc { margin-top: 14px; }
+
+    .t-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .t-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      transition: border-color 0.2s;
+    }
+
+    .t-card:hover { border-color: var(--border-mid); }
+
+    .t-stars {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .t-star {
+      color: var(--mint);
+      font-size: 13px;
+    }
+
+    .t-quote {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.75;
+      flex: 1;
+      margin-bottom: 22px;
+    }
+
+    .t-quote::before { content: '\201C'; color: var(--mint); margin-right: 1px; }
+    .t-quote::after  { content: '\201D'; color: var(--mint); margin-left: 1px; }
+
+    .t-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+
+    .t-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--surface3);
+      border: 1.5px solid var(--border-mid);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--mint);
+      flex-shrink: 0;
+    }
+
+    .t-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--white);
+    }
+
+    .t-role {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── PRICING ── */
+    .pricing-section {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .pricing-head {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .pricing-head .sec-desc {
+      margin: 14px auto 0;
+      text-align: center;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .p-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .p-card:hover { border-color: var(--border-mid); }
+
+    .p-card.featured {
+      border-color: var(--border-strong);
+      background: var(--surface2);
+    }
+
+    .p-badge {
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--mint);
+      color: var(--black);
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 0 0 8px 8px;
+    }
+
+    .p-tier {
+      font-size: 10px;
+      color: var(--mint);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .p-price {
+      font-family: 'Syne', sans-serif;
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1;
+      letter-spacing: -1px;
+      margin-bottom: 6px;
+    }
+
+    .p-price sup {
+      font-size: 22px;
+      vertical-align: super;
+      letter-spacing: 0;
+    }
+
+    .p-price-sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-bottom: 22px;
+    }
+
+    .p-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .p-features-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .p-features-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .p-features-list li .check {
+      color: var(--mint);
+      font-weight: 700;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .p-features-list li .cross {
+      color: var(--muted);
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .btn-plan-primary {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: var(--mint);
+      color: var(--black);
+      border: none;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: opacity 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-plan-primary:hover {
+      opacity: 0.88;
+      box-shadow: 0 4px 24px rgba(61,255,208,0.25);
+    }
+
+    .btn-plan-outline {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      background: transparent;
+      color: var(--mint);
+      border: 1.5px solid var(--border-mid);
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .btn-plan-outline:hover {
+      border-color: var(--mint);
+      background: rgba(61,255,208,0.04);
+    }
+
+    /* ── FAQ ── */
+    .faq-section {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .faq-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+
+    .faq-left .sec-desc { margin-top: 14px; }
+
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .faq-item:last-child { border-bottom: none; }
+
+    .faq-q {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 22px;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      transition: background 0.18s;
+    }
+
+    .faq-q:hover { background: rgba(61,255,208,0.03); }
+
+    .faq-q-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .faq-icon {
+      width: 22px; height: 22px;
+      border: 1px solid var(--border-mid);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--mint);
+      font-size: 16px;
+      line-height: 1;
+      transition: background 0.2s;
+    }
+
+    details[open] .faq-icon { background: rgba(61,255,208,0.1); }
+
+    .faq-a {
+      padding: 0 22px 20px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    /* ── FINAL CTA ── */
+    .cta-section {
+      padding: 88px 0 104px;
+      border-top: 1px solid var(--border);
+    }
+
+    .cta-box {
+      background: linear-gradient(140deg, var(--surface2) 0%, var(--surface3) 100%);
+      border: 1px solid var(--border-mid);
+      border-radius: 22px;
+      padding: 72px 32px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(61,255,208,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-box::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; right: -80px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(61,255,208,0.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-tag {
+      font-size: 10px;
+      color: var(--mint);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(36px, 7vw, 64px);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.02;
+      letter-spacing: -1px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-title .accent { color: var(--mint); }
+
+    .cta-desc {
+      font-size: 14px;
+      color: var(--muted-light);
+      max-width: 420px;
+      margin: 0 auto 40px;
+      line-height: 1.75;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-form {
+      max-width: 520px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-input-wrap {
+      display: flex;
+      align-items: center;
+      background: rgba(13,15,14,0.7);
+      border: 1.5px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 6px 6px 6px 18px;
+      gap: 10px;
+      margin-bottom: 14px;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .cta-input-wrap:focus-within {
+      border-color: var(--mint);
+      box-shadow: 0 0 0 3px rgba(61,255,208,0.1);
+    }
+
+    .cta-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      color: var(--text);
+      min-width: 0;
+    }
+
+    .cta-input::placeholder { color: var(--muted); }
+
+    .cta-note {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 44px 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 36px;
+    }
+
+    .footer-brand img {
+      height: 28px;
+      width: auto;
+      margin-bottom: 14px;
+    }
+
+    .footer-tagline {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 240px;
+    }
+
+    .footer-nav-group {}
+
+    .footer-nav-label {
+      font-size: 10px;
+      color: var(--mint);
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .footer-nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-nav-links a:hover { color: var(--mint); }
+
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 32px auto 0;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .footer-copy {
+      font-size: 11px;
+      color: rgba(122,153,144,0.45);
+      letter-spacing: 1px;
+    }
+
+    .footer-copy span { color: var(--mint); opacity: 0.7; }
+
+    .footer-legal {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-legal a {
+      font-size: 11px;
+      color: rgba(122,153,144,0.4);
+      text-decoration: none;
+      letter-spacing: 0.5px;
+    }
+
+    .footer-legal a:hover { color: var(--muted); }
+
+    /* ── HERO MAP BACKGROUND ── */
+    .hero-map {
+      position: absolute;
+      top: 38%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      /* fixed 2:1 box — exactly the world-map viewport ratio */
+      width: min(96%, 820px);
+      aspect-ratio: 2 / 1;
+      z-index: -1;
+      pointer-events: none;
+      overflow: visible; /* let ripple rings breathe outside the box */
+    }
+
+    .hero-map-dots {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      opacity: 0.22;
+      /* CSS dot-grid fallback (replaced by dotted-map SVG if CDN loads) */
+      background-image: radial-gradient(circle, rgba(61,255,208,0.6) 1px, transparent 1px);
+      background-size: 16px 16px;
+      /* radial vignette — fades at all edges so it sits cleanly behind text */
+      -webkit-mask-image: radial-gradient(ellipse 85% 80% at 50% 50%, black 30%, transparent 100%);
+      mask-image:         radial-gradient(ellipse 85% 80% at 50% 50%, black 30%, transparent 100%);
+    }
+
+    /* when dotted-map injects the SVG, make it fill the container */
+    .hero-map-dots svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hero-connections {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* path draw + fade loop */
+    @keyframes draw-map-path {
+      0%   { stroke-dashoffset: 1; opacity: 0; }
+      8%   { opacity: 0.85; }
+      50%  { stroke-dashoffset: 0; opacity: 0.85; }
+      68%  { stroke-dashoffset: 0; opacity: 0; }
+      100% { stroke-dashoffset: 1; opacity: 0; }
+    }
+
+    .map-path {
+      fill: none;
+      stroke: url(#map-grad);
+      stroke-width: 1;
+      animation: draw-map-path 5.5s ease-out infinite;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (min-width: 600px) {
+      .t-grid { grid-template-columns: 1fr 1fr; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (min-width: 768px) {
+      .nav-links { display: flex; }
+      .nav-login { display: block; }
+      .pricing-grid { grid-template-columns: 1fr 1fr 1fr; }
+      .faq-layout { grid-template-columns: 320px 1fr; align-items: start; }
+      .footer-inner { grid-template-columns: 1.6fr 1fr 1fr 1fr; }
+    }
+
+    @media (min-width: 900px) {
+      .problem-layout { grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+      .features-grid { grid-template-columns: 1fr 1fr 1fr; }
+      .t-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     NAV
+════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <img src="brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-right">
+      <a href="#" class="nav-login">Log in</a>
+      <a href="#cta" class="btn-nav">Revive My Site</a>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════
+     HERO
+════════════════════════════════════════════ -->
+<section class="hero">
+
+  <!-- ── Animated world-map background ── -->
+  <div class="hero-map" aria-hidden="true">
+
+    <!-- Dotted world-map layer (CDN SVG or CSS-grid fallback) -->
+    <div class="hero-map-dots" id="hero-map-dots"></div>
+
+    <!-- Animated arcs + pulsing city dots -->
+    <svg class="hero-connections"
+         viewBox="0 0 800 400"
+         preserveAspectRatio="xMidYMid meet"
+         xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="map-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stop-color="white"   stop-opacity="0"/>
+          <stop offset="8%"   stop-color="#3DFFD0" stop-opacity="1"/>
+          <stop offset="92%"  stop-color="#3DFFD0" stop-opacity="1"/>
+          <stop offset="100%" stop-color="white"   stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+
+      <!-- ── Connection arcs ─────────────────────────────── -->
+      <!-- Alaska → Los Angeles -->
+      <path class="map-path" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"
+            style="animation-delay:0s"
+            d="M 67.8 57.3 Q 102.5 7.3 137.2 124.3"/>
+      <!-- Alaska → Brazil -->
+      <path class="map-path" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"
+            style="animation-delay:0.9s"
+            d="M 67.8 57.3 Q 180.7 7.3 293.6 235.1"/>
+      <!-- Brazil → Lisbon -->
+      <path class="map-path" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"
+            style="animation-delay:1.8s"
+            d="M 293.6 235.1 Q 336.7 63.9 379.7 113.9"/>
+      <!-- London → New Delhi -->
+      <path class="map-path" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"
+            style="animation-delay:2.7s"
+            d="M 399.7 85.5 Q 485.6 35.5 571.5 136.4"/>
+      <!-- New Delhi → Vladivostok -->
+      <path class="map-path" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"
+            style="animation-delay:3.6s"
+            d="M 571.5 136.4 Q 632.3 54.1 693.1 104.1"/>
+      <!-- New Delhi → Nairobi -->
+      <path class="map-path" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"
+            style="animation-delay:4.5s"
+            d="M 571.5 136.4 Q 526.6 86.4 481.7 202.8"/>
+
+      <!-- ── City dots with ripple ────────────────────────── -->
+      <!-- Alaska -->
+      <circle cx="67.8"  cy="57.3"  r="2" fill="#3DFFD0"/>
+      <circle cx="67.8"  cy="57.3"  r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="0s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="0s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Los Angeles -->
+      <circle cx="137.2" cy="124.3" r="2" fill="#3DFFD0"/>
+      <circle cx="137.2" cy="124.3" r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="0.4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="0.4s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Brazil -->
+      <circle cx="293.6" cy="235.1" r="2" fill="#3DFFD0"/>
+      <circle cx="293.6" cy="235.1" r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="0.8s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="0.8s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Lisbon -->
+      <circle cx="379.7" cy="113.9" r="2" fill="#3DFFD0"/>
+      <circle cx="379.7" cy="113.9" r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="1.2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="1.2s" repeatCount="indefinite"/>
+      </circle>
+      <!-- London -->
+      <circle cx="399.7" cy="85.5"  r="2" fill="#3DFFD0"/>
+      <circle cx="399.7" cy="85.5"  r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="1.6s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="1.6s" repeatCount="indefinite"/>
+      </circle>
+      <!-- New Delhi -->
+      <circle cx="571.5" cy="136.4" r="2" fill="#3DFFD0"/>
+      <circle cx="571.5" cy="136.4" r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="2.0s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="2.0s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Vladivostok -->
+      <circle cx="693.1" cy="104.1" r="2" fill="#3DFFD0"/>
+      <circle cx="693.1" cy="104.1" r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="2.4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="2.4s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Nairobi -->
+      <circle cx="481.7" cy="202.8" r="2" fill="#3DFFD0"/>
+      <circle cx="481.7" cy="202.8" r="2" fill="#3DFFD0" opacity="0.5">
+        <animate attributeName="r" from="2" to="9" dur="2.2s" begin="2.8s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.5" to="0" dur="2.2s" begin="2.8s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  </div><!-- /.hero-map -->
+
+  <div class="container">
+    <div class="hero-badge">
+      <div class="live-dot"></div>
+      AI-powered website regeneration
+    </div>
+
+    <h1 class="hero-title">
+      Your website,<br>
+      <span class="accent">revived.</span>
+    </h1>
+
+    <p class="hero-sub">
+      Paste your URL. Get a faster, smarter, higher-converting website — no agency, no developer, no waiting.
+    </p>
+
+    <form class="url-form revive-form" onsubmit="handleRevive(event);">
+      <div class="url-input-wrap">
+        <span class="url-prefix">https://</span>
+        <input
+          class="url-input"
+          type="text"
+          placeholder="yourwebsite.com"
+          aria-label="Enter your website URL"
+        >
+        <button class="btn-revive" type="submit">Revive Website →</button>
+      </div>
+    </form>
+
+    <p class="hero-note">
+      Free audit included <span>·</span> No card required <span>·</span> Results in under 5 min
+    </p>
+
+    <div class="hero-proof">
+      <div class="proof-item">
+        <div class="proof-num">3.4<span class="accent">×</span></div>
+        <div class="proof-label">Faster load time</div>
+      </div>
+      <div class="proof-sep"></div>
+      <div class="proof-item">
+        <div class="proof-num"><span class="accent">94</span></div>
+        <div class="proof-label">Avg Lighthouse score</div>
+      </div>
+      <div class="proof-sep"></div>
+      <div class="proof-item">
+        <div class="proof-num">2.1<span class="accent">×</span></div>
+        <div class="proof-label">More conversions</div>
+      </div>
+      <div class="proof-sep"></div>
+      <div class="proof-item">
+        <div class="proof-num"><span class="accent">850</span>+</div>
+        <div class="proof-label">Sites revived</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     BROWSER MOCKUP
+════════════════════════════════════════════ -->
+<section class="mockup-section">
+  <div class="container">
+    <div class="mockup-wrap">
+      <div class="browser-chrome">
+        <div class="b-dots">
+          <div class="b-dot b-dot-r"></div>
+          <div class="b-dot b-dot-y"></div>
+          <div class="b-dot b-dot-g"></div>
+        </div>
+        <div class="b-url">app.websiterevive.io · Analyzing yourwebsite.com</div>
+      </div>
+      <div class="compare-grid">
+        <div class="compare-pane before">
+          <div class="compare-label">
+            <div class="compare-label-dot"></div>
+            Before — Your current site
+          </div>
+          <div class="sk w60"></div>
+          <div class="sk w100" style="margin-bottom:14px;"></div>
+          <div class="sk h-lg w100"></div>
+          <div class="sk w80"></div>
+          <div class="sk w40" style="margin-bottom:18px;"></div>
+          <div class="sk h-btn"></div>
+          <div class="score-row">
+            <div class="score-chip bad">Perf: 31</div>
+            <div class="score-chip bad">SEO: 48</div>
+            <div class="score-chip bad">Speed: 5.2s</div>
+          </div>
+        </div>
+        <div class="compare-pane after">
+          <div class="compare-label">
+            <div class="compare-label-dot"></div>
+            After — WebsiteRevive
+          </div>
+          <div class="sk w60"></div>
+          <div class="sk w100" style="margin-bottom:14px;"></div>
+          <div class="sk h-lg w100"></div>
+          <div class="sk w80"></div>
+          <div class="sk w40" style="margin-bottom:18px;"></div>
+          <div class="sk h-btn"></div>
+          <div class="score-row">
+            <div class="score-chip good">Perf: 97</div>
+            <div class="score-chip good">SEO: 96</div>
+            <div class="score-chip good">Speed: 0.9s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     TRUSTED STRIP
+════════════════════════════════════════════ -->
+<div class="trusted-strip">
+  <div class="trusted-inner">
+    <span class="trusted-label">Compatible with</span>
+    <div class="trusted-logos">
+      <span class="t-logo">Shopify</span>
+      <span class="t-logo">WordPress</span>
+      <span class="t-logo">Webflow</span>
+      <span class="t-logo">Squarespace</span>
+      <span class="t-logo">Framer</span>
+      <span class="t-logo">Wix</span>
+      <span class="t-logo">Webnode</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     PROBLEM SECTION
+════════════════════════════════════════════ -->
+<section class="problem-section">
+  <div class="container">
+    <div class="problem-layout">
+      <div class="problem-left">
+        <div class="sec-tag">The problem</div>
+        <h2 class="sec-title">Your current site is <span class="accent">costing you</span> customers every day</h2>
+        <p class="sec-desc" style="margin-top:14px;">
+          Most websites lose 50–80% of potential customers before they ever see a CTA. A slow, outdated, or poorly structured site is the silent killer of your business.
+        </p>
+        <ul class="problem-list">
+          <li class="problem-item">
+            <div class="problem-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,90,90,0.8)" stroke-width="1.8" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+              </svg>
+            </div>
+            <div>
+              <div class="problem-item-title">Slow load times kill conversions</div>
+              <div class="problem-item-desc">Every extra second of load time costs ~7% in conversions. Most small business sites load in 5–8 seconds.</div>
+            </div>
+          </li>
+          <li class="problem-item">
+            <div class="problem-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,90,90,0.8)" stroke-width="1.8" stroke-linecap="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div>
+              <div class="problem-item-title">Poor SEO means you're invisible</div>
+              <div class="problem-item-desc">Technical SEO errors keep your site off Google's first page — where 95% of all clicks happen.</div>
+            </div>
+          </li>
+          <li class="problem-item">
+            <div class="problem-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,90,90,0.8)" stroke-width="1.8" stroke-linecap="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <div>
+              <div class="problem-item-title">Outdated design destroys trust</div>
+              <div class="problem-item-desc">Visitors form an opinion about your site in 50ms. An outdated design signals an outdated business.</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="stats-right">
+        <div class="stat-box">
+          <div class="stat-num">53%</div>
+          <div class="stat-label">of users abandon a site that takes over 3s to load</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">75%</div>
+          <div class="stat-label">of users judge credibility by website design alone</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">+200%</div>
+          <div class="stat-label">ROI from a well-optimized landing page</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">€4k+</div>
+          <div class="stat-label">avg monthly agency cost for what we do in minutes</div>
+        </div>
+        <div class="stat-box wide">
+          <div class="stat-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3DFFD0" stroke-width="1.5" stroke-linecap="round">
+              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </div>
+          <div>
+            <div class="stat-num" style="font-size:26px;">WebsiteRevive fixes all of this</div>
+            <div class="stat-label" style="margin-top:4px;">Automatically, in under 5 minutes, from a single URL paste.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     HOW IT WORKS
+════════════════════════════════════════════ -->
+<section class="process-section" id="how-it-works">
+  <div class="container">
+    <div class="process-header">
+      <div class="sec-tag">How it works</div>
+      <h2 class="sec-title">Three steps to a <span class="accent">fully revived</span> website</h2>
+      <p class="sec-desc" style="margin-top:14px;">No technical knowledge needed. Paste your URL, review the output, go live.</p>
+    </div>
+
+    <div class="process-steps">
+      <div class="p-step">
+        <div class="p-step-num-col">
+          <div class="p-step-num">01</div>
+        </div>
+        <div class="p-step-body">
+          <div class="p-step-eyebrow">Paste & Scan</div>
+          <div class="p-step-title">Drop your URL — we do the deep work</div>
+          <p class="p-step-desc">
+            Paste your website URL and WebsiteRevive runs a full technical audit in seconds. Performance, SEO, accessibility, visual quality, CRO gaps — all scored and catalogued automatically. No forms to fill, no briefs to write.
+          </p>
+          <div class="p-step-chips">
+            <span class="chip">Lighthouse scan</span>
+            <span class="chip">SEO crawl</span>
+            <span class="chip">Visual analysis</span>
+            <span class="chip">Core Web Vitals</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-step">
+        <div class="p-step-num-col">
+          <div class="p-step-num">02</div>
+        </div>
+        <div class="p-step-body">
+          <div class="p-step-eyebrow">Review & Refine</div>
+          <div class="p-step-title">See your revived site before you commit</div>
+          <p class="p-step-desc">
+            In under 5 minutes, preview your fully regenerated website side-by-side with the original. Every issue is fixed — speed, SEO, layout, copy hierarchy, mobile responsiveness. Tweak anything with simple controls, then approve in one click.
+          </p>
+          <div class="p-step-chips">
+            <span class="chip">Side-by-side preview</span>
+            <span class="chip">Score comparison</span>
+            <span class="chip">One-click adjustments</span>
+            <span class="chip">Brand alignment</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-step">
+        <div class="p-step-num-col">
+          <div class="p-step-num">03</div>
+        </div>
+        <div class="p-step-body">
+          <div class="p-step-eyebrow">Launch & Monitor</div>
+          <div class="p-step-title">Go live in one click — then stay ahead</div>
+          <p class="p-step-desc">
+            Publish directly to your platform or export clean production-ready code. WebsiteRevive doesn't stop at launch — it keeps monitoring your site post-go-live, alerting you to regressions, new SEO gaps, and competitor movements before they cost you rankings.
+          </p>
+          <div class="p-step-chips">
+            <span class="chip">Direct publish</span>
+            <span class="chip">Code export</span>
+            <span class="chip">Uptime monitoring</span>
+            <span class="chip">Monthly reports</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════ -->
+<section class="features-section" id="features">
+  <div class="container">
+    <div class="features-head">
+      <div class="sec-tag">What's included</div>
+      <h2 class="sec-title">Everything your site needs to <span class="accent">perform</span></h2>
+      <p class="sec-desc">One tool covering design, performance, SEO, and conversion. No agency. No plugins. No waiting.</p>
+    </div>
+
+    <div class="features-grid">
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3DFFD0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </div>
+        <div class="feat-title">AI Redesign</div>
+        <p class="feat-desc">Your site's structure, copy, and hierarchy are analyzed and regenerated into a modern, conversion-optimized design — while keeping your brand intact.</p>
+        <ul class="feat-list">
+          <li>Modern layout generation</li>
+          <li>Brand-consistent output</li>
+          <li>Responsive & mobile-first</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3DFFD0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+          </svg>
+        </div>
+        <div class="feat-title">SEO Recovery</div>
+        <p class="feat-desc">Full technical SEO audit with automatic fixes applied — meta data, page structure, internal links, schema markup, and Core Web Vitals all corrected.</p>
+        <ul class="feat-list">
+          <li>Title & meta optimization</li>
+          <li>Schema markup injection</li>
+          <li>Core Web Vitals repair</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3DFFD0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13" cy="13" r="8"/><path d="M21 21l-4.35-4.35M8 13V8"/><path d="M13 8H8"/>
+          </svg>
+        </div>
+        <div class="feat-title">Speed Optimization</div>
+        <p class="feat-desc">Images compressed to WebP, scripts deferred, fonts subsetted, critical CSS inlined. Your site loads in under a second on any device and connection.</p>
+        <ul class="feat-list">
+          <li>Image compression & WebP</li>
+          <li>Critical CSS inlining</li>
+          <li>Lazy loading everywhere</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3DFFD0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="feat-title">Conversion Optimization</div>
+        <p class="feat-desc">CRO best practices baked in from day one. CTAs, trust signals, headline hierarchy, and above-the-fold content all aligned to turn visitors into customers.</p>
+        <ul class="feat-list">
+          <li>CTA placement analysis</li>
+          <li>Trust signal injection</li>
+          <li>Heatmap-based layouts</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3DFFD0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="feat-title">Clean Code Export</div>
+        <p class="feat-desc">Get production-ready HTML, CSS, and JS — or publish directly to your existing platform. Semantic, accessible, framework-agnostic. No vendor lock-in.</p>
+        <ul class="feat-list">
+          <li>Export to any platform</li>
+          <li>Semantic HTML5 output</li>
+          <li>WCAG accessibility compliant</li>
+        </ul>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3DFFD0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="feat-title">Continuous Monitoring</div>
+        <p class="feat-desc">WebsiteRevive keeps watching post-launch. Performance regressions, new SEO gaps, uptime issues, and competitor shifts — all flagged before they hurt you.</p>
+        <ul class="feat-list">
+          <li>Weekly performance reports</li>
+          <li>Uptime & error alerts</li>
+          <li>Competitor benchmarking</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     TESTIMONIALS
+════════════════════════════════════════════ -->
+<section class="testimonials-section" id="results">
+  <div class="container">
+    <div class="testimonials-head">
+      <div class="sec-tag">Real results</div>
+      <h2 class="sec-title">Teams who already <span class="accent">revived</span> their sites</h2>
+      <p class="sec-desc">Not cherry-picked edge cases. Typical outcomes from real businesses.</p>
+    </div>
+
+    <div class="t-grid">
+      <div class="t-card">
+        <div class="t-stars">
+          <span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span>
+        </div>
+        <p class="t-quote">Our Lighthouse score went from 41 to 96 overnight. Bounce rate dropped 40% in the first week. I wish I'd found this two years ago.</p>
+        <div class="t-author">
+          <div class="t-avatar">SM</div>
+          <div>
+            <div class="t-name">Sarah M.</div>
+            <div class="t-role">Founder, DTC Brand · Shopify</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="t-card">
+        <div class="t-stars">
+          <span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span>
+        </div>
+        <p class="t-quote">I was paying an agency €4k/month for marginal improvements. WebsiteRevive did more in 5 minutes. I cancelled the retainer the same day.</p>
+        <div class="t-author">
+          <div class="t-avatar">JK</div>
+          <div>
+            <div class="t-name">James K.</div>
+            <div class="t-role">CEO, SaaS Startup · WordPress</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="t-card">
+        <div class="t-stars">
+          <span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span><span class="t-star">★</span>
+        </div>
+        <p class="t-quote">Went from page 4 to page 1 for our main keyword in under 3 weeks after the SEO fixes. Our pipeline has literally doubled since launch.</p>
+        <div class="t-author">
+          <div class="t-avatar">AL</div>
+          <div>
+            <div class="t-name">Aisha L.</div>
+            <div class="t-role">Head of Growth, Marketing Agency</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     PRICING
+════════════════════════════════════════════ -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="pricing-head">
+      <div class="sec-tag">Pricing</div>
+      <h2 class="sec-title">Simple, transparent <span class="accent">pricing</span></h2>
+      <p class="sec-desc">Start free. Upgrade when you need more. Cancel anytime.</p>
+    </div>
+
+    <div class="pricing-grid">
+
+      <div class="p-card">
+        <div class="p-tier">Starter</div>
+        <div class="p-price"><sup>€</sup>0</div>
+        <div class="p-price-sub">Free forever</div>
+        <p class="p-desc">Perfect for trying WebsiteRevive and auditing your first site.</p>
+        <ul class="p-features-list">
+          <li><span class="check">✓</span> 1 website audit</li>
+          <li><span class="check">✓</span> Full Lighthouse scan</li>
+          <li><span class="check">✓</span> SEO issue report</li>
+          <li><span class="check">✓</span> Performance score</li>
+          <li><span class="cross">–</span> AI redesign</li>
+          <li><span class="cross">–</span> Code export</li>
+          <li><span class="cross">–</span> Monitoring</li>
+        </ul>
+        <a href="#" class="btn-plan-outline">Get free audit</a>
+      </div>
+
+      <div class="p-card featured">
+        <div class="p-badge">Most Popular</div>
+        <div class="p-tier">Pro</div>
+        <div class="p-price"><sup>€</sup>49</div>
+        <div class="p-price-sub">per month</div>
+        <p class="p-desc">For businesses serious about turning their website into a growth engine.</p>
+        <ul class="p-features-list">
+          <li><span class="check">✓</span> 5 websites</li>
+          <li><span class="check">✓</span> Full AI redesign</li>
+          <li><span class="check">✓</span> SEO auto-repair</li>
+          <li><span class="check">✓</span> Speed optimization</li>
+          <li><span class="check">✓</span> CRO improvements</li>
+          <li><span class="check">✓</span> Clean code export</li>
+          <li><span class="check">✓</span> Monthly monitoring</li>
+        </ul>
+        <a href="#" class="btn-plan-primary">Start free trial</a>
+      </div>
+
+      <div class="p-card">
+        <div class="p-tier">Agency</div>
+        <div class="p-price"><sup>€</sup>149</div>
+        <div class="p-price-sub">per month</div>
+        <p class="p-desc">For agencies and teams managing multiple client websites at scale.</p>
+        <ul class="p-features-list">
+          <li><span class="check">✓</span> Unlimited websites</li>
+          <li><span class="check">✓</span> White-label reports</li>
+          <li><span class="check">✓</span> Priority processing</li>
+          <li><span class="check">✓</span> API access</li>
+          <li><span class="check">✓</span> Client dashboard</li>
+          <li><span class="check">✓</span> Weekly monitoring</li>
+          <li><span class="check">✓</span> Dedicated support</li>
+        </ul>
+        <a href="#" class="btn-plan-outline">Contact sales</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     FAQ
+════════════════════════════════════════════ -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="faq-layout">
+      <div class="faq-left">
+        <div class="sec-tag">FAQ</div>
+        <h2 class="sec-title">Common <span class="accent">questions</span></h2>
+        <p class="sec-desc">Everything you need to know. Can't find an answer? <a href="#" style="color:var(--mint);text-decoration:none;">Talk to us →</a></p>
+      </div>
+
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary class="faq-q">
+            <span class="faq-q-text">How does WebsiteRevive actually work?</span>
+            <div class="faq-icon">+</div>
+          </summary>
+          <p class="faq-a">You paste your URL and our AI runs a full technical and visual audit. It then generates a completely optimized version of your site — fixing performance, SEO, design, and conversion issues automatically. You review the output, approve it, and go live.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">
+            <span class="faq-q-text">Will it break my existing website?</span>
+            <div class="faq-icon">+</div>
+          </summary>
+          <p class="faq-a">Never. WebsiteRevive generates a new version in a preview environment. Your live site is untouched until you explicitly choose to publish. You can review, compare, and adjust everything before anything goes live.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">
+            <span class="faq-q-text">Do I need technical skills to use this?</span>
+            <div class="faq-icon">+</div>
+          </summary>
+          <p class="faq-a">Zero. If you can copy and paste a URL, you can use WebsiteRevive. The audit, redesign, optimization, and export are all fully automated. For those who want to dive deeper, we offer code access too.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">
+            <span class="faq-q-text">What platforms do you support?</span>
+            <div class="faq-icon">+</div>
+          </summary>
+          <p class="faq-a">We support all major platforms: Shopify, WordPress, Webflow, Squarespace, Framer, Wix, and custom HTML/CSS sites. We can also export clean production code that works anywhere.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">
+            <span class="faq-q-text">How long does the audit and redesign take?</span>
+            <div class="faq-icon">+</div>
+          </summary>
+          <p class="faq-a">The full audit takes under 60 seconds. The AI redesign typically takes 2–4 minutes depending on site complexity. You're reviewing your revived site in under 5 minutes from paste to preview.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-q">
+            <span class="faq-q-text">Can I cancel my subscription anytime?</span>
+            <div class="faq-icon">+</div>
+          </summary>
+          <p class="faq-a">Yes, absolutely. No lock-ins, no cancellation fees. Cancel any time from your account settings and your subscription ends at the end of your billing period. Your exported code is yours to keep regardless.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     FINAL CTA
+════════════════════════════════════════════ -->
+<section class="cta-section" id="cta">
+  <div class="container">
+    <div class="cta-box">
+      <p class="cta-tag">Start for free today</p>
+      <h2 class="cta-title">
+        Your website,<br>
+        <span class="accent">revived.</span>
+      </h2>
+      <p class="cta-desc">
+        Paste your URL below. Get a full audit and AI-powered redesign preview in under 5 minutes. Free to try, no card required.
+      </p>
+      <form class="cta-form revive-form" onsubmit="handleRevive(event);">
+        <div class="cta-input-wrap">
+          <span class="url-prefix" style="font-size:13px;color:var(--muted);white-space:nowrap;flex-shrink:0;">https://</span>
+          <input
+            class="cta-input"
+            type="text"
+            placeholder="yourwebsite.com"
+            aria-label="Enter your website URL"
+          >
+          <button class="btn-revive" type="submit">Revive Website →</button>
+        </div>
+      </form>
+      <p class="cta-note">Free audit · No card required · Results in under 5 min</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
+      <p class="footer-tagline">AI-powered website regeneration. Faster, smarter, higher-converting sites — from a single URL paste.</p>
+    </div>
+
+    <div class="footer-nav-group">
+      <div class="footer-nav-label">Product</div>
+      <ul class="footer-nav-links">
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#">Changelog</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-nav-group">
+      <div class="footer-nav-label">Company</div>
+      <ul class="footer-nav-links">
+        <li><a href="#">About</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-nav-group">
+      <div class="footer-nav-label">Legal</div>
+      <ul class="footer-nav-links">
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Cookie Policy</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p class="footer-copy">© <span>2025</span> WebsiteRevive. All rights reserved.</p>
+    <div class="footer-legal">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Cookies</a>
+    </div>
+  </div>
+</footer>
+
+
+<script>
+  // ── Config ──────────────────────────────────────────────────────────────────
+  // Local dev:   leave as empty string (same-origin)
+  // Production:  set to your Render URL, e.g. 'https://websiterevive-api.onrender.com'
+  const REVIVE_API_URL = '';
+
+  // ── Status element helper ───────────────────────────────────────────────────
+  function getOrCreateStatus(form) {
+    let el = form.nextElementSibling;
+    if (el && el.classList.contains('revive-status')) return el;
+    el = document.createElement('p');
+    el.className = 'revive-status';
+    el.style.cssText = [
+      'margin-top:1rem',
+      'font-size:13px',
+      'letter-spacing:0.4px',
+      'color:var(--mint)',
+      'min-height:1.4em',
+    ].join(';');
+    form.after(el);
+    return el;
+  }
+
+  // ── Core submit handler ─────────────────────────────────────────────────────
+  async function handleRevive(e) {
+    e.preventDefault();
+
+    const form   = e.currentTarget;
+    const input  = form.querySelector('input[type="text"]');
+    const btn    = form.querySelector('button[type="submit"]');
+    const status = getOrCreateStatus(form);
+
+    const rawUrl = input.value.trim();
+    if (!rawUrl) { input.focus(); return; }
+
+    // ── Loading state ──────────────────────────────────────────────────────
+    btn.disabled    = true;
+    btn.textContent = 'Reviving…';
+    status.style.color = 'var(--mint)';
+    status.innerHTML   = '';
+
+    const steps = [
+      'Scraping your website…',
+      'Analysing brand &amp; content…',
+      'Generating new design…',
+      'Almost done…',
+    ];
+    let i = 0;
+    status.textContent = steps[0];
+    const ticker = setInterval(() => {
+      status.textContent = steps[Math.min(++i, steps.length - 1)];
+    }, 8000);
+
+    // ── API call ───────────────────────────────────────────────────────────
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/generate`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url: rawUrl }),
+      });
+      const data = await res.json();
+      clearInterval(ticker);
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || `Server error ${res.status}`);
+      }
+
+      // ── Build blob URLs (no server storage needed) ───────────────────────
+      const blob       = new Blob([data.html], { type: 'text/html' });
+      const blobUrl    = URL.createObjectURL(blob);
+      const filename   = `${data.slug || 'revived'}_websiterevive.html`;
+
+      // Download link
+      const dlLink        = document.createElement('a');
+      dlLink.href         = blobUrl;
+      dlLink.download     = filename;
+      dlLink.textContent  = 'Download HTML';
+      dlLink.style.cssText = 'color:var(--mint);text-decoration:underline;cursor:pointer;';
+
+      // Preview link
+      const previewLink       = document.createElement('a');
+      previewLink.href        = blobUrl;
+      previewLink.target      = '_blank';
+      previewLink.rel         = 'noopener';
+      previewLink.textContent = 'Preview';
+      previewLink.style.cssText = 'color:var(--mint);text-decoration:underline;';
+
+      status.style.color = 'var(--mint-soft)';
+      status.innerHTML   = '';
+      status.append(
+        document.createTextNode(`${data.business_name || 'Your site'} is ready! \u00a0`),
+        previewLink,
+        document.createTextNode('\u00a0\u00a0'),
+        dlLink,
+      );
+
+      btn.disabled    = false;
+      btn.textContent = 'Revive Again →';
+
+    } catch (err) {
+      clearInterval(ticker);
+      status.style.color = 'var(--red)';
+      status.textContent = `Error: ${err.message}`;
+      btn.disabled    = false;
+      btn.textContent = 'Revive Website →';
+    }
+  }
+</script>
+
+<script type="module">
+  /* ── Try to load dotted-map from CDN and replace the CSS-grid fallback ── */
+  (async () => {
+    try {
+      const { default: DottedMap } = await import('https://esm.sh/dotted-map@2');
+      const map = new DottedMap({ height: 60, grid: 'diagonal' });
+      const svgStr = map.getSVG({
+        radius: 0.22,
+        color: '#3DFFD0',
+        shape: 'circle',
+        backgroundColor: 'transparent',
+      });
+
+      /* Parse so we can tweak attributes before injecting */
+      const parser = new DOMParser();
+      const doc    = parser.parseFromString(svgStr, 'image/svg+xml');
+      const svgEl  = doc.querySelector('svg');
+      if (!svgEl) return;
+
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+      svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svgEl.setAttribute('style', 'width:100%;height:100%;display:block;');
+
+      const container = document.getElementById('hero-map-dots');
+      if (container) {
+        container.style.backgroundImage = 'none'; /* drop CSS-grid fallback */
+        container.innerHTML = svgEl.outerHTML;
+      }
+    } catch (err) {
+      /* CSS dot-grid fallback remains — no visible breakage */
+      console.info('[WebsiteRevive] Map CDN unavailable, using fallback.', err.message);
+    }
+  })();
+</script>
+
+</body>
+</html>

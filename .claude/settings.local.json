@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python3 -c \"from tools.server import app; print\\(''Import OK''\\)\")",
+      "Bash(git --version)"
+    ]
+  }
+}

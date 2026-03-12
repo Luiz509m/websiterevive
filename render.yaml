@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: websiterevive-api
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false                     # Set this manually in Render dashboard
+      - key: ALLOWED_ORIGIN
+        sync: false                     # Set to your Vercel URL after deployment
+                                        # e.g. https://websiterevive.vercel.app

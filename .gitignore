@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Temporary generated files
+.tmp/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Google OAuth
+token.json
+credentials.json
+
+# Reference designs (large image files — store separately if needed)
+reference_designs/
+
+# OS
+.DS_Store
+Thumbs.db
