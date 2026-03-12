@@ -16,6 +16,9 @@ credentials.json
 # Reference designs (large image files — store separately if needed)
 reference_designs/
 
+# Claude Code
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
