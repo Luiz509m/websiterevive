@@ -254,12 +254,21 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     # Build images section for prompt
     images_block = ""
     if site_image_urls:
-        images_list = "\n".join(f"- {u}" for u in site_image_urls[:10])
+        first_image  = site_image_urls[0]
+        images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
         images_block = f"""
-ORIGINAL SITE IMAGES (use these real URLs for gallery and about sections — do NOT use Unsplash):
+ORIGINAL SITE IMAGES:
 {images_list}
-- Use these images in gallery and about sections only
-- For the hero: create a visually compelling design inspired by the reference screenshots (full-screen, immersive, matches the business atmosphere) — use CSS gradients, patterns, or overlays, NOT a real photo for the hero"""
+
+HERO BACKGROUND (CRITICAL):
+- Use this image as the hero background: {first_image}
+- CSS: background-image: url('{first_image}'); background-size: cover; background-position: center; background-attachment: fixed;
+- Add a dark overlay div (position:absolute; inset:0; background:rgba(0,0,0,0.45)) so text is readable
+- The hero must be full viewport height (min-height: 100vh) — spacious, immersive, full-bleed
+- All hero text must be white and centered
+- This is the most important visual element — make it stunning
+
+GALLERY / ABOUT: use the remaining images from the list above"""
 
     content.append({
         "type": "text",
@@ -309,11 +318,12 @@ COLOUR RULES (IMPORTANT):
 DESIGN REQUIREMENTS:
 - Draw inspiration from the reference screenshots above (layout, style, spacing)
 - Create a UNIQUE design that fits this specific business
-- Modern, clean, professional
+- Modern, clean, professional — sections must be SPACIOUS with generous padding (min 80px top/bottom)
 - Fully responsive (mobile-first)
 - Use Google Fonts (pick 2 that match the tone)
-- Include: sticky nav, hero section, services/features section, about section, CTA section, footer
+- Include: sticky nav, hero section (full viewport height), services/features section, about section, CTA section, footer
 - Inline all CSS and JS in a single HTML file
+- NO cramped layouts — every section needs room to breathe
 
 HERO MARKER (CRITICAL):
 - After the closing tag of the hero section (</section> or </header>), add this exact comment on its own line:
