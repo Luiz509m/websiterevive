@@ -1496,7 +1496,8 @@
       <li><a href="#faq">FAQ</a></li>
     </ul>
     <div class="nav-right">
-      <a href="#" class="nav-login">Log in</a>
+      <span id="nav-tokens" style="display:none;font-size:12px;color:var(--mint);margin-right:12px;letter-spacing:0.5px;"></span>
+      <a href="#" class="nav-login" id="nav-auth-btn" onclick="openAuthModal(event)">Log in</a>
       <a href="#cta" class="btn-nav">Revive My Site</a>
     </div>
   </div>
@@ -1634,9 +1635,27 @@
       </div>
     </form>
 
-    <p class="hero-note">
-      Free audit included <span>·</span> No card required <span>·</span> Results in under 5 min
+    <p class="hero-note" id="hero-note-default">
+      See your hero section free — unlock the full website for 1 token
     </p>
+
+    <!-- Result section — shown after generation -->
+    <div id="result-section" style="display:none;width:100%;max-width:860px;margin:2rem auto 0;">
+      <div style="border:1px solid var(--border-strong);border-radius:12px;overflow:hidden;">
+        <iframe id="hero-iframe" sandbox="allow-scripts allow-same-origin"
+          style="width:100%;height:420px;border:none;display:block;background:#fff;"></iframe>
+      </div>
+      <div id="unlock-bar" style="margin-top:1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <p style="font-size:13px;color:var(--muted-light);margin:0;">
+          Hero preview only — unlock to get the complete website
+        </p>
+        <button onclick="handleUnlock()" id="unlock-btn"
+          style="background:var(--mint);color:var(--black);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:0.5px;padding:10px 22px;border:none;border-radius:6px;cursor:pointer;">
+          Unlock Full Website — 1 Token
+        </button>
+      </div>
+      <p id="unlock-status" style="display:none;font-size:13px;color:var(--mint);margin-top:0.8rem;"></p>
+    </div>
 
     <div class="hero-proof">
       <div class="proof-item">
@@ -2072,55 +2091,49 @@
     <div class="pricing-grid">
 
       <div class="p-card">
-        <div class="p-tier">Starter</div>
-        <div class="p-price"><sup>€</sup>0</div>
-        <div class="p-price-sub">Free forever</div>
-        <p class="p-desc">Perfect for trying WebsiteRevive and auditing your first site.</p>
+        <div class="p-tier">Single</div>
+        <div class="p-price"><sup>CHF</sup>29</div>
+        <div class="p-price-sub">1 token</div>
+        <p class="p-desc">Perfect for businesses that need one modern, high-converting website.</p>
         <ul class="p-features-list">
-          <li><span class="check">✓</span> 1 website audit</li>
-          <li><span class="check">✓</span> Full Lighthouse scan</li>
-          <li><span class="check">✓</span> SEO issue report</li>
-          <li><span class="check">✓</span> Performance score</li>
-          <li><span class="cross">–</span> AI redesign</li>
-          <li><span class="cross">–</span> Code export</li>
-          <li><span class="cross">–</span> Monitoring</li>
+          <li><span class="check">✓</span> 1 website generation</li>
+          <li><span class="check">✓</span> Full AI redesign</li>
+          <li><span class="check">✓</span> Brand colour matching</li>
+          <li><span class="check">✓</span> Clean HTML export</li>
+          <li><span class="check">✓</span> Mobile responsive</li>
         </ul>
-        <a href="#" class="btn-plan-outline">Get free audit</a>
+        <button onclick="handleBuyTokens('1')" class="btn-plan-outline">Buy 1 Token</button>
       </div>
 
       <div class="p-card featured">
-        <div class="p-badge">Most Popular</div>
-        <div class="p-tier">Pro</div>
-        <div class="p-price"><sup>€</sup>49</div>
-        <div class="p-price-sub">per month</div>
-        <p class="p-desc">For businesses serious about turning their website into a growth engine.</p>
+        <div class="p-badge">Best Value</div>
+        <div class="p-tier">Pack</div>
+        <div class="p-price"><sup>CHF</sup>49</div>
+        <div class="p-price-sub">5 tokens</div>
+        <p class="p-desc">For agencies and freelancers reviving multiple client websites.</p>
         <ul class="p-features-list">
-          <li><span class="check">✓</span> 5 websites</li>
+          <li><span class="check">✓</span> 5 website generations</li>
           <li><span class="check">✓</span> Full AI redesign</li>
-          <li><span class="check">✓</span> SEO auto-repair</li>
-          <li><span class="check">✓</span> Speed optimization</li>
-          <li><span class="check">✓</span> CRO improvements</li>
-          <li><span class="check">✓</span> Clean code export</li>
-          <li><span class="check">✓</span> Monthly monitoring</li>
+          <li><span class="check">✓</span> Brand colour matching</li>
+          <li><span class="check">✓</span> Clean HTML export</li>
+          <li><span class="check">✓</span> Mobile responsive</li>
         </ul>
-        <a href="#" class="btn-plan-primary">Start free trial</a>
+        <button onclick="handleBuyTokens('5')" class="btn-plan-primary">Buy 5 Tokens</button>
       </div>
 
       <div class="p-card">
         <div class="p-tier">Agency</div>
-        <div class="p-price"><sup>€</sup>149</div>
-        <div class="p-price-sub">per month</div>
-        <p class="p-desc">For agencies and teams managing multiple client websites at scale.</p>
+        <div class="p-price"><sup>CHF</sup>149</div>
+        <div class="p-price-sub">50 tokens</div>
+        <p class="p-desc">For teams and agencies with a large portfolio of client websites.</p>
         <ul class="p-features-list">
-          <li><span class="check">✓</span> Unlimited websites</li>
-          <li><span class="check">✓</span> White-label reports</li>
-          <li><span class="check">✓</span> Priority processing</li>
-          <li><span class="check">✓</span> API access</li>
-          <li><span class="check">✓</span> Client dashboard</li>
-          <li><span class="check">✓</span> Weekly monitoring</li>
-          <li><span class="check">✓</span> Dedicated support</li>
+          <li><span class="check">✓</span> 50 website generations</li>
+          <li><span class="check">✓</span> Full AI redesign</li>
+          <li><span class="check">✓</span> Brand colour matching</li>
+          <li><span class="check">✓</span> Clean HTML export</li>
+          <li><span class="check">✓</span> Mobile responsive</li>
         </ul>
-        <a href="#" class="btn-plan-outline">Contact sales</a>
+        <button onclick="handleBuyTokens('50')" class="btn-plan-outline">Buy 50 Tokens</button>
       </div>
 
     </div>
@@ -2277,101 +2290,186 @@
 </footer>
 
 
+<!-- ── Auth Modal ─────────────────────────────────────────────────────────── -->
+<div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--surface2);border:1px solid var(--border-strong);border-radius:14px;padding:2rem;width:100%;max-width:400px;margin:1rem;position:relative;">
+    <button onclick="closeAuthModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;margin-bottom:1.5rem;border-bottom:1px solid var(--border);">
+      <button id="tab-login" onclick="switchTab('login')"
+        style="flex:1;background:none;border:none;padding:10px;font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;color:var(--mint);border-bottom:2px solid var(--mint);">
+        Log in
+      </button>
+      <button id="tab-register" onclick="switchTab('register')"
+        style="flex:1;background:none;border:none;padding:10px;font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;">
+        Register
+      </button>
+    </div>
+
+    <form id="auth-form" onsubmit="handleAuth(event);" style="display:flex;flex-direction:column;gap:0.9rem;">
+      <input id="auth-email" type="email" placeholder="your@email.com" required
+        style="background:var(--surface3);border:1px solid var(--border-mid);border-radius:6px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;">
+      <input id="auth-password" type="password" placeholder="Password (min. 8 characters)" required
+        style="background:var(--surface3);border:1px solid var(--border-mid);border-radius:6px;padding:10px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;">
+      <button type="submit" id="auth-submit-btn"
+        style="background:var(--mint);color:var(--black);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;padding:11px;border:none;border-radius:6px;cursor:pointer;">
+        Log in
+      </button>
+      <p id="auth-error" style="display:none;color:var(--red);font-size:12px;margin:0;"></p>
+    </form>
+  </div>
+</div>
+
 <script>
   // ── Config ──────────────────────────────────────────────────────────────────
-  // Local dev:   leave as empty string (same-origin)
-  // Production:  set to your Render URL, e.g. 'https://websiterevive-api.onrender.com'
   const REVIVE_API_URL = 'https://websiterevive.onrender.com';
 
-  // ── Status element helper ───────────────────────────────────────────────────
+  // ── State ────────────────────────────────────────────────────────────────────
+  let currentGenerationId = null;
+  let currentTab = 'login';
+
+  // ── Auth state ───────────────────────────────────────────────────────────────
+  function getToken()          { return localStorage.getItem('revive_token'); }
+  function setToken(t)         { localStorage.setItem('revive_token', t); }
+  function clearToken()        { localStorage.removeItem('revive_token'); localStorage.removeItem('revive_user'); }
+  function getUser()           { try { return JSON.parse(localStorage.getItem('revive_user')); } catch { return null; } }
+  function setUser(u)          { localStorage.setItem('revive_user', JSON.stringify(u)); }
+
+  function authHeaders() {
+    const t = getToken();
+    return t ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` }
+             : { 'Content-Type': 'application/json' };
+  }
+
+  function updateNavAuth() {
+    const user     = getUser();
+    const btn      = document.getElementById('nav-auth-btn');
+    const tokensEl = document.getElementById('nav-tokens');
+    if (user) {
+      btn.textContent = 'Log out';
+      btn.onclick     = (e) => { e.preventDefault(); logout(); };
+      tokensEl.style.display = 'inline';
+      tokensEl.textContent   = `${user.tokens} token${user.tokens !== 1 ? 's' : ''}`;
+    } else {
+      btn.textContent = 'Log in';
+      btn.onclick     = openAuthModal;
+      tokensEl.style.display = 'none';
+    }
+  }
+
+  function logout() {
+    clearToken();
+    updateNavAuth();
+  }
+
+  // ── Auth modal ───────────────────────────────────────────────────────────────
+  function openAuthModal(e) {
+    if (e) e.preventDefault();
+    document.getElementById('auth-modal').style.display = 'flex';
+  }
+
+  function closeAuthModal() {
+    document.getElementById('auth-modal').style.display = 'none';
+    document.getElementById('auth-error').style.display = 'none';
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    const isLogin = tab === 'login';
+    document.getElementById('tab-login').style.color       = isLogin ? 'var(--mint)' : 'var(--muted)';
+    document.getElementById('tab-login').style.borderBottomColor = isLogin ? 'var(--mint)' : 'transparent';
+    document.getElementById('tab-register').style.color    = !isLogin ? 'var(--mint)' : 'var(--muted)';
+    document.getElementById('tab-register').style.borderBottomColor = !isLogin ? 'var(--mint)' : 'transparent';
+    document.getElementById('auth-submit-btn').textContent = isLogin ? 'Log in' : 'Create account';
+    document.getElementById('auth-error').style.display   = 'none';
+  }
+
+  async function handleAuth(e) {
+    e.preventDefault();
+    const email    = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const errEl    = document.getElementById('auth-error');
+    const btn      = document.getElementById('auth-submit-btn');
+
+    btn.disabled    = true;
+    btn.textContent = 'Please wait…';
+    errEl.style.display = 'none';
+
+    const endpoint = currentTab === 'login' ? '/auth/login' : '/auth/register';
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}${endpoint}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+
+      setToken(data.token);
+      setUser(data.user);
+      updateNavAuth();
+      closeAuthModal();
+
+      // If there's a pending unlock, continue
+      if (currentGenerationId) handleUnlock();
+
+    } catch (err) {
+      errEl.textContent   = err.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = currentTab === 'login' ? 'Log in' : 'Create account';
+    }
+  }
+
+  // ── Generation ───────────────────────────────────────────────────────────────
   function getOrCreateStatus(form) {
     let el = form.nextElementSibling;
     if (el && el.classList.contains('revive-status')) return el;
     el = document.createElement('p');
-    el.className = 'revive-status';
-    el.style.cssText = [
-      'margin-top:1rem',
-      'font-size:13px',
-      'letter-spacing:0.4px',
-      'color:var(--mint)',
-      'min-height:1.4em',
-    ].join(';');
+    el.className  = 'revive-status';
+    el.style.cssText = 'margin-top:1rem;font-size:13px;letter-spacing:0.4px;color:var(--mint);min-height:1.4em;';
     form.after(el);
     return el;
   }
 
-  // ── Core submit handler ─────────────────────────────────────────────────────
   async function handleRevive(e) {
     e.preventDefault();
-
     const form   = e.currentTarget;
     const input  = form.querySelector('input[type="text"]');
     const btn    = form.querySelector('button[type="submit"]');
     const status = getOrCreateStatus(form);
-
     const rawUrl = input.value.trim();
     if (!rawUrl) { input.focus(); return; }
 
-    // ── Loading state ──────────────────────────────────────────────────────
     btn.disabled    = true;
     btn.textContent = 'Reviving…';
     status.style.color = 'var(--mint)';
-    status.innerHTML   = '';
 
-    const steps = [
-      'Scraping your website…',
-      'Analysing brand &amp; content…',
-      'Generating new design…',
-      'Almost done…',
-    ];
+    const steps = ['Scraping your website…', 'Analysing brand & content…', 'Generating new design…', 'Almost done…'];
     let i = 0;
     status.textContent = steps[0];
-    const ticker = setInterval(() => {
-      status.textContent = steps[Math.min(++i, steps.length - 1)];
-    }, 8000);
+    const ticker = setInterval(() => { status.textContent = steps[Math.min(++i, steps.length - 1)]; }, 8000);
 
-    // ── API call ───────────────────────────────────────────────────────────
     try {
       const res  = await fetch(`${REVIVE_API_URL}/generate`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ url: rawUrl }),
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ url: rawUrl }),
       });
       const data = await res.json();
       clearInterval(ticker);
+      if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
 
-      if (!res.ok || data.error) {
-        throw new Error(data.error || `Server error ${res.status}`);
-      }
+      currentGenerationId = data.generation_id;
 
-      // ── Build blob URLs (no server storage needed) ───────────────────────
-      const blob       = new Blob([data.html], { type: 'text/html' });
-      const blobUrl    = URL.createObjectURL(blob);
-      const filename   = `${data.slug || 'revived'}_websiterevive.html`;
+      // Show hero in iframe
+      const blob   = new Blob([data.hero_html], { type: 'text/html' });
+      const iframe = document.getElementById('hero-iframe');
+      iframe.src   = URL.createObjectURL(blob);
 
-      // Download link
-      const dlLink        = document.createElement('a');
-      dlLink.href         = blobUrl;
-      dlLink.download     = filename;
-      dlLink.textContent  = 'Download HTML';
-      dlLink.style.cssText = 'color:var(--mint);text-decoration:underline;cursor:pointer;';
-
-      // Preview link
-      const previewLink       = document.createElement('a');
-      previewLink.href        = blobUrl;
-      previewLink.target      = '_blank';
-      previewLink.rel         = 'noopener';
-      previewLink.textContent = 'Preview';
-      previewLink.style.cssText = 'color:var(--mint);text-decoration:underline;';
-
-      status.style.color = 'var(--mint-soft)';
-      status.innerHTML   = '';
-      status.append(
-        document.createTextNode(`${data.business_name || 'Your site'} is ready! \u00a0`),
-        previewLink,
-        document.createTextNode('\u00a0\u00a0'),
-        dlLink,
-      );
+      document.getElementById('result-section').style.display = 'block';
+      document.getElementById('hero-note-default').style.display = 'none';
+      status.textContent = `${data.business_name || 'Your site'} preview is ready — unlock to download`;
 
       btn.disabled    = false;
       btn.textContent = 'Revive Again →';
@@ -2384,6 +2482,118 @@
       btn.textContent = 'Revive Website →';
     }
   }
+
+  // ── Unlock ───────────────────────────────────────────────────────────────────
+  async function handleUnlock() {
+    if (!getToken()) { openAuthModal(); return; }
+
+    const btn      = document.getElementById('unlock-btn');
+    const statusEl = document.getElementById('unlock-status');
+
+    btn.disabled    = true;
+    btn.textContent = 'Unlocking…';
+    statusEl.style.display  = 'block';
+    statusEl.style.color    = 'var(--mint)';
+    statusEl.textContent    = 'Deducting 1 token…';
+
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/unlock`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ generation_id: currentGenerationId }),
+      });
+      const data = await res.json();
+
+      if (res.status === 402 || data.error === 'Not enough tokens') {
+        statusEl.style.color = 'var(--red)';
+        statusEl.innerHTML   = 'No tokens left. <a href="#pricing" style="color:var(--mint);text-decoration:underline;" onclick="document.getElementById(\'unlock-status\').style.display=\'none\'">Buy more →</a>';
+        btn.disabled    = false;
+        btn.textContent = 'Unlock Full Website — 1 Token';
+        return;
+      }
+      if (!res.ok || data.error) throw new Error(data.error || 'Unlock failed');
+
+      // Build download + preview
+      const blob     = new Blob([data.html], { type: 'text/html' });
+      const blobUrl  = URL.createObjectURL(blob);
+      const filename = `${data.slug || 'revived'}_websiterevive.html`;
+
+      const dlLink       = document.createElement('a');
+      dlLink.href        = blobUrl;
+      dlLink.download    = filename;
+      dlLink.textContent = 'Download full website';
+      dlLink.style.cssText = 'color:var(--mint);text-decoration:underline;margin-right:1rem;';
+
+      const previewLink       = document.createElement('a');
+      previewLink.href        = blobUrl;
+      previewLink.target      = '_blank';
+      previewLink.rel         = 'noopener';
+      previewLink.textContent = 'Open full preview';
+      previewLink.style.cssText = 'color:var(--mint);text-decoration:underline;';
+
+      document.getElementById('unlock-bar').style.display = 'none';
+      statusEl.innerHTML = '';
+      statusEl.append(dlLink, previewLink);
+
+      // Update token count in nav
+      const user = getUser();
+      if (user) { user.tokens = Math.max(0, user.tokens - 1); setUser(user); updateNavAuth(); }
+
+    } catch (err) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = `Error: ${err.message}`;
+      btn.disabled    = false;
+      btn.textContent = 'Unlock Full Website — 1 Token';
+    }
+  }
+
+  // ── Buy tokens ───────────────────────────────────────────────────────────────
+  async function handleBuyTokens(pkg) {
+    if (!getToken()) { openAuthModal(); return; }
+
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/checkout`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ package: pkg }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error);
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  }
+
+  // ── Handle Stripe redirect back ──────────────────────────────────────────────
+  async function handleCheckoutReturn() {
+    const params    = new URLSearchParams(window.location.search);
+    const status    = params.get('checkout');
+    const sessionId = params.get('session_id');
+    if (status !== 'success' || !sessionId || !getToken()) return;
+
+    // Clean URL
+    window.history.replaceState({}, '', '/');
+
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/checkout/verify`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error);
+
+      const user = getUser();
+      if (user) { user.tokens = data.new_balance; setUser(user); updateNavAuth(); }
+      if (data.tokens_added > 0) {
+        alert(`Payment successful! ${data.tokens_added} token${data.tokens_added !== 1 ? 's' : ''} added to your account.`);
+      }
+    } catch (err) {
+      console.error('Checkout verify failed:', err.message);
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────────
+  updateNavAuth();
+  handleCheckoutReturn();
 </script>
 
 <script type="module">

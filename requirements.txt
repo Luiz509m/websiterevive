@@ -5,3 +5,7 @@ requests
 python-dotenv
 gunicorn
 Pillow
+bcrypt
+PyJWT
+supabase
+stripe

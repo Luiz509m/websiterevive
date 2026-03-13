@@ -224,13 +224,14 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     print("\n[generate] Sending to Claude for website generation...")
 
     business_name = analysis.get("business_name", "Business")
-    industry = analysis.get("industry", "")
-    tone = analysis.get("tone", "professional")
-    tagline = analysis.get("tagline", "")
-    services = analysis.get("main_services", [])
-    audience = analysis.get("target_audience", "")
-    key_content = analysis.get("key_content", {})
-    features = key_content.get("features", [])
+    industry      = analysis.get("industry", "")
+    tone          = analysis.get("tone", "professional")
+    tagline       = analysis.get("tagline", "")
+    services      = analysis.get("main_services", [])
+    audience      = analysis.get("target_audience", "")
+    key_content   = analysis.get("key_content", {})
+    features      = key_content.get("features", [])
+    brand_colors  = analysis.get("current_colors", [])
 
     # Build message content with reference images
     content = []
@@ -271,6 +272,7 @@ BUSINESS ANALYSIS (extracted from the real website — use ONLY this information
 - Services: {', '.join(services) if services else 'see features below'}
 - Target audience: {audience}
 - Tone: {tone}
+- Brand colors: {', '.join(brand_colors) if brand_colors else 'none found — infer from tone/industry'}
 - Hero headline: {key_content.get('hero_headline') or 'none found'}
 - Hero subtext: {key_content.get('hero_subtext') or 'none found'}
 - CTA: {key_content.get('cta_text') or 'Contact Us'}
@@ -299,6 +301,11 @@ BUTTON RULES — every CTA button must have a real working link:
 - If a contact page URL is found → use it as href
 - Never use href="#" for CTA buttons — only for nav smooth-scroll anchors
 
+COLOUR RULES (IMPORTANT):
+- If brand colors are provided above, use them as the primary palette — they define this brand's identity
+- Integrate them into backgrounds, buttons, accents, and highlights naturally
+- If no brand colors found, derive a fitting palette from the industry and tone
+
 DESIGN REQUIREMENTS:
 - Draw inspiration from the reference screenshots above (layout, style, spacing)
 - Create a UNIQUE design that fits this specific business
@@ -307,6 +314,11 @@ DESIGN REQUIREMENTS:
 - Use Google Fonts (pick 2 that match the tone)
 - Include: sticky nav, hero section, services/features section, about section, CTA section, footer
 - Inline all CSS and JS in a single HTML file
+
+HERO MARKER (CRITICAL):
+- After the closing tag of the hero section (</section> or </header>), add this exact comment on its own line:
+  <!-- HERO_END -->
+- This is required — do not omit it
 
 CRITICAL RULES:
 - Write CONCISE CSS — no verbose comments, no redundant rules
