@@ -41,7 +41,10 @@ def get_user_by_id(user_id: str) -> dict | None:
 
 
 def deduct_token(user_id: str) -> bool:
-    """Atomically deduct 1 token. Returns True if successful."""
+    """Atomically deduct 1 token. Returns True if successful.
+    TEST_MODE=true in env skips the token check (for testing only)."""
+    if os.environ.get("TEST_MODE") == "true":
+        return True
     user = get_user_by_id(user_id)
     if not user or user["tokens"] < 1:
         return False

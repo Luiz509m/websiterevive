@@ -92,6 +92,11 @@ def index():
     return send_from_directory(str(ROOT), "index.html")
 
 
+@app.route("/brand_assets/<path:filename>")
+def brand_assets(filename):
+    return send_from_directory(str(ROOT / "brand_assets"), filename)
+
+
 @app.route("/health")
 def health():
     return jsonify({"status": "ok"})
