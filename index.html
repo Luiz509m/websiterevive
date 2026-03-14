@@ -1675,6 +1675,10 @@
           style="background:var(--mint);color:var(--black);border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer;">
           Download HTML
         </button>
+        <button onclick="handleDeploy()" id="deploy-btn"
+          style="background:var(--surface3);color:var(--text);border:1px solid var(--border-mid);font-family:'DM Mono',monospace;font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer;">
+          Deploy to Netlify
+        </button>
         <p id="editor-hint" style="display:none;width:100%;font-size:11px;color:var(--muted);margin:4px 0 0;">
           Click on any text to edit it &nbsp;·&nbsp; Click on any image to replace or remove it
         </p>
@@ -2727,6 +2731,39 @@
     a.href     = URL.createObjectURL(blob);
     a.download = `${unlockedSlug}_websiterevive.html`;
     a.click();
+  }
+
+  // ── Deploy to Netlify ────────────────────────────────────────────────────────
+  async function handleDeploy() {
+    if (!getToken()) { openAuthModal(); return; }
+    if (!currentGenerationId) return;
+
+    const btn = document.getElementById('deploy-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'Deploying...';
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/deploy`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ generation_id: currentGenerationId }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error);
+
+      btn.textContent = 'Deployed!';
+      btn.style.background = 'var(--mint)';
+      btn.style.color = 'var(--black)';
+
+      // Show live link
+      const hint = document.getElementById('editor-hint');
+      hint.style.display = 'block';
+      hint.innerHTML = `Live at: <a href="${data.url}" target="_blank" style="color:var(--mint)">${data.url}</a>`;
+    } catch (err) {
+      btn.textContent = orig;
+      btn.disabled = false;
+      alert(`Deploy failed: ${err.message}`);
+    }
   }
 
   // ── Buy tokens ───────────────────────────────────────────────────────────────

@@ -11,12 +11,16 @@ Endpoints:
     POST /unlock                  → {"html": "...", "slug": "..."}
     POST /checkout                → {"checkout_url": "..."}
     POST /checkout/verify         → {"tokens_added": n, "new_balance": n}
+    POST /deploy                  → {"url": "https://xyz.netlify.app"}
 """
 
 import sys
 import os
+import io
 import json
+import zipfile
 import traceback
+import requests
 from pathlib import Path
 
 # ── Path setup ────────────────────────────────────────────────────────────────
@@ -302,6 +306,57 @@ def checkout_verify(user_id):
 
     user = db.get_user_by_id(user_id)
     return jsonify({"tokens_added": tokens_bought, "new_balance": user["tokens"]})
+
+
+# ── Deploy to Netlify ────────────────────────────────────────────────────────
+
+@app.route("/deploy", methods=["POST"])
+@require_auth
+def deploy(user_id):
+    data          = request.get_json(silent=True) or {}
+    generation_id = (data.get("generation_id") or "").strip()
+
+    if not generation_id:
+        return jsonify({"error": "generation_id is required"}), 400
+
+    generation = db.get_generation(generation_id)
+    if not generation:
+        return jsonify({"error": "Generation not found"}), 404
+    if not generation.get("unlocked"):
+        return jsonify({"error": "Unlock this website first"}), 403
+
+    netlify_token = os.environ.get("NETLIFY_TOKEN", "")
+    if not netlify_token:
+        return jsonify({"error": "Netlify deployment is not configured"}), 503
+
+    try:
+        # Create a zip file in memory with index.html
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("index.html", generation["full_html"])
+        buf.seek(0)
+
+        res = requests.post(
+            "https://api.netlify.com/api/v1/sites",
+            headers={
+                "Authorization": f"Bearer {netlify_token}",
+                "Content-Type":  "application/zip",
+            },
+            data=buf.read(),
+            timeout=30,
+        )
+
+        if not res.ok:
+            return jsonify({"error": f"Netlify error: {res.status_code} — {res.text[:200]}"}), 502
+
+        site = res.json()
+        url  = site.get("ssl_url") or site.get("url", "")
+        print(f"[deploy] Live at {url}")
+        return jsonify({"url": url, "site_id": site.get("id", "")})
+
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"error": str(exc)}), 500
 
 
 # ── Local dev entry point ─────────────────────────────────────────────────────
