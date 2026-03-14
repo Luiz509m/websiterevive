@@ -187,6 +187,18 @@ def generate():
             )
 
         full_html = generate_website(analysis, references, site_images, full_text)
+
+        # Inject watermark before </body>
+        watermark = (
+            '<div style="position:fixed;bottom:12px;right:16px;z-index:9999;'
+            'font-size:11px;color:rgba(0,0,0,0.3);font-family:sans-serif;'
+            'pointer-events:none;letter-spacing:0.3px;">'
+            'Made with <a href="https://websiterevive.com" target="_blank" '
+            'style="color:inherit;text-decoration:underline;">WebsiteRevive</a>'
+            '</div>'
+        )
+        full_html = full_html.replace('</body>', watermark + '\n</body>')
+
         hero_html = extract_hero_html(full_html)
 
         generation = db.save_generation(user_id, url, slug, hero_html, full_html)

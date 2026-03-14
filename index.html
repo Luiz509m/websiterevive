@@ -1487,7 +1487,7 @@
 <nav>
   <div class="nav-inner">
     <a href="#" class="nav-logo">
-      <img src="brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
+      <img src="/brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
     </a>
     <ul class="nav-links">
       <li><a href="#how-it-works">How it works</a></li>
@@ -1640,21 +1640,46 @@
     </p>
 
     <!-- Result section — shown after generation -->
-    <div id="result-section" style="display:none;width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;margin-top:2rem;">
-      <div style="border-top:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong);overflow:hidden;">
+    <div id="result-section" style="display:none;width:calc(100% + 2rem);position:relative;left:-1rem;margin-top:2rem;">
+
+      <!-- Preview iframe (hero only, before unlock) -->
+      <div id="preview-wrap" style="border:1px solid var(--border-strong);border-radius:10px;overflow:hidden;">
         <iframe id="hero-iframe" sandbox="allow-scripts allow-same-origin"
           style="width:100%;height:700px;border:none;display:block;background:#fff;"></iframe>
       </div>
+
+      <!-- Unlock bar -->
       <div id="unlock-bar" style="margin-top:1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-        <p style="font-size:13px;color:var(--muted-light);margin:0;">
-          Hero preview only — unlock to get the complete website
-        </p>
+        <p style="font-size:13px;color:var(--muted-light);margin:0;">Hero preview — unlock to edit &amp; download the full website</p>
         <button onclick="handleUnlock()" id="unlock-btn"
           style="background:var(--mint);color:var(--black);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:0.5px;padding:10px 22px;border:none;border-radius:6px;cursor:pointer;">
           Unlock Full Website — 1 Token
         </button>
       </div>
       <p id="unlock-status" style="display:none;font-size:13px;color:var(--mint);margin-top:0.8rem;"></p>
+
+      <!-- Editor toolbar (shown after unlock) -->
+      <div id="editor-toolbar" style="display:none;margin-top:1.2rem;background:var(--surface2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--muted);letter-spacing:0.5px;flex:1;">EDITOR</span>
+        <button id="edit-toggle-btn" onclick="toggleEditMode()"
+          style="background:var(--surface3);color:var(--mint);border:1px solid var(--border-mid);font-family:'DM Mono',monospace;font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer;">
+          Edit Content
+        </button>
+        <button onclick="downloadEdited()"
+          style="background:var(--mint);color:var(--black);border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer;">
+          Download HTML
+        </button>
+        <p id="editor-hint" style="display:none;width:100%;font-size:11px;color:var(--muted);margin:4px 0 0;">
+          Click on any text to edit it &nbsp;·&nbsp; Click on any image to replace or remove it
+        </p>
+      </div>
+
+      <!-- Full-site iframe (shown after unlock, used by editor) -->
+      <div id="fullsite-wrap" style="display:none;margin-top:1rem;border:1px solid var(--border-strong);border-radius:10px;overflow:hidden;">
+        <iframe id="full-iframe" sandbox="allow-scripts allow-same-origin"
+          style="width:100%;height:82vh;border:none;display:block;background:#fff;"></iframe>
+      </div>
+
     </div>
 
     <div class="hero-proof">
@@ -2245,7 +2270,7 @@
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
-      <img src="brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
+      <img src="/brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
       <p class="footer-tagline">AI-powered website regeneration. Faster, smarter, higher-converting sites — from a single URL paste.</p>
     </div>
 
@@ -2484,6 +2509,9 @@
   }
 
   // ── Unlock ───────────────────────────────────────────────────────────────────
+  let unlockedHtml = '';
+  let unlockedSlug = '';
+
   async function handleUnlock() {
     if (!getToken()) { openAuthModal(); return; }
 
@@ -2492,9 +2520,9 @@
 
     btn.disabled    = true;
     btn.textContent = 'Unlocking…';
-    statusEl.style.display  = 'block';
-    statusEl.style.color    = 'var(--mint)';
-    statusEl.textContent    = 'Deducting 1 token…';
+    statusEl.style.display = 'block';
+    statusEl.style.color   = 'var(--mint)';
+    statusEl.textContent   = 'Verifying token…';
 
     try {
       const res  = await fetch(`${REVIVE_API_URL}/unlock`, {
@@ -2505,34 +2533,27 @@
 
       if (res.status === 402 || data.error === 'Not enough tokens') {
         statusEl.style.color = 'var(--red)';
-        statusEl.innerHTML   = 'No tokens left. <a href="#pricing" style="color:var(--mint);text-decoration:underline;" onclick="document.getElementById(\'unlock-status\').style.display=\'none\'">Buy more →</a>';
+        statusEl.innerHTML   = 'No tokens left. <a href="#pricing" style="color:var(--mint);text-decoration:underline;">Buy more →</a>';
         btn.disabled    = false;
         btn.textContent = 'Unlock Full Website — 1 Token';
         return;
       }
       if (!res.ok || data.error) throw new Error(data.error || 'Unlock failed');
 
-      // Build download + preview
-      const blob     = new Blob([data.html], { type: 'text/html' });
-      const blobUrl  = URL.createObjectURL(blob);
-      const filename = `${data.slug || 'revived'}_websiterevive.html`;
+      unlockedHtml = data.html;
+      unlockedSlug = data.slug || 'revived';
 
-      const dlLink       = document.createElement('a');
-      dlLink.href        = blobUrl;
-      dlLink.download    = filename;
-      dlLink.textContent = 'Download full website';
-      dlLink.style.cssText = 'color:var(--mint);text-decoration:underline;margin-right:1rem;';
+      // Show full site in editor iframe
+      const blob   = new Blob([unlockedHtml], { type: 'text/html' });
+      const iframe = document.getElementById('full-iframe');
+      iframe.src   = URL.createObjectURL(blob);
 
-      const previewLink       = document.createElement('a');
-      previewLink.href        = blobUrl;
-      previewLink.target      = '_blank';
-      previewLink.rel         = 'noopener';
-      previewLink.textContent = 'Open full preview';
-      previewLink.style.cssText = 'color:var(--mint);text-decoration:underline;';
-
-      document.getElementById('unlock-bar').style.display = 'none';
-      statusEl.innerHTML = '';
-      statusEl.append(dlLink, previewLink);
+      // Swap UI
+      document.getElementById('unlock-bar').style.display   = 'none';
+      document.getElementById('preview-wrap').style.display = 'none';
+      document.getElementById('fullsite-wrap').style.display = 'block';
+      document.getElementById('editor-toolbar').style.display = 'flex';
+      statusEl.style.display = 'none';
 
       // Update token count in nav
       const user = getUser();
@@ -2544,6 +2565,118 @@
       btn.disabled    = false;
       btn.textContent = 'Unlock Full Website — 1 Token';
     }
+  }
+
+  // ── Editor ───────────────────────────────────────────────────────────────────
+  let editModeActive = false;
+
+  function toggleEditMode() {
+    const iframe = document.getElementById('full-iframe');
+    const doc    = iframe.contentDocument;
+    if (!doc) return;
+
+    editModeActive = !editModeActive;
+    const btn  = document.getElementById('edit-toggle-btn');
+    const hint = document.getElementById('editor-hint');
+
+    if (editModeActive) {
+      // Make text elements editable
+      doc.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,a,button,span,td,th,label').forEach(el => {
+        if (el.children.length === 0 || el.querySelector('img') === null) {
+          el.contentEditable = 'true';
+          el.style.outline   = '2px dashed rgba(61,255,208,0.4)';
+          el.style.cursor    = 'text';
+        }
+      });
+      // Make images clickable for replacement
+      doc.querySelectorAll('img').forEach(img => {
+        img.style.cursor  = 'pointer';
+        img.style.outline = '3px dashed rgba(61,255,208,0.6)';
+        img.title         = 'Click to replace or remove';
+        img.addEventListener('click', handleImageEdit);
+      });
+      btn.textContent        = 'Exit Edit Mode';
+      btn.style.color        = 'var(--mint-dim)';
+      hint.style.display     = 'block';
+    } else {
+      doc.querySelectorAll('[contenteditable]').forEach(el => {
+        el.removeAttribute('contenteditable');
+        el.style.outline = '';
+        el.style.cursor  = '';
+      });
+      doc.querySelectorAll('img').forEach(img => {
+        img.style.cursor  = '';
+        img.style.outline = '';
+        img.title         = '';
+        img.removeEventListener('click', handleImageEdit);
+      });
+      btn.textContent    = 'Edit Content';
+      btn.style.color    = 'var(--mint)';
+      hint.style.display = 'none';
+    }
+  }
+
+  function handleImageEdit(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const img = e.currentTarget;
+
+    // Small context menu
+    const existing = document.getElementById('img-ctx-menu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'img-ctx-menu';
+    menu.style.cssText = 'position:fixed;z-index:99999;background:var(--surface2);border:1px solid var(--border-strong);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:4px;font-family:DM Mono,monospace;font-size:12px;';
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+    menu.style.top  = e.clientY + 'px';
+
+    const replaceBtn = document.createElement('button');
+    replaceBtn.textContent = 'Replace image';
+    replaceBtn.style.cssText = 'background:none;border:none;color:var(--mint);padding:6px 12px;cursor:pointer;text-align:left;border-radius:4px;';
+    replaceBtn.onmouseenter = () => replaceBtn.style.background = 'var(--surface3)';
+    replaceBtn.onmouseleave = () => replaceBtn.style.background = 'none';
+    replaceBtn.onclick = () => {
+      menu.remove();
+      const input = document.createElement('input');
+      input.type  = 'file';
+      input.accept = 'image/*';
+      input.onchange = ev => {
+        const file = ev.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = re => { img.src = re.result; };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    };
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = 'Remove image';
+    removeBtn.style.cssText = 'background:none;border:none;color:var(--red);padding:6px 12px;cursor:pointer;text-align:left;border-radius:4px;';
+    removeBtn.onmouseenter = () => removeBtn.style.background = 'var(--surface3)';
+    removeBtn.onmouseleave = () => removeBtn.style.background = 'none';
+    removeBtn.onclick = () => { menu.remove(); img.remove(); };
+
+    menu.append(replaceBtn, removeBtn);
+    document.body.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+  }
+
+  function downloadEdited() {
+    const iframe = document.getElementById('full-iframe');
+    const doc    = iframe.contentDocument;
+    if (!doc) return;
+
+    // Exit edit mode first (removes outlines)
+    if (editModeActive) toggleEditMode();
+
+    const html = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+    const blob = new Blob([html], { type: 'text/html' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = `${unlockedSlug}_websiterevive.html`;
+    a.click();
   }
 
   // ── Buy tokens ───────────────────────────────────────────────────────────────
