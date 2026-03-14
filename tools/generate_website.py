@@ -254,21 +254,19 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     # Build images section for prompt
     images_block = ""
     if site_image_urls:
-        first_image  = site_image_urls[0]
         images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
         images_block = f"""
-ORIGINAL SITE IMAGES:
+ORIGINAL SITE IMAGES (from the real website):
 {images_list}
 
-HERO BACKGROUND (CRITICAL):
-- Use this image as the hero background: {first_image}
-- CSS: background-image: url('{first_image}'); background-size: cover; background-position: center; background-attachment: fixed;
-- Add a dark overlay div (position:absolute; inset:0; background:rgba(0,0,0,0.45)) so text is readable
-- The hero must be full viewport height (min-height: 100vh) — spacious, immersive, full-bleed
-- All hero text must be white and centered
-- This is the most important visual element — make it stunning
+HERO BACKGROUND — use your judgement:
+- Look at the image URLs above. If they appear to be real content images (food, products, people, places, spaces — recognisable from the URL or path), use the best one as a full-screen hero background.
+- CSS when using a real image: background-image: url('IMAGE_URL'); background-size: cover; background-position: center; min-height: 100vh;
+- Add a dark overlay (position:absolute; inset:0; background:rgba(0,0,0,0.45)) for text readability
+- If the images look like icons, logos, thumbnails, or low-quality assets (e.g. contain "icon", "logo", "thumb", "sprite", "1x1" in URL), skip them for the hero and use a strong CSS gradient with the brand colours instead
+- Either way: the hero must be full viewport height (min-height:100vh), spacious, immersive, all text white and centered
 
-GALLERY / ABOUT: use the remaining images from the list above"""
+GALLERY / ABOUT: use the remaining images from the list"""
 
     content.append({
         "type": "text",

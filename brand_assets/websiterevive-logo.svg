@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 38" fill="none">
+  <!-- Revive icon: upward arrow through a circle (revival concept) -->
+  <circle cx="19" cy="19" r="15" stroke="#3DFFD0" stroke-width="2" fill="none" opacity="0.25"/>
+  <path d="M19 28 L19 12 M13 18 L19 11 L25 18" stroke="#3DFFD0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M11 24 A11 11 0 0 0 27 24" stroke="#3DFFD0" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Wordmark -->
+  <text x="42" y="26" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="19" fill="#FFFFFF" letter-spacing="-0.3">Website</text>
+  <text x="136" y="26" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="19" fill="#3DFFD0" letter-spacing="-0.3">Revive</text>
+</svg>

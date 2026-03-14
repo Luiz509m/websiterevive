@@ -1487,7 +1487,7 @@
 <nav>
   <div class="nav-inner">
     <a href="#" class="nav-logo">
-      <img src="/brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
+      <img src="/brand_assets/websiterevive-logo.svg" alt="WebsiteRevive" style="height:28px;width:auto;">
     </a>
     <ul class="nav-links">
       <li><a href="#how-it-works">How it works</a></li>
@@ -2270,7 +2270,7 @@
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
-      <img src="/brand_assets/websiterevive-logo.png" alt="WebsiteRevive">
+      <img src="/brand_assets/websiterevive-logo.svg" alt="WebsiteRevive" style="height:28px;width:auto;">
       <p class="footer-tagline">AI-powered website regeneration. Faster, smarter, higher-converting sites — from a single URL paste.</p>
     </div>
 
@@ -2588,16 +2588,27 @@
           el.style.cursor    = 'text';
         }
       });
-      // Make images clickable for replacement
+      // Make <img> tags clickable
       doc.querySelectorAll('img').forEach(img => {
         img.style.cursor  = 'pointer';
         img.style.outline = '3px dashed rgba(61,255,208,0.6)';
         img.title         = 'Click to replace or remove';
         img.addEventListener('click', handleImageEdit);
       });
-      btn.textContent        = 'Exit Edit Mode';
-      btn.style.color        = 'var(--mint-dim)';
-      hint.style.display     = 'block';
+      // Make sections/divs with CSS background-image clickable (hero, banners)
+      doc.querySelectorAll('section,div,header').forEach(el => {
+        const bg = getComputedStyle(el).backgroundImage;
+        if (bg && bg !== 'none' && bg.includes('url(')) {
+          el.dataset.reviveBg = '1';
+          el.style.outline    = '3px dashed rgba(61,255,208,0.4)';
+          el.style.cursor     = 'pointer';
+          el.title            = 'Click to change background image';
+          el.addEventListener('click', handleBgEdit);
+        }
+      });
+      btn.textContent    = 'Exit Edit Mode';
+      btn.style.color    = 'var(--mint-dim)';
+      hint.style.display = 'block';
     } else {
       doc.querySelectorAll('[contenteditable]').forEach(el => {
         el.removeAttribute('contenteditable');
@@ -2609,6 +2620,13 @@
         img.style.outline = '';
         img.title         = '';
         img.removeEventListener('click', handleImageEdit);
+      });
+      doc.querySelectorAll('[data-revive-bg]').forEach(el => {
+        delete el.dataset.reviveBg;
+        el.style.outline = '';
+        el.style.cursor  = '';
+        el.title         = '';
+        el.removeEventListener('click', handleBgEdit);
       });
       btn.textContent    = 'Edit Content';
       btn.style.color    = 'var(--mint)';
@@ -2661,6 +2679,26 @@
     menu.append(replaceBtn, removeBtn);
     document.body.appendChild(menu);
     setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 0);
+  }
+
+  function handleBgEdit(e) {
+    // Only trigger on direct click, not bubbled from child text edits
+    if (e.target !== e.currentTarget && e.target.contentEditable === 'true') return;
+    e.stopPropagation();
+    const el = e.currentTarget;
+    const input = document.createElement('input');
+    input.type   = 'file';
+    input.accept = 'image/*';
+    input.onchange = ev => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = re => {
+        el.style.backgroundImage = `url('${re.result}')`;
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
   }
 
   function downloadEdited() {

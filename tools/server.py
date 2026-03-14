@@ -188,12 +188,13 @@ def generate():
 
         full_html = generate_website(analysis, references, site_images, full_text)
 
-        # Inject watermark before </body>
+        # Inject footer watermark (only at bottom of page, not fixed)
         watermark = (
-            '<div style="position:fixed;bottom:12px;right:16px;z-index:9999;'
-            'font-size:11px;color:rgba(0,0,0,0.3);font-family:sans-serif;'
-            'pointer-events:none;letter-spacing:0.3px;">'
-            'Made with <a href="https://websiterevive.com" target="_blank" '
+            '<div style="text-align:center;padding:18px 20px;font-size:11px;'
+            'color:rgba(150,150,150,0.7);font-family:sans-serif;letter-spacing:0.3px;'
+            'border-top:1px solid rgba(150,150,150,0.15);margin-top:0;">'
+            'Website made with '
+            '<a href="https://websiterevive.com" target="_blank" '
             'style="color:inherit;text-decoration:underline;">WebsiteRevive</a>'
             '</div>'
         )
