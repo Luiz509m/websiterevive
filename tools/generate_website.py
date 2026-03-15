@@ -387,22 +387,22 @@ BUTTON LINKS — CRITICAL, follow exactly:
 SCROLL ANIMATIONS — REQUIRED:
 Add this exact JS block before </body>. Do not modify it:
 <script>
-(function(){
+(function(){{
   const els = document.querySelectorAll('section, .animate');
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target); }
-    });
-  }, {threshold: 0.12});
-  els.forEach(el => { el.classList.add('fade-up'); io.observe(el); });
-})();
+  const io = new IntersectionObserver((entries) => {{
+    entries.forEach(e => {{
+      if(e.isIntersecting){{ e.target.classList.add('visible'); io.unobserve(e.target); }}
+    }});
+  }}, {{threshold: 0.12}});
+  els.forEach(el => {{ el.classList.add('fade-up'); io.observe(el); }});
+}})();
 </script>
 
 Add this CSS in the <style> block:
-.fade-up{opacity:0;transform:translateY(32px);transition:opacity 0.7s ease,transform 0.7s ease;}
-.fade-up.visible{opacity:1;transform:none;}
-.fade-up:nth-child(2){transition-delay:0.1s;}
-.fade-up:nth-child(3){transition-delay:0.2s;}
+.fade-up{{opacity:0;transform:translateY(32px);transition:opacity 0.7s ease,transform 0.7s ease;}}
+.fade-up.visible{{opacity:1;transform:none;}}
+.fade-up:nth-child(2){{transition-delay:0.1s;}}
+.fade-up:nth-child(3){{transition-delay:0.2s;}}
 
 IMAGE FALLBACKS — REQUIRED:
 Every <img> tag must have: onerror="this.style.display='none'"
