@@ -360,14 +360,13 @@ CRITICAL RULES:
 OUTPUT: Return ONLY the complete HTML file, starting with <!DOCTYPE html>. No explanation, no markdown fences."""
     })
 
-    response = CLIENT.messages.create(
+    with CLIENT.messages.stream(
         model=MODEL,
         max_tokens=32000,
         extra_headers={"anthropic-beta": "output-128k-2025-02-19"},
         messages=[{"role": "user", "content": content}]
-    )
-
-    html = response.content[0].text.strip()
+    ) as stream:
+        html = stream.get_final_text().strip()
     # Strip markdown fences if model wraps output
     if html.startswith("```"):
         html = html.split("\n", 1)[1].rsplit("```", 1)[0].strip()
