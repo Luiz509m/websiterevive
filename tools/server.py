@@ -384,12 +384,13 @@ def deploy(user_id):
         deploy_id   = deploy_data.get("id")
         print(f"[deploy] Deploy ID: {deploy_id}, state: {deploy_data.get('state')}")
 
-        # Step 3: Poll until deploy is ready (up to 60 s)
-        for _ in range(20):
+        # Step 3: Poll until deploy is ready (up to ~20 s to stay within Render timeout)
+        for _ in range(7):
+            time.sleep(3)
             state_res = requests.get(
                 f"https://api.netlify.com/api/v1/deploys/{deploy_id}",
                 headers=headers_auth,
-                timeout=15,
+                timeout=10,
             )
             if state_res.ok:
                 state = state_res.json().get("state", "")
@@ -399,7 +400,6 @@ def deploy(user_id):
                 if state == "error":
                     err = state_res.json().get("error_message", "unknown error")
                     return jsonify({"error": f"Deploy failed: {err}"}), 502
-            time.sleep(3)
 
         # Use the site URL (from creation), not the deploy URL
         url = site_url or deploy_data.get("ssl_url") or deploy_data.get("url", "")

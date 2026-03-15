@@ -21,21 +21,30 @@ def slugify(url: str) -> str:
 
 
 def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dict]:
-    """Find links to important sub-pages (about, services, contact, menu, etc.)."""
+    """Find links to important sub-pages. Priority links match known keywords;
+    fallback collects any internal page link so we never return empty-handed."""
     from urllib.parse import urljoin, urlparse
 
     base_domain = urlparse(base_url).netloc
     base_path   = urlparse(base_url).path.rstrip("/")
 
-    # Keywords that indicate a page worth scraping
+    # Priority keywords (content-rich pages)
     important = [
         "about", "uber", "über", "equipe", "team", "uns", "wir",
-        "contact", "kontakt", "contact", "reach",
-        "service", "leistung", "angebot", "offer",
-        "menu", "speise", "karte", "food", "drink",
-        "gallery", "galerie", "photo", "portfolio", "work",
-        "price", "preis", "tarif", "kosten",
-        "product", "produkt", "shop",
+        "contact", "kontakt", "reach",
+        "service", "leistung", "angebot", "offer", "dienstleistung",
+        "menu", "speise", "karte", "food", "drink", "küche", "kueche",
+        "gallery", "galerie", "photo", "portfolio", "work", "referenz",
+        "price", "preis", "tarif", "kosten", "paket",
+        "product", "produkt", "shop", "funktion", "feature",
+        "demo", "reserv", "booking", "termin",
+    ]
+
+    # Skip purely legal/technical pages
+    skip = [
+        "impressum", "datenschutz", "privacy", "legal", "agb", "cookie",
+        "login", "register", "cart", "warenkorb", "404", "sitemap",
+        "rss", "feed", "wp-", "admin", "logout",
     ]
 
     link_re = re.compile(
@@ -43,12 +52,13 @@ def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dic
         re.DOTALL | re.IGNORECASE,
     )
 
-    found = []
-    seen  = set()
+    priority = []
+    fallback = []
+    seen     = set()
 
     for m in link_re.finditer(html):
-        href   = m.group(1).strip()
-        label  = re.sub(r"<[^>]+>", "", m.group(2)).strip()
+        href  = m.group(1).strip()
+        label = re.sub(r"<[^>]+>", "", m.group(2)).strip()
         absolute = urljoin(base_url, href)
         parsed   = urlparse(absolute)
 
@@ -57,20 +67,30 @@ def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dic
         path = parsed.path.rstrip("/")
         if not path or path == base_path or path in seen:
             continue
-        # Skip files, fragments, queries that look like posts/tags
         if re.search(r"\.(pdf|jpg|png|zip|xml|css|js)$", path, re.I):
             continue
 
         combined = (path + " " + label).lower()
-        if not any(kw in combined for kw in important):
+        if any(kw in combined for kw in skip):
             continue
 
         seen.add(path)
-        found.append({"url": absolute, "label": label or path.split("/")[-1]})
-        if len(found) >= max_links:
+        entry = {"url": absolute, "label": label or path.split("/")[-1]}
+        if any(kw in combined for kw in important):
+            priority.append(entry)
+        else:
+            fallback.append(entry)
+
+        if len(priority) + len(fallback) >= max_links * 3:
             break
 
-    return found
+    # Priority first, fill remaining slots from fallback
+    result = priority[:max_links]
+    if len(result) < max_links:
+        result += fallback[: max_links - len(result)]
+
+    print(f"[scrape] Links found: {len(priority)} priority + {len(fallback)} fallback → using {len(result)}")
+    return result
 
 
 def scrape_subpages(base_url: str, homepage_html: str, max_pages: int = 4) -> list[dict]:
