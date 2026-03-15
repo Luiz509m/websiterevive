@@ -2467,11 +2467,34 @@
   function getOrCreateStatus(form) {
     let el = form.nextElementSibling;
     if (el && el.classList.contains('revive-status')) return el;
-    el = document.createElement('p');
-    el.className  = 'revive-status';
-    el.style.cssText = 'margin-top:1rem;font-size:13px;letter-spacing:0.4px;color:var(--mint);min-height:1.4em;';
+    el = document.createElement('div');
+    el.className = 'revive-status';
+    el.style.cssText = 'margin-top:1.2rem;';
+    el.innerHTML = `
+      <p class="revive-status-text" style="font-size:13px;letter-spacing:0.4px;color:var(--mint);margin:0 0 8px;"></p>
+      <div class="revive-progress-track" style="display:none;height:3px;background:var(--surface3);border-radius:99px;overflow:hidden;">
+        <div class="revive-progress-bar" style="height:100%;width:0%;background:var(--mint);border-radius:99px;transition:width 1s ease;"></div>
+      </div>`;
     form.after(el);
     return el;
+  }
+
+  function setStatus(form, text, progress) {
+    const wrap = getOrCreateStatus(form);
+    wrap.querySelector('.revive-status-text').textContent = text;
+    const track = wrap.querySelector('.revive-progress-track');
+    const bar   = wrap.querySelector('.revive-progress-bar');
+    if (progress !== undefined) {
+      track.style.display = 'block';
+      setTimeout(() => bar.style.width = progress + '%', 30);
+    } else {
+      track.style.display = 'none';
+    }
+  }
+
+  function setStatusColor(form, color) {
+    const wrap = getOrCreateStatus(form);
+    wrap.querySelector('.revive-status-text').style.color = color;
   }
 
   async function handleRevive(e) {
@@ -2485,12 +2508,19 @@
 
     btn.disabled    = true;
     btn.textContent = 'Reviving…';
-    status.style.color = 'var(--mint)';
+    setStatusColor(form, 'var(--mint)');
 
-    const steps = ['Scraping your website…', 'Analysing brand & content…', 'Generating new design…', 'Almost done…'];
-    let i = 0;
-    status.textContent = steps[0];
-    const ticker = setInterval(() => { status.textContent = steps[Math.min(++i, steps.length - 1)]; }, 8000);
+    // Progress animation: ~50s total
+    const steps = [
+      { text: 'Scraping your website…',        pct: 10, after: 0    },
+      { text: 'Reading sub-pages…',             pct: 25, after: 5000 },
+      { text: 'Analysing brand & content…',     pct: 45, after: 12000 },
+      { text: 'Generating your new design…',    pct: 65, after: 22000 },
+      { text: 'Writing sections & styling…',    pct: 82, after: 35000 },
+      { text: 'Almost done…',                   pct: 93, after: 48000 },
+    ];
+    setStatus(form, steps[0].text, steps[0].pct);
+    const timers = steps.slice(1).map(s => setTimeout(() => setStatus(form, s.text, s.pct), s.after));
 
     try {
       const res  = await fetch(`${REVIVE_API_URL}/generate`, {
@@ -2498,7 +2528,7 @@
         body: JSON.stringify({ url: rawUrl }),
       });
       const data = await res.json();
-      clearInterval(ticker);
+      timers.forEach(t => clearTimeout(t));
       if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
 
       currentGenerationId = data.generation_id;
@@ -2510,15 +2540,15 @@
 
       document.getElementById('result-section').style.display = 'block';
       document.getElementById('hero-note-default').style.display = 'none';
-      status.textContent = `${data.business_name || 'Your site'} preview is ready — unlock to download`;
+      setStatus(form, `${data.business_name || 'Your site'} is ready — unlock to edit & download`, 100);
 
       btn.disabled    = false;
       btn.textContent = 'Revive Again →';
 
     } catch (err) {
-      clearInterval(ticker);
-      status.style.color = 'var(--red)';
-      status.textContent = `Error: ${err.message}`;
+      timers.forEach(t => clearTimeout(t));
+      setStatusColor(form, 'var(--red)');
+      setStatus(form, `Error: ${err.message}`);
       btn.disabled    = false;
       btn.textContent = 'Revive Website →';
     }

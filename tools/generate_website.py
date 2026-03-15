@@ -372,8 +372,17 @@ SECTIONS TO INCLUDE (based on what pages were scraped):
 - Fully responsive — mobile nav hamburger, stacked sections on mobile
 - Smooth scroll: <html style="scroll-behavior:smooth">
 - Nav links: href="#sectionid" matching actual section IDs
-- CTA buttons: real links (mailto:, tel:, or contact page URL) — never href="#"
 - Brand colors as CSS custom properties on :root
+
+BUTTON LINKS — CRITICAL, follow exactly:
+- Every CTA button MUST have a working href. Priority order:
+  1. mailto:EMAIL if email found in the data
+  2. tel:PHONE if phone found in the data
+  3. href="#contact" if a contact section exists on the page
+  4. href="#" is FORBIDDEN — never use it
+- "Contact" nav button → mailto: or tel: or #contact
+- "Book", "Reservieren", "Anfrage" buttons → mailto: or tel:
+- Double-check every single <a> and <button> before finishing
 
 HERO MARKER — REQUIRED:
 After the closing </section> or </header> of the hero, add on its own line:
