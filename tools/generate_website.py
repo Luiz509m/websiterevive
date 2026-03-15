@@ -287,77 +287,102 @@ GALLERY / ABOUT: use the remaining images from the list"""
 
     content.append({
         "type": "text",
-        "text": f"""You are an expert web designer. Create a complete, modern, professional website for this business.
+        "text": f"""You are a senior web designer at a top agency. Redesign this business's website so it looks like it was built by a professional studio — NOT by AI.
 
-BUSINESS ANALYSIS (extracted from the real website — use ONLY this information, do NOT invent anything):
-- Name: {business_name}
-- Industry: {industry}
-- Tagline: {tagline or 'none found'}
-- Services: {', '.join(services) if services else 'see features below'}
-- Target audience: {audience}
-- Tone: {tone}
-- Brand colors: {', '.join(brand_colors) if brand_colors else 'none found — infer from tone/industry'}
-- Hero headline: {key_content.get('hero_headline') or 'none found'}
-- Hero subtext: {key_content.get('hero_subtext') or 'none found'}
-- CTA: {key_content.get('cta_text') or 'Contact Us'}
-- About: {key_content.get('about_summary') or 'none found'}
-- Features: {', '.join(features) if features else 'none found'}
-- Prices: {', '.join(key_content.get('prices', [])) or 'none found'}
-- Opening hours: {', '.join(key_content.get('opening_hours', [])) or 'none found'}
-- Phone: {key_content.get('phone') or 'none found'}
-- Email: {key_content.get('email') or 'none found'}
-- Address: {key_content.get('address') or 'none found'}
+── BUSINESS DATA (use ONLY this — never invent facts) ──────────────────
+Name:           {business_name}
+Industry:       {industry}
+Tone:           {tone}
+Tagline:        {tagline or '—'}
+Services:       {', '.join(services) if services else '—'}
+Audience:       {audience}
+Brand colors:   {', '.join(brand_colors) if brand_colors else 'derive from industry/tone'}
+Headline:       {key_content.get('hero_headline') or '—'}
+Subtext:        {key_content.get('hero_subtext') or '—'}
+CTA text:       {key_content.get('cta_text') or 'Contact'}
+About:          {key_content.get('about_summary') or '—'}
+Features:       {', '.join(features) if features else '—'}
+Prices:         {', '.join(key_content.get('prices', [])) or '—'}
+Hours:          {', '.join(key_content.get('opening_hours', [])) or '—'}
+Phone:          {key_content.get('phone') or '—'}
+Email:          {key_content.get('email') or '—'}
+Address:        {key_content.get('address') or '—'}
 {images_block}
 
-FULL WEBSITE TEXT CONTENT (scraped from homepage + all sub-pages — use ALL of this):
-Each section is labeled with the page it came from (e.g. --- PAGE: ABOUT ---, --- PAGE: SERVICES ---).
-Use the content from each page to build the corresponding section in the redesigned site.
----
+── FULL SITE TEXT (homepage + sub-pages scraped) ────────────────────────
+Pages are labeled --- PAGE: NAME ---. Build one rich section per page found.
 {full_text or 'not available'}
----
+────────────────────────────────────────────────────────────────────────
 
-CONTENT RULES:
-- Recreate the SAME sections/pages that exist on the original site — just designed better
-- Use the text above verbatim where possible — do not invent, summarise or paraphrase important info
-- If an "ABOUT" page exists → include a rich About section with that exact content
-- If a "SERVICES" or "MENU" page exists → include a Services/Menu section with those exact items
-- If a "CONTACT" page exists → include contact details (phone, email, address, map link, hours) prominently
-- NEVER invent prices, phone numbers, addresses, or any factual details not found above
-- If contact details appear anywhere in the text, show them in the footer AND in a dedicated Contact section
+══ HERO — THIS IS THE MOST IMPORTANT SECTION ══════════════════════════
+The hero must be jaw-dropping. Follow these rules exactly:
 
-BUTTON RULES — every CTA button must have a real working link:
-- Contact/inquiry buttons → use email (mailto:) or phone (tel:) found in the page text
-- If a contact page URL is found → use it as href
-- Never use href="#" for CTA buttons — only for nav smooth-scroll anchors
+TYPOGRAPHY:
+- Main headline: 5–9rem on desktop, bold or black weight, tight line-height (0.95–1.1)
+- Use the actual business headline/tagline from the data above — NOT a generic one
+- Max 6 words on the first line. If headline is long, break it with a <br> at a natural point
+- Subtext: 1.1–1.3rem, max 2 lines, light/regular weight, 60% opacity
 
-COLOUR RULES (IMPORTANT):
-- If brand colors are provided above, use them as the primary palette — they define this brand's identity
-- Integrate them into backgrounds, buttons, accents, and highlights naturally
-- If no brand colors found, derive a fitting palette from the industry and tone
+LAYOUT — pick the one that fits best:
+A) Full-bleed background (image or gradient) + centered text + single CTA button
+B) Split: left half text, right half image — dark left side, image right
+C) Large headline top-left, small descriptor bottom-right, diagonal accent
 
-DESIGN REQUIREMENTS:
-- Draw inspiration from the reference screenshots above (layout, style, spacing)
-- Create a UNIQUE design that fits this specific business
-- Modern, clean, professional — sections must be SPACIOUS with generous padding (min 80px top/bottom)
-- Fully responsive (mobile-first)
-- Use Google Fonts (pick 2 that match the tone)
-- Include: sticky nav with anchor links to each section, hero section (full viewport height), then one section per original page (About, Services/Menu, Contact, etc.), CTA section, footer
-- Nav links must scroll smoothly to the corresponding section (href="#about", href="#services", etc.)
-- Inline all CSS and JS in a single HTML file
-- NO cramped layouts — every section needs room to breathe
+VISUAL:
+- If background image: use it at full opacity with a gradient overlay (not just rgba black)
+  e.g. linear-gradient(to right, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.2) 100%)
+- If gradient: use 3 colors min, include a subtle CSS mesh or noise texture via SVG filter
+- Add one decorative element: a thin horizontal line, a large outlined letter, a geometric shape — in the accent color
+- CTA button: pill shape (border-radius:100px), solid accent color, padding 14px 36px, no shadow
 
-HERO MARKER (CRITICAL):
-- After the closing tag of the hero section (</section> or </header>), add this exact comment on its own line:
-  <!-- HERO_END -->
-- This is required — do not omit it
+NAV:
+- Transparent on load, dark/blurred on scroll (use JS scroll listener)
+- Logo left, links right — links are the actual section names from the content
+- One highlight button (e.g. "Contact") in the accent color
 
-CRITICAL RULES:
-- Write CONCISE CSS — no verbose comments, no redundant rules
-- You MUST complete the FULL HTML page including </body> and </html>
-- Prioritize completeness over CSS detail
-- Keep total output under 30000 characters — but use all the space needed to include every section properly
+══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
+DO NOT use these AI clichés:
+✗ Three equal cards in a row with icon + title + description
+✗ "Our Services", "About Us", "Why Choose Us" as headings
+✗ Alternating light/dark sections all with the same padding
+✗ Stock-looking placeholder text
 
-OUTPUT: Return ONLY the complete HTML file, starting with <!DOCTYPE html>. No explanation, no markdown fences."""
+DO use these human patterns:
+✓ Use the actual section names from the original site
+✓ Vary the layout: full-width text → split image/text → grid → quote → form
+✓ Pull quotes, large numbers (e.g. "12+ years"), subtle background textures
+✓ One section with a dark/colored background, the rest light — creates rhythm
+✓ Let sections breathe differently: some compact, some very spacious
+
+SECTIONS TO INCLUDE (based on what pages were scraped):
+- Nav + Hero
+- One section per scraped page (About, Services/Menu/Leistungen, Contact, etc.)
+- A strong CTA section before the footer (dark background, 1 headline, 1 button)
+- Footer with contact details, nav links
+
+══ COPY RULES ══════════════════════════════════════════════════════════
+- Use the EXACT text from the business data above — do not rewrite or summarise
+- Section headings: use the business's actual page names, not generic ones
+- NEVER invent prices, phone numbers, addresses, hours, or service names
+- Contact info from the scraped text → show in footer AND contact section
+
+══ TECHNICAL ═══════════════════════════════════════════════════════════
+- Single HTML file, all CSS and JS inline
+- Google Fonts: pick 2 that match the tone (e.g. a serif + a sans for luxury; two sans for tech)
+- Fully responsive — mobile nav hamburger, stacked sections on mobile
+- Smooth scroll: <html style="scroll-behavior:smooth">
+- Nav links: href="#sectionid" matching actual section IDs
+- CTA buttons: real links (mailto:, tel:, or contact page URL) — never href="#"
+- Brand colors as CSS custom properties on :root
+
+HERO MARKER — REQUIRED:
+After the closing </section> or </header> of the hero, add on its own line:
+<!-- HERO_END -->
+
+OUTPUT RULES:
+- Complete HTML from <!DOCTYPE html> to </html> — do not truncate
+- No markdown fences, no explanation — just the HTML
+- Concise CSS (no comments, no redundant rules)"""
     })
 
     with CLIENT.messages.stream(
