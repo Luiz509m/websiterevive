@@ -346,6 +346,7 @@ def deploy(user_id):
         return jsonify({"error": "Netlify deployment is not configured"}), 503
 
     try:
+        import time
         headers_auth = {"Authorization": f"Bearer {netlify_token}"}
 
         # Step 1: Create a new site
@@ -357,25 +358,51 @@ def deploy(user_id):
         )
         if not site_res.ok:
             return jsonify({"error": f"Netlify site creation failed: {site_res.status_code}"}), 502
-        site_id = site_res.json()["id"]
+        site_data = site_res.json()
+        site_id   = site_data["id"]
+        site_url  = site_data.get("ssl_url") or site_data.get("url", "")
+        print(f"[deploy] Site created: {site_id} → {site_url}")
 
-        # Step 2: Deploy zip to the new site
+        # Step 2: Build zip with index.html as a plain string (not bytes)
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr("index.html", generation["full_html"].encode("utf-8"))
+            zf.writestr("index.html", generation["full_html"])
         buf.seek(0)
+        zip_bytes = buf.read()
+        print(f"[deploy] Zip size: {len(zip_bytes):,} bytes")
 
         deploy_res = requests.post(
             f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
             headers={**headers_auth, "Content-Type": "application/zip"},
-            data=buf.read(),
+            data=zip_bytes,
             timeout=60,
         )
         if not deploy_res.ok:
             return jsonify({"error": f"Netlify deploy failed: {deploy_res.status_code} — {deploy_res.text[:200]}"}), 502
 
-        deploy = deploy_res.json()
-        url = deploy.get("ssl_url") or deploy.get("url") or f"https://{site_res.json().get('default_domain', '')}"
+        deploy_data = deploy_res.json()
+        deploy_id   = deploy_data.get("id")
+        print(f"[deploy] Deploy ID: {deploy_id}, state: {deploy_data.get('state')}")
+
+        # Step 3: Poll until deploy is ready (up to 60 s)
+        for _ in range(20):
+            state_res = requests.get(
+                f"https://api.netlify.com/api/v1/deploys/{deploy_id}",
+                headers=headers_auth,
+                timeout=15,
+            )
+            if state_res.ok:
+                state = state_res.json().get("state", "")
+                print(f"[deploy] State: {state}")
+                if state in ("ready", "current"):
+                    break
+                if state == "error":
+                    err = state_res.json().get("error_message", "unknown error")
+                    return jsonify({"error": f"Deploy failed: {err}"}), 502
+            time.sleep(3)
+
+        # Use the site URL (from creation), not the deploy URL
+        url = site_url or deploy_data.get("ssl_url") or deploy_data.get("url", "")
         print(f"[deploy] Live at {url}")
         return jsonify({"url": url, "site_id": site_id})
 
