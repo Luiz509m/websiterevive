@@ -42,6 +42,7 @@ CORS(app, resources={
     r"/unlock":          {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
     r"/checkout":        {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
     r"/checkout/*":      {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
+    r"/deploy":          {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
     r"/health":          {"origins": "*"},
 })
 
