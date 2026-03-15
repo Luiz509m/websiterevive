@@ -57,7 +57,7 @@ from generate_website import (
     analyze_website, generate_website, load_reference_images,
     extract_image_urls, extract_text_content,
 )
-from scrape_site import scrape
+from scrape_site import scrape, scrape_subpages
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
@@ -175,11 +175,26 @@ def generate():
     try:
         print(f"\n[server] Generating for: {url}")
 
-        scraped     = scrape(url)
-        slug        = scraped["slug"]
+        scraped   = scrape(url)
+        slug      = scraped["slug"]
+        subpages  = scrape_subpages(url, scraped["html"], max_pages=4)
+
         references  = load_reference_images(n=3)
+
+        # Collect images from homepage + all sub-pages
         site_images = extract_image_urls(scraped["html"], url)
-        full_text   = extract_text_content(scraped["html"])
+        for sp in subpages:
+            for img in extract_image_urls(sp["html"], sp["url"], max_images=6):
+                if img not in site_images:
+                    site_images.append(img)
+        site_images = site_images[:15]
+
+        # Combine text: homepage first, then each sub-page with its label
+        full_text = extract_text_content(scraped["html"])
+        for sp in subpages:
+            sp_text = extract_text_content(sp["html"], max_chars=4000)
+            full_text += f"\n\n--- PAGE: {sp['label'].upper()} ---\n{sp_text}"
+        print(f"[server] Total text: {len(full_text):,} chars across {1 + len(subpages)} pages")
 
         # Use cached analysis if available
         analysis_path = TMP / f"{slug}_analysis.json"

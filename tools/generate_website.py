@@ -292,16 +292,21 @@ BUSINESS ANALYSIS (extracted from the real website — use ONLY this information
 - Address: {key_content.get('address') or 'none found'}
 {images_block}
 
-FULL PAGE TEXT CONTENT (use ALL of this — this is the actual text from the website, use it to fill every section):
+FULL WEBSITE TEXT CONTENT (scraped from homepage + all sub-pages — use ALL of this):
+Each section is labeled with the page it came from (e.g. --- PAGE: ABOUT ---, --- PAGE: SERVICES ---).
+Use the content from each page to build the corresponding section in the redesigned site.
 ---
 {full_text or 'not available'}
 ---
 
 CONTENT RULES:
-- Use the full page text above to populate ALL sections — services, about, contact, features, etc.
-- Extract contact info (phone, email, address, contact form URL) from the text above and use it
-- NEVER invent content — only use what appears in the analysis or full page text above
-- If contact details appear in the text, show them prominently in footer AND CTA section
+- Recreate the SAME sections/pages that exist on the original site — just designed better
+- Use the text above verbatim where possible — do not invent, summarise or paraphrase important info
+- If an "ABOUT" page exists → include a rich About section with that exact content
+- If a "SERVICES" or "MENU" page exists → include a Services/Menu section with those exact items
+- If a "CONTACT" page exists → include contact details (phone, email, address, map link, hours) prominently
+- NEVER invent prices, phone numbers, addresses, or any factual details not found above
+- If contact details appear anywhere in the text, show them in the footer AND in a dedicated Contact section
 
 BUTTON RULES — every CTA button must have a real working link:
 - Contact/inquiry buttons → use email (mailto:) or phone (tel:) found in the page text
@@ -319,7 +324,8 @@ DESIGN REQUIREMENTS:
 - Modern, clean, professional — sections must be SPACIOUS with generous padding (min 80px top/bottom)
 - Fully responsive (mobile-first)
 - Use Google Fonts (pick 2 that match the tone)
-- Include: sticky nav, hero section (full viewport height), services/features section, about section, CTA section, footer
+- Include: sticky nav with anchor links to each section, hero section (full viewport height), then one section per original page (About, Services/Menu, Contact, etc.), CTA section, footer
+- Nav links must scroll smoothly to the corresponding section (href="#about", href="#services", etc.)
 - Inline all CSS and JS in a single HTML file
 - NO cramped layouts — every section needs room to breathe
 
