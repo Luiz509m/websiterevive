@@ -251,19 +251,36 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
                 }
             })
 
+    # Detect tech/SaaS industries where a designed hero looks better than a real image
+    tech_keywords = ["saas", "software", "erp", "crm", "app", "platform", "cloud",
+                     "api", "tech", "digital", "it ", "iot", "ai ", "data", "code",
+                     "developer", "entwicklung", "informatik"]
+    is_tech = any(kw in industry.lower() for kw in tech_keywords)
+
     # Build images section for prompt
     images_block = ""
-    if site_image_urls:
+    if is_tech:
+        images_block = """
+HERO BACKGROUND — this is a tech/software company:
+- Do NOT use real images as the hero background. Use a modern CSS gradient or dark abstract design.
+- Example: background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); or similar dark tech gradient
+- Add geometric shapes, grid lines, or subtle dot patterns via CSS (no external assets)
+- Hero must be full viewport height (min-height:100vh), dark, immersive, all text white and centered
+- You may use real images in other sections (features, about, etc.)"""
+        if site_image_urls:
+            images_list = "\n".join(f"- {u}" for u in site_image_urls[:8])
+            images_block += f"\n\nOTHER SECTION IMAGES (use in features/about/gallery, NOT hero):\n{images_list}"
+    elif site_image_urls:
         images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
         images_block = f"""
 ORIGINAL SITE IMAGES (from the real website):
 {images_list}
 
 HERO BACKGROUND — use your judgement:
-- Look at the image URLs above. If they appear to be real content images (food, products, people, places, spaces — recognisable from the URL or path), use the best one as a full-screen hero background.
-- CSS when using a real image: background-image: url('IMAGE_URL'); background-size: cover; background-position: center; min-height: 100vh;
+- Look at the image URLs above. If they appear to be real content images (food, products, people, places, spaces), use the best one as a full-screen hero background.
+- CSS: background-image: url('IMAGE_URL'); background-size: cover; background-position: center; min-height: 100vh;
 - Add a dark overlay (position:absolute; inset:0; background:rgba(0,0,0,0.45)) for text readability
-- If the images look like icons, logos, thumbnails, or low-quality assets (e.g. contain "icon", "logo", "thumb", "sprite", "1x1" in URL), skip them for the hero and use a strong CSS gradient with the brand colours instead
+- If images look like icons/logos/thumbnails, use a CSS gradient with brand colours instead
 - Either way: the hero must be full viewport height (min-height:100vh), spacious, immersive, all text white and centered
 
 GALLERY / ABOUT: use the remaining images from the list"""
@@ -338,14 +355,14 @@ CRITICAL RULES:
 - Write CONCISE CSS — no verbose comments, no redundant rules
 - You MUST complete the FULL HTML page including </body> and </html>
 - Prioritize completeness over CSS detail
-- Keep total output under 15000 characters
+- Keep total output under 30000 characters — but use all the space needed to include every section properly
 
 OUTPUT: Return ONLY the complete HTML file, starting with <!DOCTYPE html>. No explanation, no markdown fences."""
     })
 
     response = CLIENT.messages.create(
         model=MODEL,
-        max_tokens=16000,
+        max_tokens=32000,
         extra_headers={"anthropic-beta": "output-128k-2025-02-19"},
         messages=[{"role": "user", "content": content}]
     )

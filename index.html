@@ -2698,10 +2698,16 @@
   }
 
   function handleBgEdit(e) {
-    // Only trigger on direct click, not bubbled from child text edits
-    if (e.target !== e.currentTarget && e.target.contentEditable === 'true') return;
+    if (e.target.contentEditable === 'true') return;
     e.stopPropagation();
-    const el = e.currentTarget;
+    // Find the nearest ancestor (or self) that has a bg-image
+    let el = e.target;
+    while (el && el !== e.currentTarget) {
+      const bg = el.style.backgroundImage || getComputedStyle(el).backgroundImage;
+      if (bg && bg !== 'none' && bg.includes('url(')) break;
+      el = el.parentElement;
+    }
+    if (!el) el = e.currentTarget;
     const input = document.createElement('input');
     input.type   = 'file';
     input.accept = 'image/*';
