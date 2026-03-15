@@ -331,29 +331,38 @@ def deploy(user_id):
         return jsonify({"error": "Netlify deployment is not configured"}), 503
 
     try:
-        # Create a zip file in memory with index.html
-        buf = io.BytesIO()
-        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr("index.html", generation["full_html"])
-        buf.seek(0)
+        headers_auth = {"Authorization": f"Bearer {netlify_token}"}
 
-        res = requests.post(
+        # Step 1: Create a new site
+        site_res = requests.post(
             "https://api.netlify.com/api/v1/sites",
-            headers={
-                "Authorization": f"Bearer {netlify_token}",
-                "Content-Type":  "application/zip",
-            },
-            data=buf.read(),
+            headers={**headers_auth, "Content-Type": "application/json"},
+            json={},
             timeout=30,
         )
+        if not site_res.ok:
+            return jsonify({"error": f"Netlify site creation failed: {site_res.status_code}"}), 502
+        site_id = site_res.json()["id"]
 
-        if not res.ok:
-            return jsonify({"error": f"Netlify error: {res.status_code} — {res.text[:200]}"}), 502
+        # Step 2: Deploy zip to the new site
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("index.html", generation["full_html"].encode("utf-8"))
+        buf.seek(0)
 
-        site = res.json()
-        url  = site.get("ssl_url") or site.get("url", "")
+        deploy_res = requests.post(
+            f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
+            headers={**headers_auth, "Content-Type": "application/zip"},
+            data=buf.read(),
+            timeout=60,
+        )
+        if not deploy_res.ok:
+            return jsonify({"error": f"Netlify deploy failed: {deploy_res.status_code} — {deploy_res.text[:200]}"}), 502
+
+        deploy = deploy_res.json()
+        url = deploy.get("ssl_url") or deploy.get("url") or f"https://{site_res.json().get('default_domain', '')}"
         print(f"[deploy] Live at {url}")
-        return jsonify({"url": url, "site_id": site.get("id", "")})
+        return jsonify({"url": url, "site_id": site_id})
 
     except Exception as exc:
         traceback.print_exc()
