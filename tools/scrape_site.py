@@ -20,14 +20,44 @@ def slugify(url: str) -> str:
     return url[:60]
 
 
+def _xml_locs(root, tag_path_ns: str, tag_path_bare: str, ns: dict) -> list:
+    """Find XML elements trying namespace first, then no-namespace fallback."""
+    result = root.findall(tag_path_ns, ns)
+    if not result:
+        result = root.findall(tag_path_bare)
+    return result
+
+
 def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
     """Try to fetch sitemap.xml and extract page URLs. Returns list of {url, label}."""
     from urllib.parse import urlparse
     import xml.etree.ElementTree as ET
 
-    base = f"{urlparse(base_url).scheme}://{urlparse(base_url).netloc}"
-    candidates = [f"{base}/sitemap.xml", f"{base}/sitemap_index.xml", f"{base}/sitemap/"]
-    urls = []
+    base_parsed = urlparse(base_url)
+    base        = f"{base_parsed.scheme}://{base_parsed.netloc}"
+
+    # Bug fix: normalize www/non-www for domain comparison
+    def norm(netloc: str) -> str:
+        return netloc.lower().removeprefix("www.")
+
+    base_domain_norm = norm(base_parsed.netloc)
+    base_path        = base_parsed.path.rstrip("/")
+
+    # Start with candidates; prepend any Sitemap: line from robots.txt
+    candidates = [f"{base}/sitemap.xml", f"{base}/sitemap_index.xml"]
+    try:
+        rb = requests.get(f"{base}/robots.txt", headers=headers, timeout=5)
+        if rb.ok:
+            for line in rb.text.splitlines():
+                if line.lower().startswith("sitemap:"):
+                    sm_url = line.split(":", 1)[1].strip()
+                    if sm_url not in candidates:
+                        candidates.insert(0, sm_url)
+    except Exception:
+        pass
+
+    ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    raw_urls = []
 
     for sitemap_url in candidates:
         try:
@@ -35,46 +65,43 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
             if not resp.ok or "<" not in resp.text:
                 continue
             root = ET.fromstring(resp.text)
-            ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            # Handle sitemap index (links to other sitemaps)
-            sub_maps = root.findall("sm:sitemap/sm:loc", ns)
+
+            # Sitemap index → recurse into sub-sitemaps
+            sub_maps = _xml_locs(root, "sm:sitemap/sm:loc", "sitemap/loc", ns)
             if sub_maps:
-                for loc in sub_maps[:3]:
+                for loc_el in sub_maps[:4]:
                     try:
-                        sub = requests.get(loc.text.strip(), headers=headers, timeout=8)
+                        sub = requests.get(loc_el.text.strip(), headers=headers, timeout=8)
                         if sub.ok:
                             sub_root = ET.fromstring(sub.text)
-                            for u in sub_root.findall("sm:url/sm:loc", ns):
-                                urls.append(u.text.strip())
+                            for u in _xml_locs(sub_root, "sm:url/sm:loc", "url/loc", ns):
+                                raw_urls.append(u.text.strip())
                     except Exception:
                         pass
             else:
-                for loc in root.findall("sm:url/sm:loc", ns):
-                    urls.append(loc.text.strip())
-            if urls:
-                print(f"[scrape] Sitemap found at {sitemap_url}: {len(urls)} URLs")
+                for u in _xml_locs(root, "sm:url/sm:loc", "url/loc", ns):
+                    raw_urls.append(u.text.strip())
+
+            if raw_urls:
+                print(f"[scrape] Sitemap at {sitemap_url}: {len(raw_urls)} URLs")
                 break
         except Exception:
             continue
 
-    if not urls:
+    if not raw_urls:
         return []
-
-    base_parsed = urlparse(base_url)
-    base_domain = base_parsed.netloc
-    base_path   = base_parsed.path.rstrip("/")
 
     skip = [
         "impressum", "datenschutz", "privacy", "legal", "agb", "cookie",
         "login", "register", "cart", "warenkorb", "404", "sitemap",
         "rss", "feed", "wp-", "admin", "logout", "tag/", "category/",
-        "author/", "page/", "feed/", "wp-content",
+        "author/", "/page/", "feed/", "wp-content",
     ]
     important = [
         "about", "uber", "über", "equipe", "team", "uns", "wir",
         "contact", "kontakt", "service", "leistung", "angebot", "offer",
         "dienstleistung", "menu", "speise", "karte", "food", "drink",
-        "küche", "gallery", "galerie", "portfolio", "work", "referenz",
+        "kueche", "gallery", "galerie", "portfolio", "work", "referenz",
         "price", "preis", "tarif", "kosten", "paket", "product",
         "produkt", "shop", "funktion", "feature", "demo", "reserv", "termin",
     ]
@@ -83,9 +110,10 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
     fallback = []
     seen = set()
 
-    for u in urls:
+    for u in raw_urls:
         parsed = urlparse(u)
-        if parsed.netloc != base_domain:
+        # Bug fix: compare normalized domains (www vs non-www)
+        if norm(parsed.netloc) != base_domain_norm:
             continue
         path = parsed.path.rstrip("/")
         if not path or path == base_path or path in seen:
@@ -101,9 +129,8 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
         else:
             fallback.append(entry)
 
-    result = priority + fallback
-    print(f"[scrape] Sitemap: {len(priority)} priority + {len(fallback)} other pages")
-    return result
+    print(f"[scrape] Sitemap filtered: {len(priority)} priority + {len(fallback)} other pages")
+    return priority + fallback
 
 
 def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dict]:
