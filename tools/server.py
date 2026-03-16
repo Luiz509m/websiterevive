@@ -201,7 +201,7 @@ def generate():
         if analysis_path.exists():
             analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
         else:
-            analysis = analyze_website(url, scraped["html"], "")
+            analysis = analyze_website(url, scraped["html"], "", full_text)
             analysis_path.write_text(
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )
