@@ -318,7 +318,8 @@ Address:        {key_content.get('address') or '—'}
 {images_block}
 
 ── FULL SITE TEXT (homepage + sub-pages scraped) ────────────────────────
-Pages are labeled --- PAGE: NAME ---. Build one rich section per page found.
+CRITICAL: Count every "--- PAGE: NAME ---" label below. You MUST create
+one dedicated HTML section for EACH labeled page. Do not merge pages or skip any.
 {full_text or 'not available'}
 ────────────────────────────────────────────────────────────────────────
 
@@ -362,11 +363,18 @@ DO use these human patterns:
 ✓ One section with a dark/colored background, the rest light — creates rhythm
 ✓ Let sections breathe differently: some compact, some very spacious
 
-SECTIONS TO INCLUDE (based on what pages were scraped):
-- Nav + Hero
-- One section per scraped page (About, Services/Menu/Leistungen, Contact, etc.)
-- A strong CTA section before the footer (dark background, 1 headline, 1 button)
-- Footer with contact details, nav links
+MANDATORY SECTION STRUCTURE — follow exactly:
+1. <nav> — transparent on load, links to every section below
+2. <section id="hero"> — full-viewport hero
+3. ONE <section> PER "--- PAGE: NAME ---" label found in the full site text above
+   → Use the page NAME as the section heading and id
+   → Fill it with the actual content from that page
+   → DO NOT skip any page, DO NOT merge multiple pages into one section
+4. <section id="cta"> — dark background, one headline, one CTA button
+5. <footer> — contact info, nav links, copyright
+
+If 4 pages were scraped → the output MUST have at least 8 sections (nav + hero + 4 content + cta + footer).
+Count your sections before finishing. If you have fewer, add the missing ones.
 
 ══ COPY RULES ══════════════════════════════════════════════════════════
 - Use the EXACT text from the business data above — do not rewrite or summarise

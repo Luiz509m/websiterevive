@@ -169,6 +169,19 @@ def generate():
     if not url.startswith("http"):
         url = "https://" + url
 
+    # Strip tracking params, fragments, and redirect deep pages to homepage
+    from urllib.parse import urlparse, urlunparse, urlencode, parse_qs
+    _p = urlparse(url)
+    # Remove utm/ad tracking query params
+    clean_qs = {k: v for k, v in parse_qs(_p.query).items()
+                if not any(k.startswith(t) for t in
+                           ("utm_", "hsa_", "gad_", "gclid", "fbclid", "msclkid"))}
+    url = urlunparse(_p._replace(
+        query=urlencode(clean_qs, doseq=True),
+        fragment=""
+    ))
+    print(f"[server] Cleaned URL: {url}")
+
     # Optional: attach generation to logged-in user
     user_id = get_current_user_id()
 
