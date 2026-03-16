@@ -153,9 +153,17 @@ def extract_image_urls(html: str, base_url: str, max_images: int = 12) -> list[s
 
 # ── Step 1: Analyze ───────────────────────────────────────────────────────────
 
-def analyze_website(url: str, html: str, business_name: str) -> dict:
-    """Send HTML to Claude for analysis. Returns structured brand/content data."""
+def analyze_website(url: str, html: str, business_name: str, full_text: str = "") -> dict:
+    """Send HTML + full site text to Claude for analysis. Returns structured brand/content data."""
     print("\n[analyze] Sending to Claude for analysis...")
+
+    subpage_block = ""
+    if full_text:
+        subpage_block = f"""
+
+Full site text (homepage + all scraped sub-pages):
+{full_text[:8000]}
+"""
 
     prompt = f"""You are a web design analyst. Analyze this website and extract key information.
 
@@ -166,8 +174,8 @@ HTML Content:
 ```html
 {truncate_html(html)}
 ```
-
-STRICT RULE: Only extract information that is EXPLICITLY present in the HTML. If something is not found, use null or an empty list. NEVER invent or guess prices, phone numbers, opening hours, addresses, or any factual details.
+{subpage_block}
+STRICT RULE: Only extract information that is EXPLICITLY present in the HTML or site text above. If something is not found, use null or an empty list. NEVER invent or guess prices, phone numbers, opening hours, addresses, or any factual details.
 
 Extract and return a JSON object with these fields:
 {{
