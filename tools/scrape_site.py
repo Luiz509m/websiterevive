@@ -61,7 +61,9 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
 
     for sitemap_url in candidates:
         try:
+            print(f"[scrape] Trying sitemap: {sitemap_url}")
             resp = requests.get(sitemap_url, headers=headers, timeout=8)
+            print(f"[scrape] Sitemap response: {resp.status_code} ({len(resp.text)} chars)")
             if not resp.ok or "<" not in resp.text:
                 continue
             root = ET.fromstring(resp.text)
@@ -69,23 +71,32 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
             # Sitemap index → recurse into sub-sitemaps
             sub_maps = _xml_locs(root, "sm:sitemap/sm:loc", "sitemap/loc", ns)
             if sub_maps:
+                print(f"[scrape] Sitemap index with {len(sub_maps)} sub-sitemaps")
                 for loc_el in sub_maps[:4]:
+                    loc_text = loc_el.text
+                    if not loc_text:
+                        continue
                     try:
-                        sub = requests.get(loc_el.text.strip(), headers=headers, timeout=8)
+                        sub = requests.get(loc_text.strip(), headers=headers, timeout=8)
                         if sub.ok:
                             sub_root = ET.fromstring(sub.text)
                             for u in _xml_locs(sub_root, "sm:url/sm:loc", "url/loc", ns):
-                                raw_urls.append(u.text.strip())
-                    except Exception:
-                        pass
+                                if u.text:
+                                    raw_urls.append(u.text.strip())
+                    except Exception as e:
+                        print(f"[scrape] Sub-sitemap error: {e}")
             else:
                 for u in _xml_locs(root, "sm:url/sm:loc", "url/loc", ns):
-                    raw_urls.append(u.text.strip())
+                    if u.text:
+                        raw_urls.append(u.text.strip())
 
             if raw_urls:
-                print(f"[scrape] Sitemap at {sitemap_url}: {len(raw_urls)} URLs")
+                print(f"[scrape] Sitemap OK: {len(raw_urls)} URLs collected")
                 break
-        except Exception:
+            else:
+                print(f"[scrape] Sitemap parsed but 0 URLs found (check XML structure)")
+        except Exception as e:
+            print(f"[scrape] Sitemap failed ({sitemap_url}): {e}")
             continue
 
     if not raw_urls:
@@ -221,8 +232,10 @@ def scrape_subpages(base_url: str, homepage_html: str, max_pages: int = 4) -> li
 
     # Fall back to regex parsing of homepage HTML
     if not links:
-        print("[scrape] No sitemap found — falling back to HTML link parsing")
+        print("[scrape] Sitemap returned 0 links — falling back to HTML link parsing")
         links = find_subpage_links(homepage_html, base_url, max_links=max_pages * 2)
+
+    print(f"[scrape] Total links to scrape: {len(links)} (will use first {max_pages})")
 
     result = []
     for link in links[:max_pages]:
