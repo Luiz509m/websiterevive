@@ -202,12 +202,22 @@ def generate():
                     site_images.append(img)
         site_images = site_images[:15]
 
-        # Combine text: homepage first, then each sub-page with its label
-        full_text = extract_text_content(scraped["html"])
+        # Build structured pages list: homepage + each sub-page
+        import re as _re
+        def _make_id(label: str) -> str:
+            return _re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+
+        homepage_text = extract_text_content(scraped["html"], max_chars=4000)
+        pages = [{"label": "Homepage", "id": "home", "text": homepage_text}]
+        full_text_parts = [homepage_text]
         for sp in subpages:
-            sp_text = extract_text_content(sp["html"], max_chars=4000)
-            full_text += f"\n\n--- PAGE: {sp['label'].upper()} ---\n{sp_text}"
-        print(f"[server] Total text: {len(full_text):,} chars across {1 + len(subpages)} pages")
+            sp_text = extract_text_content(sp["html"], max_chars=3500)
+            label   = sp["label"]
+            pages.append({"label": label, "id": _make_id(label), "text": sp_text})
+            full_text_parts.append(f"--- PAGE: {label.upper()} ---\n{sp_text}")
+
+        full_text = "\n\n".join(full_text_parts)
+        print(f"[server] Pages: {[p['label'] for p in pages]} | Total text: {len(full_text):,} chars")
 
         # Use cached analysis if available
         analysis_path = TMP / f"{slug}_analysis.json"
@@ -219,7 +229,7 @@ def generate():
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )
 
-        full_html = generate_website(analysis, references, site_images, full_text)
+        full_html = generate_website(analysis, references, site_images, full_text, pages)
 
         # Inject footer watermark (only at bottom of page, not fixed)
         watermark = (

@@ -227,7 +227,7 @@ Return ONLY the JSON, no explanation."""
 
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
-def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None) -> str:
+def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None) -> str:
     """Send analysis + reference images to Claude. Returns generated HTML."""
     print("\n[generate] Sending to Claude for website generation...")
 
@@ -293,6 +293,50 @@ HERO BACKGROUND — use your judgement:
 
 GALLERY / ABOUT: use the remaining images from the list"""
 
+    # Build explicit per-page section requirements from structured pages list
+    # This is placed AFTER the hero/design instructions so Claude sees it as required output
+    pages_block = ""
+    if pages and len(pages) > 1:
+        section_list = []
+        for i, pg in enumerate(pages[1:], start=1):  # skip homepage (index 0)
+            label   = pg.get("label", f"Page {i}")
+            sec_id  = pg.get("id", label.lower().replace(" ", "-"))
+            text    = pg.get("text", "")[:3000]
+            section_list.append(
+                f"SECTION {i}: id=\"{sec_id}\" — heading: \"{label}\"\n"
+                f"Content to use (from scraped page):\n{text}"
+            )
+        pages_block = (
+            f"\n\n══ REQUIRED CONTENT SECTIONS ({len(section_list)} pages scraped) ═══════════\n"
+            f"You MUST output one <section> for each of the following. "
+            f"Do NOT skip any. Do NOT merge them. "
+            f"Use the content provided — do not invent anything.\n\n"
+            + "\n\n".join(section_list)
+            + "\n══════════════════════════════════════════════════════════════"
+        )
+        print(f"[generate] Built pages_block with {len(section_list)} explicit sections")
+    elif full_text:
+        # Fallback: use the old full_text approach with strong instruction
+        pages_block = (
+            f"\n\n── FULL SITE TEXT ─────────────────────────────────────────\n"
+            f"Each '--- PAGE: NAME ---' label = one required <section>. Do not skip any.\n"
+            f"{full_text[:6000]}\n"
+            f"──────────────────────────────────────────────────────────"
+        )
+
+    # Count sections for the mandatory structure instruction
+    n_content_sections = len(pages) - 1 if pages and len(pages) > 1 else (
+        full_text.count("--- PAGE:") if full_text else 0
+    )
+    total_sections_min = 2 + n_content_sections + 2  # nav+hero + content + cta+footer
+    section_count_note = (
+        f"You scraped {n_content_sections} sub-pages → output MUST have "
+        f"at least {total_sections_min} sections (nav + hero + "
+        f"{n_content_sections} content + cta + footer)."
+        if n_content_sections > 0
+        else "Output at minimum: nav, hero, 2–3 content sections, cta, footer."
+    )
+
     content.append({
         "type": "text",
         "text": f"""You are a senior web designer at a top agency. Redesign this business's website so it looks like it was built by a professional studio — NOT by AI.
@@ -316,12 +360,6 @@ Phone:          {key_content.get('phone') or '—'}
 Email:          {key_content.get('email') or '—'}
 Address:        {key_content.get('address') or '—'}
 {images_block}
-
-── FULL SITE TEXT (homepage + sub-pages scraped) ────────────────────────
-CRITICAL: Count every "--- PAGE: NAME ---" label below. You MUST create
-one dedicated HTML section for EACH labeled page. Do not merge pages or skip any.
-{full_text or 'not available'}
-────────────────────────────────────────────────────────────────────────
 
 ══ HERO — THIS IS THE MOST IMPORTANT SECTION ══════════════════════════
 The hero must be jaw-dropping. Follow these rules exactly:
@@ -357,28 +395,30 @@ DO NOT use these AI clichés:
 ✗ Stock-looking placeholder text
 
 DO use these human patterns:
-✓ Use the actual section names from the original site
+✓ Use the actual section names from the scraped pages
 ✓ Vary the layout: full-width text → split image/text → grid → quote → form
 ✓ Pull quotes, large numbers (e.g. "12+ years"), subtle background textures
 ✓ One section with a dark/colored background, the rest light — creates rhythm
 ✓ Let sections breathe differently: some compact, some very spacious
+{pages_block}
 
-MANDATORY SECTION STRUCTURE — follow exactly:
-1. <nav> — transparent on load, links to every section below
-2. <section id="hero"> — full-viewport hero
-3. ONE <section> PER "--- PAGE: NAME ---" label found in the full site text above
-   → Use the page NAME as the section heading and id
-   → Fill it with the actual content from that page
-   → DO NOT skip any page, DO NOT merge multiple pages into one section
+══ MANDATORY OUTPUT STRUCTURE ════════════════════════════════════════
+{section_count_note}
+Build in this exact order:
+1. <nav> — transparent on load, links to every section below by id
+2. <section id="hero"> — full-viewport hero (HERO MARKER required, see below)
+3. One <section> per REQUIRED CONTENT SECTION listed above
+   → id and heading = the section id/label specified above
+   → content = the scraped text provided for that section
+   → DO NOT skip any, DO NOT merge any two into one
 4. <section id="cta"> — dark background, one headline, one CTA button
 5. <footer> — contact info, nav links, copyright
 
-If 4 pages were scraped → the output MUST have at least 8 sections (nav + hero + 4 content + cta + footer).
-Count your sections before finishing. If you have fewer, add the missing ones.
+Count your <section> tags before finishing. If you are missing any, add them.
 
 ══ COPY RULES ══════════════════════════════════════════════════════════
-- Use the EXACT text from the business data above — do not rewrite or summarise
-- Section headings: use the business's actual page names, not generic ones
+- Use the EXACT text from the scraped content — do not rewrite or summarise
+- Section headings: use the page names listed in REQUIRED CONTENT SECTIONS
 - NEVER invent prices, phone numbers, addresses, hours, or service names
 - Contact info from the scraped text → show in footer AND contact section
 
