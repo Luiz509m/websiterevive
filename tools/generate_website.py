@@ -113,6 +113,8 @@ def extract_image_urls(html: str, base_url: str, max_images: int = 12) -> list[s
 
     # Find all src attributes in img tags
     raw_urls = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
+    # Also pick up lazy-loaded images (data-src, data-lazy-src, data-original, etc.)
+    raw_urls += re.findall(r'data-(?:src|lazy-src|original|lazy|bg)=["\']([^"\']+)["\']', html, re.IGNORECASE)
 
     # Also find srcset
     srcsets = re.findall(r'srcset=["\']([^"\']+)["\']', html, re.IGNORECASE)
@@ -387,6 +389,24 @@ NAV:
 - Logo left, links right — links are the actual section names from the content
 - One highlight button (e.g. "Contact") in the accent color
 
+══ REQUIRED SECTIONS — READ THIS BEFORE WRITING ANY HTML ══════════════
+{section_count_note}
+{pages_block}
+
+You MUST produce EVERY section listed above. This is non-negotiable.
+Before you write </body>, count your <section> tags. If any section from the list above is missing, add it immediately.
+
+══ MANDATORY OUTPUT STRUCTURE ════════════════════════════════════════
+Build in this exact order:
+1. <nav> — transparent on load, links to every section below by id
+2. <section id="hero"> — full-viewport hero (HERO MARKER required, see below)
+3. One <section> per REQUIRED SECTION listed above
+   → id and heading = the section id/label specified above
+   → content = the scraped text provided for that section
+   → DO NOT skip any, DO NOT merge any two into one
+4. <section id="cta"> — dark background, one headline, one CTA button
+5. <footer> — contact info, nav links, copyright
+
 ══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
 DO NOT use these AI clichés:
 ✗ Three equal cards in a row with icon + title + description
@@ -400,19 +420,6 @@ DO use these human patterns:
 ✓ Pull quotes, large numbers (e.g. "12+ years"), subtle background textures
 ✓ One section with a dark/colored background, the rest light — creates rhythm
 ✓ Let sections breathe differently: some compact, some very spacious
-{pages_block}
-
-══ MANDATORY OUTPUT STRUCTURE ════════════════════════════════════════
-{section_count_note}
-Build in this exact order:
-1. <nav> — transparent on load, links to every section below by id
-2. <section id="hero"> — full-viewport hero (HERO MARKER required, see below)
-3. One <section> per REQUIRED CONTENT SECTION listed above
-   → id and heading = the section id/label specified above
-   → content = the scraped text provided for that section
-   → DO NOT skip any, DO NOT merge any two into one
-4. <section id="cta"> — dark background, one headline, one CTA button
-5. <footer> — contact info, nav links, copyright
 
 Count your <section> tags before finishing. If you are missing any, add them.
 
