@@ -66,7 +66,16 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
             print(f"[scrape] Sitemap response: {resp.status_code} ({len(resp.text)} chars)")
             if not resp.ok or "<" not in resp.text:
                 continue
-            root = ET.fromstring(resp.text)
+            try:
+                root = ET.fromstring(resp.text)
+            except ET.ParseError as xml_err:
+                print(f"[scrape] Sitemap XML broken ({xml_err}) — trying regex fallback")
+                loc_urls = re.findall(r'<loc>\s*(https?://[^\s<]+)\s*</loc>', resp.text)
+                print(f"[scrape] Regex fallback found {len(loc_urls)} URLs")
+                raw_urls.extend(loc_urls)
+                if raw_urls:
+                    break
+                continue
 
             # Sitemap index → recurse into sub-sitemaps
             sub_maps = _xml_locs(root, "sm:sitemap/sm:loc", "sitemap/loc", ns)
