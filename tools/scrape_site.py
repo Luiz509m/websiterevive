@@ -136,13 +136,14 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
         if norm(parsed.netloc) != base_domain_norm:
             continue
         path = parsed.path.rstrip("/")
-        if not path or path == base_path or path in seen:
+        path_key = path + ("?" + parsed.query if parsed.query else "")
+        if not path or (path == base_path and not parsed.query) or path_key in seen:
             continue
-        combined = path.lower()
+        combined = (path + " " + parsed.query).lower()
         if any(kw in combined for kw in skip):
             continue
-        seen.add(path)
-        label = path.split("/")[-1].replace("-", " ").replace("_", " ").title()
+        seen.add(path_key)
+        label = path.split("/")[-1].replace("-", " ").replace("_", " ").title() or parsed.query[:30]
         entry = {"url": u, "label": label}
         if any(kw in combined for kw in important):
             priority.append(entry)
@@ -158,8 +159,12 @@ def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dic
     fallback collects any internal page link so we never return empty-handed."""
     from urllib.parse import urljoin, urlparse
 
-    base_domain = urlparse(base_url).netloc
-    base_path   = urlparse(base_url).path.rstrip("/")
+    def norm(netloc: str) -> str:
+        return netloc.lower().removeprefix("www.")
+
+    base_parsed = urlparse(base_url)
+    base_domain_norm = norm(base_parsed.netloc)
+    base_path   = base_parsed.path.rstrip("/")
 
     # Priority keywords (content-rich pages)
     important = [
@@ -195,10 +200,12 @@ def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dic
         absolute = urljoin(base_url, href)
         parsed   = urlparse(absolute)
 
-        if parsed.netloc != base_domain:
+        if norm(parsed.netloc) != base_domain_norm:
             continue
         path = parsed.path.rstrip("/")
-        if not path or path == base_path or path in seen:
+        # Use path+query as unique key so ?dsmid=111 and ?dsmid=222 are distinct pages
+        path_key = path + ("?" + parsed.query if parsed.query else "")
+        if not path or (path == base_path and not parsed.query) or path_key in seen:
             continue
         if re.search(r"\.(pdf|jpg|png|zip|xml|css|js)$", path, re.I):
             continue
@@ -207,7 +214,7 @@ def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dic
         if any(kw in combined for kw in skip):
             continue
 
-        seen.add(path)
+        seen.add(path_key)
         entry = {"url": absolute, "label": label or path.split("/")[-1]}
         if any(kw in combined for kw in important):
             priority.append(entry)
