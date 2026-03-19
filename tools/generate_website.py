@@ -163,9 +163,9 @@ def analyze_website(url: str, html: str, business_name: str, full_text: str = ""
     pages_context = ""
     if pages:
         for pg in pages:
-            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:3000]}"
+            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:5000]}"
     elif full_text:
-        pages_context = f"\n\nFull site text:\n{full_text[:8000]}"
+        pages_context = f"\n\nFull site text:\n{full_text[:12000]}"
 
     prompt = f"""You are a professional website content analyst. Thoroughly read and extract ALL important information from this website.
 
@@ -209,18 +209,22 @@ Extract and return a JSON object with ALL of the following:
     {{
       "label": "page label exactly as given above",
       "id": "url-friendly id (lowercase, hyphens)",
-      "key_paragraphs": ["2-4 most important text paragraphs from this page, verbatim"],
+      "key_paragraphs": ["5-8 important text paragraphs from this page, copied VERBATIM — do not shorten or paraphrase"],
       "services_or_items": [
-        {{"name": "item/service name", "description": "exact description from page", "price": "price if shown or null"}}
+        {{"name": "item/service name", "description": "full exact description from page", "price": "price if shown or null"}}
       ],
-      "specific_facts": ["specific facts, numbers, statistics, or key claims from this page"]
+      "specific_facts": ["every specific fact, number, statistic, or claim found on this page — only what is explicitly written"]
     }}
   ],
   "weaknesses": ["3-5 design or content weaknesses of the original site"],
   "improvement_focus": "the single most important improvement"
 }}
 
-IMPORTANT: pages_content must include an entry for EVERY page listed above. Extract real verbatim text — do not paraphrase or summarize.
+CRITICAL RULES:
+- pages_content must include an entry for EVERY page listed above
+- key_paragraphs must be copied VERBATIM — never shorten, paraphrase, or summarize
+- specific_facts: ONLY include numbers/claims that are LITERALLY written on the page — never round up or invent (e.g. if page says "4 languages" write "4 languages", never "7+" or "many")
+- If information is not on the page, use null or empty list — never guess
 
 Return ONLY valid JSON, no explanation."""
 
@@ -374,7 +378,7 @@ GALLERY / ABOUT: use the remaining images from the list"""
                     for f in facts
                 ))
 
-            content_text = ("\n\n".join(content_parts) or "(see business data above)")[:2500]
+            content_text = ("\n\n".join(content_parts) or "(see business data above)")[:4000]
 
             section_list.append(
                 f"SECTION {i}: id=\"{sec_id}\" — heading: \"{label}\"\n"
@@ -517,8 +521,11 @@ Count your <section> tags before finishing. If you are missing any, add them.
 ══ COPY RULES ══════════════════════════════════════════════════════════
 - Use the EXACT text from the scraped content — do not rewrite or summarise
 - Section headings: use the page names listed in REQUIRED CONTENT SECTIONS
-- NEVER invent prices, phone numbers, addresses, hours, or service names
+- Include ALL key_paragraphs provided for each section — do not cut them short
+- NEVER invent ANY facts: no numbers, no "7+ languages", no "20+ years", no prices, no claims not in the data
+- If the data says "4 languages" → write "4 languages". Never round up or exaggerate.
 - Contact info from the scraped text → show in footer AND contact section
+- If a fact is not in the scraped data → leave it out entirely. Empty is better than invented.
 
 ══ TECHNICAL ═══════════════════════════════════════════════════════════
 - Single HTML file, all CSS and JS inline
