@@ -223,8 +223,12 @@ def generate():
         analysis_path = TMP / f"{slug}_analysis.json"
         if analysis_path.exists():
             analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
-        else:
-            analysis = analyze_website(url, scraped["html"], "", full_text)
+            # If cached analysis lacks pages_content (old format), re-analyze
+            if not analysis.get("pages_content"):
+                print("[analyze] Cached analysis missing pages_content — re-analyzing")
+                analysis_path.unlink()
+        if not analysis_path.exists():
+            analysis = analyze_website(url, scraped["html"], "", full_text, pages)
             analysis_path.write_text(
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )

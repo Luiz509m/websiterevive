@@ -155,61 +155,78 @@ def extract_image_urls(html: str, base_url: str, max_images: int = 12) -> list[s
 
 # ── Step 1: Analyze ───────────────────────────────────────────────────────────
 
-def analyze_website(url: str, html: str, business_name: str, full_text: str = "") -> dict:
-    """Send HTML + full site text to Claude for analysis. Returns structured brand/content data."""
+def analyze_website(url: str, html: str, business_name: str, full_text: str = "", pages: list = None) -> dict:
+    """Send HTML + all scraped pages to Claude for deep analysis. Returns structured brand/content data."""
     print("\n[analyze] Sending to Claude for analysis...")
 
-    subpage_block = ""
-    if full_text:
-        subpage_block = f"""
+    # Build full pages context — all pages, not just homepage
+    pages_context = ""
+    if pages:
+        for pg in pages:
+            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:3000]}"
+    elif full_text:
+        pages_context = f"\n\nFull site text:\n{full_text[:8000]}"
 
-Full site text (homepage + all scraped sub-pages):
-{full_text[:8000]}
-"""
-
-    prompt = f"""You are a web design analyst. Analyze this website and extract key information.
+    prompt = f"""You are a professional website content analyst. Thoroughly read and extract ALL important information from this website.
 
 Website URL: {url}
 Business Name: {business_name or "Unknown"}
 
-HTML Content:
+Homepage HTML:
 ```html
-{truncate_html(html)}
+{truncate_html(html, 25000)}
 ```
-{subpage_block}
-STRICT RULE: Only extract information that is EXPLICITLY present in the HTML or site text above. If something is not found, use null or an empty list. NEVER invent or guess prices, phone numbers, opening hours, addresses, or any factual details.
 
-Extract and return a JSON object with these fields:
+All scraped pages (verbatim text):
+{pages_context}
+
+STRICT RULE: Only extract information EXPLICITLY present above. NEVER invent prices, phone numbers, addresses, hours, names, or any factual details.
+
+Extract and return a JSON object with ALL of the following:
 {{
-  "business_name": "string — the actual business name from the HTML",
-  "industry": "string — what industry/niche",
-  "tagline": "string — their exact tagline if present, else null",
-  "main_services": ["list of services/products explicitly mentioned"],
-  "target_audience": "string — who they serve, based on page content",
-  "tone": "string — brand tone (e.g. professional, playful, luxury, technical)",
-  "current_colors": ["list of hex colors found in CSS/styles, if any"],
-  "current_fonts": ["list of fonts found, if any"],
+  "business_name": "exact business name from the site",
+  "industry": "specific industry/niche",
+  "tagline": "exact tagline if present, else null",
+  "main_services": ["all services/products explicitly mentioned"],
+  "target_audience": "who they serve",
+  "tone": "brand tone (professional, friendly, luxury, clinical, etc.)",
+  "current_colors": ["hex colors from CSS if found"],
+  "current_fonts": ["font names from CSS/Google Fonts if found"],
   "key_content": {{
-    "hero_headline": "string — exact headline text if found",
-    "hero_subtext": "string — exact subheadline/description if found",
-    "cta_text": "string — exact CTA button text if found",
-    "about_summary": "string — text about the business found on the page",
-    "features": ["features/benefits explicitly listed on the page"],
-    "prices": ["any prices explicitly shown, e.g. 'Lunch CHF 23.50'"],
-    "opening_hours": ["opening hours if mentioned"],
-    "phone": "phone number if present",
-    "email": "email if present",
-    "address": "address if present"
+    "hero_headline": "exact main headline from homepage",
+    "hero_subtext": "exact subheadline/description",
+    "cta_text": "exact CTA button text",
+    "about_summary": "key text about the business (2-4 sentences verbatim)",
+    "unique_selling_points": ["specific USPs mentioned"],
+    "team_members": [{{"name": "...", "role": "..."}}],
+    "prices": ["exact prices as shown, e.g. 'Bleaching ab CHF 490'"],
+    "opening_hours": ["exact opening hours as listed"],
+    "phone": "exact phone number",
+    "email": "exact email address",
+    "address": "exact physical address"
   }},
-  "weaknesses": ["list of 3-5 design or content weaknesses"],
-  "improvement_focus": "string — the single most important improvement"
+  "pages_content": [
+    {{
+      "label": "page label exactly as given above",
+      "id": "url-friendly id (lowercase, hyphens)",
+      "key_paragraphs": ["2-4 most important text paragraphs from this page, verbatim"],
+      "services_or_items": [
+        {{"name": "item/service name", "description": "exact description from page", "price": "price if shown or null"}}
+      ],
+      "specific_facts": ["specific facts, numbers, statistics, or key claims from this page"]
+    }}
+  ],
+  "weaknesses": ["3-5 design or content weaknesses of the original site"],
+  "improvement_focus": "the single most important improvement"
 }}
 
-Return ONLY the JSON, no explanation."""
+IMPORTANT: pages_content must include an entry for EVERY page listed above. Extract real verbatim text — do not paraphrase or summarize.
+
+Return ONLY valid JSON, no explanation."""
 
     response = CLIENT.messages.create(
         model=MODEL,
-        max_tokens=2000,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}]
     )
 
@@ -295,30 +312,71 @@ HERO BACKGROUND — use your judgement:
 
 GALLERY / ABOUT: use the remaining images from the list"""
 
-    # Build explicit per-page section requirements from structured pages list
-    # This is placed AFTER the hero/design instructions so Claude sees it as required output
+    # Build explicit per-page section requirements
+    # Prefer rich structured content from analysis (pages_content), fall back to raw text
     pages_block = ""
-    if pages and len(pages) > 1:
+    pages_analyzed = analysis.get("pages_content", [])
+
+    if pages_analyzed and len(pages_analyzed) > 1:
+        # Use rich structured content extracted by analysis step
         section_list = []
-        for i, pg in enumerate(pages[1:], start=1):  # skip homepage (index 0)
-            label   = pg.get("label", f"Page {i}")
-            sec_id  = pg.get("id", label.lower().replace(" ", "-"))
-            text    = pg.get("text", "")[:3000]
+        for i, pc in enumerate(pages_analyzed[1:], start=1):  # skip homepage
+            label   = pc.get("label", f"Page {i}")
+            sec_id  = pc.get("id", label.lower().replace(" ", "-"))
+
+            content_parts = []
+            key_paragraphs = pc.get("key_paragraphs", [])
+            services       = pc.get("services_or_items", [])
+            facts          = pc.get("specific_facts", [])
+
+            if key_paragraphs:
+                content_parts.append("Key text (use verbatim):\n" + "\n\n".join(key_paragraphs))
+            if services:
+                svc_lines = "\n".join(
+                    f"  • {s.get('name','')}: {s.get('description','')}"
+                    + (f" — {s.get('price')}" if s.get('price') else "")
+                    for s in services
+                )
+                content_parts.append(f"Services / items:\n{svc_lines}")
+            if facts:
+                content_parts.append("Key facts:\n" + "\n".join(f"  • {f}" for f in facts))
+
+            content_text = ("\n\n".join(content_parts) or "(see business data above)")[:2500]
+
             section_list.append(
                 f"SECTION {i}: id=\"{sec_id}\" — heading: \"{label}\"\n"
-                f"Content to use (from scraped page):\n{text}"
+                f"EXACT CONTENT TO INCLUDE:\n{content_text}"
             )
+
         pages_block = (
-            f"\n\n══ REQUIRED CONTENT SECTIONS ({len(section_list)} pages scraped) ═══════════\n"
-            f"You MUST output one <section> for each of the following. "
-            f"Do NOT skip any. Do NOT merge them. "
-            f"Use the content provided — do not invent anything.\n\n"
+            f"\n\n══ REQUIRED CONTENT SECTIONS ({len(section_list)} pages) ═══════════\n"
+            f"You MUST output one <section> for EACH entry below. Do NOT skip. Do NOT merge.\n"
+            f"Use the EXACT content provided — do not invent anything. Do not paraphrase.\n\n"
             + "\n\n".join(section_list)
             + "\n══════════════════════════════════════════════════════════════"
         )
-        print(f"[generate] Built pages_block with {len(section_list)} explicit sections")
+        print(f"[generate] Built pages_block from rich analysis ({len(section_list)} sections)")
+
+    elif pages and len(pages) > 1:
+        # Fallback: raw scraped text per page
+        section_list = []
+        for i, pg in enumerate(pages[1:], start=1):
+            label  = pg.get("label", f"Page {i}")
+            sec_id = pg.get("id", label.lower().replace(" ", "-"))
+            text   = pg.get("text", "")[:3000]
+            section_list.append(
+                f"SECTION {i}: id=\"{sec_id}\" — heading: \"{label}\"\n"
+                f"Content to use:\n{text}"
+            )
+        pages_block = (
+            f"\n\n══ REQUIRED CONTENT SECTIONS ({len(section_list)} pages scraped) ═══════════\n"
+            f"You MUST output one <section> for each. Do NOT skip any.\n\n"
+            + "\n\n".join(section_list)
+            + "\n══════════════════════════════════════════════════════════════"
+        )
+        print(f"[generate] Built pages_block with {len(section_list)} raw-text sections")
+
     elif full_text:
-        # Fallback: use the old full_text approach with strong instruction
         pages_block = (
             f"\n\n── FULL SITE TEXT ─────────────────────────────────────────\n"
             f"Each '--- PAGE: NAME ---' label = one required <section>. Do not skip any.\n"
