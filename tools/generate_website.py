@@ -480,12 +480,13 @@ HOMEPAGE (index.html) structure:
 {subpage_content_blocks}
 
 SUBPAGE structure (for each .html file above):
-1. Same <nav> as homepage
-2. <section class="page-header"> — compact header (title + 1 sentence), NO full hero
-3. Full content sections using ALL text provided above for that page
-4. Same <footer> as homepage
+1. Same <nav> as homepage (copy verbatim)
+2. <section class="page-header" style="padding:120px 5% 60px;background:var(--primary)"> — compact header with page title, NO full hero
+3. Content sections: use ALL verbatim text provided for that page — do not summarize
+4. Same <footer> as homepage (copy verbatim)
+IMPORTANT — SUBPAGES MUST BE CONCISE: No scroll animations, no elaborate JS, no extra decorative sections. Just nav + page-header + content + footer. This keeps the file size small and generation fast.
 
-CSS CONSISTENCY: Define all CSS variables and base styles in index.html's <style> block. Copy that EXACT same <style> block to every subpage verbatim.
+CSS CONSISTENCY: Define CSS variables once in index.html's <style>. In each subpage, copy ONLY the essential CSS (variables + nav + footer + page-header + content layout). No duplicate animation CSS in subpages.
 
 ══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
 DO NOT use these AI clichés:
@@ -567,7 +568,7 @@ OUTPUT RULES:
 
     with CLIENT.messages.stream(
         model=MODEL,
-        max_tokens=64000,
+        max_tokens=48000,
         extra_headers={"anthropic-beta": "output-128k-2025-02-19"},
         messages=[{"role": "user", "content": content}]
     ) as stream:
