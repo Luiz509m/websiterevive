@@ -258,6 +258,27 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     """Send analysis + reference images to Claude. Returns generated HTML."""
     print("\n[generate] Sending to Claude for website generation...")
 
+    def _s(lst):
+        """Safely convert a list of strings or dicts to a comma-joined string."""
+        if not lst:
+            return "—"
+        parts = []
+        for item in lst:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(item.get("name") or item.get("label") or str(item))
+        return ", ".join(parts) if parts else "—"
+
+    def _join(lst, sep="\n"):
+        """Safely join a list of strings or dicts."""
+        if not lst:
+            return ""
+        return sep.join(
+            item if isinstance(item, str) else (item.get("name") or str(item))
+            for item in lst
+        )
+
     business_name = analysis.get("business_name", "Business")
     industry      = analysis.get("industry", "")
     tone          = analysis.get("tone", "professional")
@@ -265,7 +286,7 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     services      = analysis.get("main_services", [])
     audience      = analysis.get("target_audience", "")
     key_content   = analysis.get("key_content", {})
-    features      = key_content.get("features", [])
+    features      = key_content.get("features", key_content.get("unique_selling_points", []))
     brand_colors  = analysis.get("current_colors", [])
 
     # Build message content with reference images
@@ -338,16 +359,20 @@ GALLERY / ABOUT: use the remaining images from the list"""
             facts          = pc.get("specific_facts", [])
 
             if key_paragraphs:
-                content_parts.append("Key text (use verbatim):\n" + "\n\n".join(key_paragraphs))
+                content_parts.append("Key text (use verbatim):\n" + _join(key_paragraphs, "\n\n"))
             if services:
                 svc_lines = "\n".join(
-                    f"  • {s.get('name','')}: {s.get('description','')}"
-                    + (f" — {s.get('price')}" if s.get('price') else "")
+                    f"  • {s.get('name','') if isinstance(s, dict) else s}"
+                    + (f": {s.get('description','')}" if isinstance(s, dict) and s.get('description') else "")
+                    + (f" — {s.get('price')}" if isinstance(s, dict) and s.get('price') else "")
                     for s in services
                 )
                 content_parts.append(f"Services / items:\n{svc_lines}")
             if facts:
-                content_parts.append("Key facts:\n" + "\n".join(f"  • {f}" for f in facts))
+                content_parts.append("Key facts:\n" + "\n".join(
+                    f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}"
+                    for f in facts
+                ))
 
             content_text = ("\n\n".join(content_parts) or "(see business data above)")[:2500]
 
@@ -414,16 +439,16 @@ Name:           {business_name}
 Industry:       {industry}
 Tone:           {tone}
 Tagline:        {tagline or '—'}
-Services:       {', '.join(services) if services else '—'}
+Services:       {_s(services)}
 Audience:       {audience}
-Brand colors:   {', '.join(brand_colors) if brand_colors else 'derive from industry/tone'}
+Brand colors:   {_s(brand_colors) if brand_colors else 'derive from industry/tone'}
 Headline:       {key_content.get('hero_headline') or '—'}
 Subtext:        {key_content.get('hero_subtext') or '—'}
 CTA text:       {key_content.get('cta_text') or 'Contact'}
 About:          {key_content.get('about_summary') or '—'}
-Features:       {', '.join(features) if features else '—'}
-Prices:         {', '.join(key_content.get('prices', [])) or '—'}
-Hours:          {', '.join(key_content.get('opening_hours', [])) or '—'}
+Features:       {_s(features)}
+Prices:         {_s(key_content.get('prices', []))}
+Hours:          {_s(key_content.get('opening_hours', []))}
 Phone:          {key_content.get('phone') or '—'}
 Email:          {key_content.get('email') or '—'}
 Address:        {key_content.get('address') or '—'}
