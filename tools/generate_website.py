@@ -226,21 +226,29 @@ Return ONLY valid JSON, no explanation."""
 
     response = CLIENT.messages.create(
         model=MODEL,
-        max_tokens=4000,
+        max_tokens=8000,
         messages=[{"role": "user", "content": prompt}]
     )
 
     raw = response.content[0].text.strip()
-    # Strip markdown code fences if present
+
+    # Robustly extract JSON: strip markdown fences, find first { ... }
+    import re as _re
     if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
+        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    # Find outermost JSON object in case there's extra text
+    match = _re.search(r'\{[\s\S]*\}', raw)
+    if match:
+        raw = match.group(0)
 
     try:
         analysis = json.loads(raw)
-        print(f"[analyze] ✓ Business: {analysis.get('business_name')} | Industry: {analysis.get('industry')}")
+        pages_content = analysis.get("pages_content", [])
+        print(f"[analyze] ✓ Business: {analysis.get('business_name')} | Industry: {analysis.get('industry')} | pages_content: {len(pages_content)} entries")
         return analysis
-    except json.JSONDecodeError:
-        print("[analyze] Warning: Could not parse JSON, using raw text")
+    except json.JSONDecodeError as e:
+        print(f"[analyze] Warning: Could not parse JSON ({e}) — using raw text fallback")
+        print(f"[analyze] Raw response start: {raw[:200]}")
         return {"raw": raw, "business_name": business_name or "Business"}
 
 
