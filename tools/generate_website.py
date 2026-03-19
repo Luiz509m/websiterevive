@@ -345,94 +345,68 @@ HERO BACKGROUND — use your judgement:
 
 GALLERY / ABOUT: use the remaining images from the list"""
 
-    # Build explicit per-page section requirements
-    # Prefer rich structured content from analysis (pages_content), fall back to raw text
-    pages_block = ""
+    # Build multi-page file structure
     pages_analyzed = analysis.get("pages_content", [])
 
+    def _build_page_content(pc: dict) -> str:
+        parts = []
+        for para in pc.get("key_paragraphs", []):
+            parts.append(str(para) if not isinstance(para, dict) else para.get("text", str(para)))
+        svcs = pc.get("services_or_items", [])
+        if svcs:
+            lines = []
+            for s in svcs:
+                if isinstance(s, dict):
+                    line = s.get("name", "")
+                    if s.get("description"): line += f": {s['description']}"
+                    if s.get("price"):       line += f" — {s['price']}"
+                else:
+                    line = str(s)
+                lines.append(f"  • {line}")
+            parts.append("Services / items:\n" + "\n".join(lines))
+        for f in pc.get("specific_facts", []):
+            parts.append(f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}")
+        return "\n\n".join(parts)[:4000]
+
+    # Build subpage file list and per-page content blocks
+    subpages = []  # list of {label, filename, content}
     if pages_analyzed and len(pages_analyzed) > 1:
-        # Use rich structured content extracted by analysis step
-        section_list = []
-        for i, pc in enumerate(pages_analyzed[1:], start=1):  # skip homepage
-            label   = pc.get("label", f"Page {i}")
-            sec_id  = pc.get("id", label.lower().replace(" ", "-"))
-
-            content_parts = []
-            key_paragraphs = pc.get("key_paragraphs", [])
-            services       = pc.get("services_or_items", [])
-            facts          = pc.get("specific_facts", [])
-
-            if key_paragraphs:
-                content_parts.append("Key text (use verbatim):\n" + _join(key_paragraphs, "\n\n"))
-            if services:
-                svc_lines = "\n".join(
-                    f"  • {s.get('name','') if isinstance(s, dict) else s}"
-                    + (f": {s.get('description','')}" if isinstance(s, dict) and s.get('description') else "")
-                    + (f" — {s.get('price')}" if isinstance(s, dict) and s.get('price') else "")
-                    for s in services
-                )
-                content_parts.append(f"Services / items:\n{svc_lines}")
-            if facts:
-                content_parts.append("Key facts:\n" + "\n".join(
-                    f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}"
-                    for f in facts
-                ))
-
-            content_text = ("\n\n".join(content_parts) or "(see business data above)")[:4000]
-
-            section_list.append(
-                f"SECTION {i}: id=\"{sec_id}\" — heading: \"{label}\"\n"
-                f"EXACT CONTENT TO INCLUDE:\n{content_text}"
-            )
-
-        pages_block = (
-            f"\n\n══ REQUIRED CONTENT SECTIONS ({len(section_list)} pages) ═══════════\n"
-            f"You MUST output one <section> for EACH entry below. Do NOT skip. Do NOT merge.\n"
-            f"Use the EXACT content provided — do not invent anything. Do not paraphrase.\n\n"
-            + "\n\n".join(section_list)
-            + "\n══════════════════════════════════════════════════════════════"
-        )
-        print(f"[generate] Built pages_block from rich analysis ({len(section_list)} sections)")
-
+        for pc in pages_analyzed[1:]:
+            label    = pc.get("label", "Page")
+            filename = pc.get("id", label.lower().replace(" ", "-")) + ".html"
+            subpages.append({"label": label, "filename": filename, "content": _build_page_content(pc)})
+        print(f"[generate] Multi-page: index.html + {len(subpages)} subpages")
     elif pages and len(pages) > 1:
-        # Fallback: raw scraped text per page
-        section_list = []
-        for i, pg in enumerate(pages[1:], start=1):
-            label  = pg.get("label", f"Page {i}")
-            sec_id = pg.get("id", label.lower().replace(" ", "-"))
-            text   = pg.get("text", "")[:3000]
-            section_list.append(
-                f"SECTION {i}: id=\"{sec_id}\" — heading: \"{label}\"\n"
-                f"Content to use:\n{text}"
-            )
-        pages_block = (
-            f"\n\n══ REQUIRED CONTENT SECTIONS ({len(section_list)} pages scraped) ═══════════\n"
-            f"You MUST output one <section> for each. Do NOT skip any.\n\n"
-            + "\n\n".join(section_list)
-            + "\n══════════════════════════════════════════════════════════════"
-        )
-        print(f"[generate] Built pages_block with {len(section_list)} raw-text sections")
+        for pg in pages[1:]:
+            label    = pg.get("label", "Page")
+            filename = label.lower().replace(" ", "-") + ".html"
+            subpages.append({"label": label, "filename": filename, "content": pg.get("text","")[:3000]})
+        print(f"[generate] Multi-page (raw): index.html + {len(subpages)} subpages")
 
-    elif full_text:
-        pages_block = (
-            f"\n\n── FULL SITE TEXT ─────────────────────────────────────────\n"
-            f"Each '--- PAGE: NAME ---' label = one required <section>. Do not skip any.\n"
-            f"{full_text[:6000]}\n"
-            f"──────────────────────────────────────────────────────────"
-        )
+    # Build nav link list for ALL pages
+    all_nav = [("Home", "index.html")] + [(sp["label"], sp["filename"]) for sp in subpages]
+    nav_links_str = " | ".join(f'<a href="{fn}">{lbl}</a>' for lbl, fn in all_nav)
 
-    # Count sections for the mandatory structure instruction
-    n_content_sections = len(pages) - 1 if pages and len(pages) > 1 else (
-        full_text.count("--- PAGE:") if full_text else 0
-    )
-    total_sections_min = 2 + n_content_sections + 2  # nav+hero + content + cta+footer
+    # Build file list header for the prompt
+    file_list_str = "<!-- FILE: index.html --> — Homepage (hero, service overview cards, CTA)"
+    for sp in subpages:
+        file_list_str += f'\n<!-- FILE: {sp["filename"]} --> — Dedicated page: {sp["label"]}'
+
+    # Build per-subpage content blocks
+    subpage_content_blocks = ""
+    for sp in subpages:
+        subpage_content_blocks += f"""
+
+━━ SUBPAGE FILE: {sp['filename']} — "{sp['label']}" ━━━━━━━━━━━━━━━━━━━━━━━━
+Include ALL of the following content verbatim on this page:
+{sp['content'] or '(use business data above for this topic)'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+
     section_count_note = (
-        f"You scraped {n_content_sections} sub-pages → output MUST have "
-        f"at least {total_sections_min} sections (nav + hero + "
-        f"{n_content_sections} content + cta + footer)."
-        if n_content_sections > 0
-        else "Output at minimum: nav, hero, 2–3 content sections, cta, footer."
+        f"Generate {1 + len(subpages)} HTML files: index.html + {len(subpages)} subpages."
+        if subpages else "Generate index.html with at minimum: nav, hero, 2–3 content sections, cta, footer."
     )
+    pages_block = ""  # not used in multi-page mode
 
     content.append({
         "type": "text",
@@ -484,23 +458,34 @@ NAV:
 - Logo left, links right — links are the actual section names from the content
 - One highlight button (e.g. "Contact") in the accent color
 
-══ REQUIRED SECTIONS — READ THIS BEFORE WRITING ANY HTML ══════════════
+══ MULTI-PAGE OUTPUT ══════════════════════════════════════════════════
 {section_count_note}
-{pages_block}
 
-You MUST produce EVERY section listed above. This is non-negotiable.
-Before you write </body>, count your <section> tags. If any section from the list above is missing, add it immediately.
+Separate each HTML file with EXACTLY this marker on its own line:
+<!-- FILE: filename.html -->
 
-══ MANDATORY OUTPUT STRUCTURE ════════════════════════════════════════
-Build in this exact order:
-1. <nav> — transparent on load, links to every section below by id
-2. <section id="hero"> — full-viewport hero (HERO MARKER required, see below)
-3. One <section> per REQUIRED SECTION listed above
-   → id and heading = the section id/label specified above
-   → content = the scraped text provided for that section
-   → DO NOT skip any, DO NOT merge any two into one
-4. <section id="cta"> — dark background, one headline, one CTA button
-5. <footer> — contact info, nav links, copyright
+Files to generate:
+{file_list_str}
+
+NAV (ALL PAGES — identical on every page):
+{nav_links_str}
+Use relative hrefs (index.html, bleaching.html, etc.). NEVER href="#" for page navigation.
+
+HOMEPAGE (index.html) structure:
+1. <nav> with links to ALL pages
+2. <section id="hero"> — full-viewport hero (HERO MARKER required)
+3. Service overview: one card per subpage (2-3 sentences from its content + button href="{subpages[0]['filename'] if subpages else 'index.html'}" etc.)
+4. <section id="cta"> — dark background, one CTA
+5. <footer> — contact info, all nav links, copyright
+{subpage_content_blocks}
+
+SUBPAGE structure (for each .html file above):
+1. Same <nav> as homepage
+2. <section class="page-header"> — compact header (title + 1 sentence), NO full hero
+3. Full content sections using ALL text provided above for that page
+4. Same <footer> as homepage
+
+CSS CONSISTENCY: Define all CSS variables and base styles in index.html's <style> block. Copy that EXACT same <style> block to every subpage verbatim.
 
 ══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
 DO NOT use these AI clichés:
@@ -573,14 +558,16 @@ After the closing </section> or </header> of the hero, add on its own line:
 <!-- HERO_END -->
 
 OUTPUT RULES:
-- Complete HTML from <!DOCTYPE html> to </html> — do not truncate
-- No markdown fences, no explanation — just the HTML
-- Concise CSS (no comments, no redundant rules)"""
+- Start immediately with <!-- FILE: index.html --> then the complete HTML
+- Each file: complete HTML from <!DOCTYPE html> to </html>
+- No markdown fences, no explanation — ONLY file markers and HTML
+- Concise CSS (no comments, no redundant rules) — subpages copy same <style> as index.html
+- HERO MARKER <!-- HERO_END --> only in index.html after the hero </section>"""
     })
 
     with CLIENT.messages.stream(
         model=MODEL,
-        max_tokens=32000,
+        max_tokens=64000,
         extra_headers={"anthropic-beta": "output-128k-2025-02-19"},
         messages=[{"role": "user", "content": content}]
     ) as stream:

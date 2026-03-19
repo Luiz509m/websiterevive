@@ -74,19 +74,51 @@ PACKAGES = {
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+import re as _re
+import base64 as _b64
+
+def parse_multifile_html(full_html: str) -> dict:
+    """Split multi-file HTML (<!-- FILE: name.html --> separators) into {filename: html} dict."""
+    if "<!-- FILE:" not in full_html:
+        return {"index.html": full_html}
+    parts = _re.split(r'<!-- FILE: (\S+\.html) -->\n?', full_html)
+    files = {}
+    i = 1
+    while i < len(parts) - 1:
+        filename = parts[i].strip()
+        content  = parts[i + 1].strip()
+        if filename and content:
+            files[filename] = content
+        i += 2
+    return files if files else {"index.html": full_html}
+
+def create_zip(files: dict) -> bytes:
+    """Package {filename: html} dict into a ZIP archive."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for name, html in files.items():
+            zf.writestr(name, html.encode("utf-8"))
+    return buf.getvalue()
+
 def extract_hero_html(full_html: str) -> str:
     """Extract everything up to and including <!-- HERO_END --> as a standalone HTML doc."""
-    marker = "<!-- HERO_END -->"
-    if marker not in full_html:
-        # Fallback: use roughly the first third of the body
-        body_start = full_html.find("<body")
-        if body_start == -1:
-            return full_html[:4000] + "</body></html>"
-        cutoff = body_start + (len(full_html) - body_start) // 3
-        return full_html[:cutoff] + "\n</body></html>"
+    # For multi-file format, extract from first file (index.html)
+    if "<!-- FILE:" in full_html:
+        files = parse_multifile_html(full_html)
+        first = files.get("index.html") or next(iter(files.values()), full_html)
+    else:
+        first = full_html
 
-    idx = full_html.index(marker) + len(marker)
-    return full_html[:idx] + "\n</body>\n</html>"
+    marker = "<!-- HERO_END -->"
+    if marker not in first:
+        body_start = first.find("<body")
+        if body_start == -1:
+            return first[:4000] + "</body></html>"
+        cutoff = body_start + (len(first) - body_start) // 3
+        return first[:cutoff] + "\n</body></html>"
+
+    idx = first.index(marker) + len(marker)
+    return first[:idx] + "\n</body>\n</html>"
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -284,8 +316,18 @@ def unlock(user_id):
 
     db.mark_unlocked(generation_id)
 
+    full_html = generation["full_html"]
+    files     = parse_multifile_html(full_html)
+    index_html = files.get("index.html") or next(iter(files.values()), full_html)
+
+    zip_bytes = create_zip(files)
+    zip_b64   = _b64.b64encode(zip_bytes).decode()
+
+    print(f"[unlock] ZIP with {len(files)} file(s): {list(files.keys())}")
+
     return jsonify({
-        "html": generation["full_html"],
+        "html": index_html,
+        "zip":  zip_b64,
         "slug": generation["slug"],
     })
 

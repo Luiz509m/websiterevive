@@ -1743,7 +1743,7 @@
         </button>
         <button onclick="downloadEdited()"
           style="background:var(--mint);color:var(--black);border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer;">
-          Download HTML
+          Download ZIP
         </button>
         <p id="editor-hint" style="display:none;width:100%;font-size:11px;color:var(--muted);margin:4px 0 0;">
           Click on any text to edit it &nbsp;·&nbsp; Click on any image to replace or remove it
@@ -2668,6 +2668,7 @@
 
   // ── Unlock ───────────────────────────────────────────────────────────────────
   let unlockedHtml = '';
+  let unlockedZip  = '';
   let unlockedSlug = '';
 
   async function handleUnlock() {
@@ -2699,6 +2700,7 @@
       if (!res.ok || data.error) throw new Error(data.error || 'Unlock failed');
 
       unlockedHtml = data.html;
+      unlockedZip  = data.zip  || '';
       unlockedSlug = data.slug || 'revived';
 
       // Show full site in editor iframe
@@ -2866,6 +2868,17 @@
   }
 
   function downloadEdited() {
+    if (unlockedZip) {
+      const bytes = Uint8Array.from(atob(unlockedZip), c => c.charCodeAt(0));
+      const blob  = new Blob([bytes], { type: 'application/zip' });
+      const a     = document.createElement('a');
+      a.href      = URL.createObjectURL(blob);
+      a.download  = `${unlockedSlug}_websiterevive.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      return;
+    }
+    // Fallback: download index.html from iframe (old single-file format)
     const iframe = document.getElementById('full-iframe');
     const doc    = iframe.contentDocument;
     if (!doc) return;
