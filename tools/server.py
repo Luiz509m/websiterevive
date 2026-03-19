@@ -78,56 +78,19 @@ import re as _re
 import base64 as _b64
 
 def parse_multifile_html(full_html: str) -> dict:
-    """Split single-page HTML into {filename: html} by extracting each <section id="...">."""
-    import re as _re2
-
-    # Extract CSS from <style> block
-    css_match = _re2.search(r'<style[^>]*>(.*?)</style>', full_html, _re2.DOTALL)
-    css = css_match.group(1) if css_match else ''
-
-    # Extract <nav>
-    nav_match = _re2.search(r'<nav\b[^>]*>.*?</nav>', full_html, _re2.DOTALL | _re2.IGNORECASE)
-    nav_html  = nav_match.group(0) if nav_match else ''
-
-    # Extract <footer>
-    footer_match = _re2.search(r'<footer\b[^>]*>.*?</footer>', full_html, _re2.DOTALL | _re2.IGNORECASE)
-    footer_html  = footer_match.group(0) if footer_match else ''
-
-    # Find all content sections (skip hero and cta)
-    section_pattern = _re2.compile(
-        r'<section\s[^>]*id=["\']([^"\']+)["\'][^>]*>.*?</section>',
-        _re2.DOTALL | _re2.IGNORECASE
-    )
-
-    files = {"index.html": full_html}
-    for m in section_pattern.finditer(full_html):
-        sec_id   = m.group(1)
-        if sec_id in ("hero", "cta"):
-            continue
-        sec_html = m.group(0)
-        filename = f"{sec_id}.html"
-
-        # Update nav links to work relative to this subpage
-        nav_fixed = _re2.sub(r'href="index\.html"', 'href="index.html"', nav_html)
-
-        page = f"""<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>{sec_id.replace("-", " ").title()}</title>
-<style>{css}</style>
-</head>
-<body>
-{nav_fixed}
-{sec_html}
-{footer_html}
-</body>
-</html>"""
-        files[filename] = page
-        print(f"[unlock] Extracted subpage: {filename}")
-
-    return files
+    """Split multi-file HTML (<!-- FILE: name.html --> separators) into {filename: html} dict."""
+    if "<!-- FILE:" not in full_html:
+        return {"index.html": full_html}
+    parts = _re.split(r'<!-- FILE: (\S+\.html) -->\n?', full_html)
+    files = {}
+    i = 1
+    while i < len(parts) - 1:
+        filename = parts[i].strip()
+        content  = parts[i + 1].strip()
+        if filename and content:
+            files[filename] = content
+        i += 2
+    return files if files else {"index.html": full_html}
 
 def create_zip(files: dict) -> bytes:
     """Package {filename: html} dict into a ZIP archive."""
