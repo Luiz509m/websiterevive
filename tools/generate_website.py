@@ -458,35 +458,18 @@ NAV:
 - Logo left, links right — links are the actual section names from the content
 - One highlight button (e.g. "Contact") in the accent color
 
-══ MULTI-PAGE OUTPUT ══════════════════════════════════════════════════
+══ REQUIRED SECTIONS ══════════════════════════════════════════════════
 {section_count_note}
 
-Separate each HTML file with EXACTLY this marker on its own line:
-<!-- FILE: filename.html -->
-
-Files to generate:
-{file_list_str}
-
-NAV (ALL PAGES — identical on every page):
-{nav_links_str}
-Use relative hrefs (index.html, bleaching.html, etc.). NEVER href="#" for page navigation.
-
-HOMEPAGE (index.html) structure:
-1. <nav> with links to ALL pages
+Build ONE single HTML file with these sections in order:
+1. <nav> — links to every section using href="section-id.html" (NOT #anchor) — this enables subpage extraction
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. Service overview: one card per subpage (2-3 sentences from its content + button href="{subpages[0]['filename'] if subpages else 'index.html'}" etc.)
-4. <section id="cta"> — dark background, one CTA
-5. <footer> — contact info, all nav links, copyright
+{chr(10).join(f'{i+3}. <section id="{sp["filename"][:-5]}"> — heading: "{sp["label"]}" — include ALL content below' for i, sp in enumerate(subpages))}
+{len(subpages)+3}. <section id="cta"> — dark background, one CTA
+{len(subpages)+4}. <footer> — contact info, nav links, copyright
+
+SECTION CONTENT (use EVERY word verbatim — do not skip, do not summarize):
 {subpage_content_blocks}
-
-SUBPAGE structure (for each .html file above):
-1. Same <nav> as homepage (copy verbatim)
-2. <section class="page-header" style="padding:120px 5% 60px;background:var(--primary)"> — compact header with page title, NO full hero
-3. Content sections: use ALL verbatim text provided for that page — do not summarize
-4. Same <footer> as homepage (copy verbatim)
-IMPORTANT — SUBPAGES MUST BE CONCISE: No scroll animations, no elaborate JS, no extra decorative sections. Just nav + page-header + content + footer. This keeps the file size small and generation fast.
-
-CSS CONSISTENCY: Define CSS variables once in index.html's <style>. In each subpage, copy ONLY the essential CSS (variables + nav + footer + page-header + content layout). No duplicate animation CSS in subpages.
 
 ══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
 DO NOT use these AI clichés:
@@ -559,16 +542,14 @@ After the closing </section> or </header> of the hero, add on its own line:
 <!-- HERO_END -->
 
 OUTPUT RULES:
-- Start immediately with <!-- FILE: index.html --> then the complete HTML
-- Each file: complete HTML from <!DOCTYPE html> to </html>
-- No markdown fences, no explanation — ONLY file markers and HTML
-- Concise CSS (no comments, no redundant rules) — subpages copy same <style> as index.html
-- HERO MARKER <!-- HERO_END --> only in index.html after the hero </section>"""
+- Single complete HTML file from <!DOCTYPE html> to </html>
+- No markdown fences, no explanation — just the HTML
+- Concise CSS (no comments, no redundant rules)"""
     })
 
     with CLIENT.messages.stream(
         model=MODEL,
-        max_tokens=48000,
+        max_tokens=32000,
         extra_headers={"anthropic-beta": "output-128k-2025-02-19"},
         messages=[{"role": "user", "content": content}]
     ) as stream:
