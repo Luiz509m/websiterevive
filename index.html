@@ -1751,9 +1751,13 @@
       </div>
 
       <!-- Full-site iframe (shown after unlock, used by editor) -->
-      <div id="fullsite-wrap" style="display:none;margin-top:1rem;border:1px solid var(--border-strong);border-radius:10px;overflow:hidden;">
-        <iframe id="full-iframe" sandbox="allow-scripts allow-same-origin"
-          style="width:100%;height:82vh;border:none;display:block;background:#fff;"></iframe>
+      <div id="fullsite-wrap" style="display:none;margin-top:1rem;">
+        <!-- Page tabs -->
+        <div id="page-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
+        <div style="border:1px solid var(--border-strong);border-radius:10px;overflow:hidden;">
+          <iframe id="full-iframe" sandbox="allow-scripts allow-same-origin"
+            style="width:100%;height:82vh;border:none;display:block;background:#fff;"></iframe>
+        </div>
       </div>
 
     </div>
@@ -2668,6 +2672,42 @@
 
   // ── Unlock ───────────────────────────────────────────────────────────────────
   let unlockedHtml = '';
+  let zipPages     = {};   // { filename: htmlString }
+  let activeTab    = '';
+
+  function renderTabs() {
+    const bar = document.getElementById('page-tabs');
+    bar.innerHTML = '';
+    Object.keys(zipPages).forEach(filename => {
+      const label = filename === 'index.html' ? 'Home' : filename.replace('.html','').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.style.cssText = `padding:6px 16px;border-radius:20px;border:1px solid var(--border-strong);background:${filename===activeTab?'var(--mint)':'transparent'};color:${filename===activeTab?'#000':'var(--text)'};cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;`;
+      btn.onclick = () => loadPage(filename);
+      bar.appendChild(btn);
+    });
+  }
+
+  function loadPage(filename) {
+    activeTab = filename;
+    const html  = zipPages[filename] || '';
+    const blob  = new Blob([html], { type: 'text/html' });
+    document.getElementById('full-iframe').src = URL.createObjectURL(blob);
+    renderTabs();
+  }
+
+  async function parseZipPages(zipB64) {
+    if (!zipB64) return;
+    try {
+      const JSZip  = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+      const bytes  = Uint8Array.from(atob(zipB64), c => c.charCodeAt(0));
+      const zip    = await JSZip.loadAsync(bytes);
+      zipPages     = {};
+      for (const [name, file] of Object.entries(zip.files)) {
+        if (name.endsWith('.html')) zipPages[name] = await file.async('string');
+      }
+    } catch(e) { console.warn('JSZip parse failed:', e); }
+  }
   let unlockedZip  = '';
   let unlockedSlug = '';
 
@@ -2703,10 +2743,17 @@
       unlockedZip  = data.zip  || '';
       unlockedSlug = data.slug || 'revived';
 
-      // Show full site in editor iframe
-      const blob   = new Blob([unlockedHtml], { type: 'text/html' });
-      const iframe = document.getElementById('full-iframe');
-      iframe.src   = URL.createObjectURL(blob);
+      // Parse ZIP and build tabs
+      await parseZipPages(unlockedZip);
+      if (Object.keys(zipPages).length > 1) {
+        activeTab = 'index.html';
+        renderTabs();
+        loadPage('index.html');
+      } else {
+        // Fallback: single file
+        const blob = new Blob([unlockedHtml], { type: 'text/html' });
+        document.getElementById('full-iframe').src = URL.createObjectURL(blob);
+      }
 
       // Swap UI
       document.getElementById('unlock-bar').style.display   = 'none';
