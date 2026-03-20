@@ -78,24 +78,36 @@ import re as _re
 import base64 as _b64
 
 def parse_multifile_html(full_html: str) -> dict:
-    """Extract content sections from single-page HTML into separate page files."""
-    files = {"index.html": full_html}
+    """Split homepage HTML from hidden subpage sections and create separate page files."""
 
+    # Extract shared CSS, nav, footer
     css_m    = _re.search(r'<style[^>]*>(.*?)</style>', full_html, _re.DOTALL)
     nav_m    = _re.search(r'<nav\b[^>]*>.*?</nav>', full_html, _re.DOTALL | _re.IGNORECASE)
     footer_m = _re.search(r'<footer\b[^>]*>.*?</footer>', full_html, _re.DOTALL | _re.IGNORECASE)
     css         = css_m.group(1)    if css_m    else ""
     nav_html    = nav_m.group(0)    if nav_m    else ""
     footer_html = footer_m.group(0) if footer_m else ""
+    nav_fixed   = _re.sub(r'href="#([^"]+)"', lambda m: f'href="{m.group(1)}.html"', nav_html)
 
-    # Fix anchor links in nav → file links for subpages
-    nav_fixed = _re.sub(r'href="#([^"]+)"', lambda m: f'href="{m.group(1)}.html"', nav_html)
+    # Strip the <!-- SUBPAGES -->...<!-- /SUBPAGES --> block from index.html
+    subpages_block_m = _re.search(r'<!-- SUBPAGES -->(.*?)<!-- /SUBPAGES -->', full_html, _re.DOTALL)
+    if subpages_block_m:
+        index_html = full_html.replace(subpages_block_m.group(0), '').strip()
+        subpages_block = subpages_block_m.group(1)
+    else:
+        index_html     = full_html
+        subpages_block = ""
 
+    files = {"index.html": index_html}
+
+    # Extract each subpage section from the subpages block
     skip = {"hero", "cta", "services-overview"}
-    for m in _re.finditer(r'<section\s[^>]*\bid=["\']([^"\']+)["\'][^>]*>.*?</section>', full_html, _re.DOTALL | _re.IGNORECASE):
+    source = subpages_block if subpages_block else full_html
+    for m in _re.finditer(r'<section\s[^>]*\bid=["\']([^"\']+)["\'][^>]*>.*?</section>', source, _re.DOTALL | _re.IGNORECASE):
         sec_id = m.group(1)
         if sec_id in skip:
             continue
+        sec_html = _re.sub(r'\bstyle="[^"]*display\s*:\s*none[^"]*"', '', m.group(0))
         filename = f"{sec_id}.html"
         files[filename] = f"""<!DOCTYPE html>
 <html lang="de">
@@ -107,7 +119,7 @@ def parse_multifile_html(full_html: str) -> dict:
 </head>
 <body>
 {nav_fixed}
-<div style="padding-top:80px">{m.group(0)}</div>
+<div style="padding-top:80px">{sec_html}</div>
 {footer_html}
 </body>
 </html>"""

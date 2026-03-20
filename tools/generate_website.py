@@ -461,15 +461,23 @@ NAV:
 ══ PAGE STRUCTURE — BUILD IN THIS EXACT ORDER ══════════════════════════
 {section_count_note}
 
-Generate ONE single HTML file with these sections in order:
+Generate ONE single HTML file. The homepage shows ONLY brief overview cards — full content lives on subpages only.
+
+HOMEPAGE SECTIONS (in order):
 1. <nav> — logo left, links right. Nav links: Home→index.html{(", " + ", ".join(f'{sp["label"]}→{sp["filename"]}' for sp in subpages)) if subpages else ""}
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. <section id="services-overview"> — one card per subpage (2–3 sentences) + <a href="SUBPAGE.html">Mehr erfahren →</a> per card
-{chr(10).join(f'4. <section id="{sp["filename"][:-5]}"> — heading: "{sp["label"]}" — use ALL content below verbatim' for sp in subpages)}
-{4+len(subpages)}. <section id="cta"> — dark background, one CTA
-{5+len(subpages)}. <footer> — contact info, all nav links, copyright
+3. <section id="services-overview"> — one card per subpage: title + 2-3 sentence teaser + <a href="{subpages[0]['filename'] if subpages else '#'}">Mehr erfahren →</a>. DO NOT put full content here.
+4. <section id="cta"> — dark background, one CTA
+5. <footer> — contact info, all nav links, copyright
 
-CONTENT PER SECTION (use VERBATIM — do not skip, do not summarize):
+SUBPAGE SECTIONS — append AFTER </footer> wrapped in <!-- SUBPAGES -->:
+<!-- SUBPAGES -->
+{chr(10).join(f'<section id="{sp["filename"][:-5]}" class="subpage" style="display:none"> — heading: "{sp["label"]}" — use ALL content below verbatim</section>' for sp in subpages)}
+<!-- /SUBPAGES -->
+
+These subpage sections are hidden on the homepage (display:none) and will be extracted as separate HTML files.
+
+CONTENT FOR SUBPAGES (use VERBATIM):
 {subpage_content_blocks}
 
 ══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
