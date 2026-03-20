@@ -343,6 +343,15 @@ def unlock(user_id):
     db.mark_unlocked(generation_id)
 
     full_html = generation["full_html"]
+
+    # Debug: log subpage markers found in generated HTML
+    import re as _re2
+    markers = _re2.findall(r'<!-- SUBPAGE:([^-]+?) -->', full_html)
+    print(f"[unlock] Subpage markers found: {markers}")
+    if not markers:
+        # Log last 500 chars to see what Claude actually generated at the end
+        print(f"[unlock] No markers — HTML tail: ...{full_html[-500:]}")
+
     files     = parse_multifile_html(full_html)
     index_html = files.get("index.html") or next(iter(files.values()), full_html)
 
