@@ -470,14 +470,12 @@ HOMEPAGE SECTIONS (in order):
 4. <section id="cta"> — dark background, one CTA
 5. <footer> — contact info, all nav links, copyright
 
-SUBPAGE SECTIONS — append AFTER </footer> wrapped in <!-- SUBPAGES -->:
-<!-- SUBPAGES -->
-{chr(10).join(f'<section id="{sp["filename"][:-5]}" class="subpage" style="display:none"> — heading: "{sp["label"]}" — use ALL content below verbatim</section>' for sp in subpages)}
-<!-- /SUBPAGES -->
+SUBPAGE CONTENT — append AFTER </body> using these exact markers:
+{chr(10).join(f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\\n<h1>{sp["label"]}</h1>\\n[full content for {sp["label"]} here — use ALL text verbatim]\\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->' for sp in subpages)}
 
-These subpage sections are hidden on the homepage (display:none) and will be extracted as separate HTML files.
+Each block starts with <!-- SUBPAGE:id --> and ends with <!-- /SUBPAGE:id -->. Put ALL content between the markers. Use full HTML (headings, paragraphs, lists, images). Do NOT use <section> tags inside these blocks.
 
-CONTENT FOR SUBPAGES (use VERBATIM):
+CONTENT FOR EACH SUBPAGE (copy verbatim between the markers):
 {subpage_content_blocks}
 
 ══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════

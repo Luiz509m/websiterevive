@@ -89,37 +89,28 @@ def parse_multifile_html(full_html: str) -> dict:
     footer_html = footer_m.group(0) if footer_m else ""
     nav_fixed   = _re.sub(r'href="#([^"]+)"', lambda m: f'href="{m.group(1)}.html"', nav_html)
 
-    # Strip the <!-- SUBPAGES -->...<!-- /SUBPAGES --> block from index.html
-    subpages_block_m = _re.search(r'<!-- SUBPAGES -->(.*?)<!-- /SUBPAGES -->', full_html, _re.DOTALL)
-    if subpages_block_m:
-        index_html = full_html.replace(subpages_block_m.group(0), '').strip()
-        subpages_block = subpages_block_m.group(1)
-    else:
-        index_html     = full_html
-        subpages_block = ""
-
+    # Extract <!-- SUBPAGE:id -->...<!-- /SUBPAGE:id --> blocks
+    index_html = _re.sub(r'<!-- SUBPAGE:[^>]+ -->.*?<!-- /SUBPAGE:[^\-]+ -->', '', full_html, flags=_re.DOTALL).strip()
     files = {"index.html": index_html}
 
-    # Extract each subpage section from the subpages block
-    skip = {"hero", "cta", "services-overview"}
-    source = subpages_block if subpages_block else full_html
-    for m in _re.finditer(r'<section\s[^>]*\bid=["\']([^"\']+)["\'][^>]*>.*?</section>', source, _re.DOTALL | _re.IGNORECASE):
-        sec_id = m.group(1)
-        if sec_id in skip:
-            continue
-        sec_html = _re.sub(r'\bstyle="[^"]*display\s*:\s*none[^"]*"', '', m.group(0))
+    for m in _re.finditer(r'<!-- SUBPAGE:([^-]+?) -->(.*?)<!-- /SUBPAGE:\1 -->', full_html, _re.DOTALL):
+        sec_id  = m.group(1).strip()
+        content = m.group(2).strip()
         filename = f"{sec_id}.html"
+        title = sec_id.replace("-", " ").title()
         files[filename] = f"""<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>{sec_id.replace("-", " ").title()}</title>
+<title>{title}</title>
 <style>{css}</style>
 </head>
 <body>
 {nav_fixed}
-<div style="padding-top:80px">{sec_html}</div>
+<main style="padding:120px 40px 60px;max-width:960px;margin:0 auto;">
+{content}
+</main>
 {footer_html}
 </body>
 </html>"""
