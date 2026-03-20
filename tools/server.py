@@ -78,19 +78,42 @@ import re as _re
 import base64 as _b64
 
 def parse_multifile_html(full_html: str) -> dict:
-    """Split multi-file HTML (<!-- FILE: name.html --> separators) into {filename: html} dict."""
-    if "<!-- FILE:" not in full_html:
-        return {"index.html": full_html}
-    parts = _re.split(r'<!-- FILE: (\S+\.html) -->\n?', full_html)
-    files = {}
-    i = 1
-    while i < len(parts) - 1:
-        filename = parts[i].strip()
-        content  = parts[i + 1].strip()
-        if filename and content:
-            files[filename] = content
-        i += 2
-    return files if files else {"index.html": full_html}
+    """Extract content sections from single-page HTML into separate page files."""
+    files = {"index.html": full_html}
+
+    css_m    = _re.search(r'<style[^>]*>(.*?)</style>', full_html, _re.DOTALL)
+    nav_m    = _re.search(r'<nav\b[^>]*>.*?</nav>', full_html, _re.DOTALL | _re.IGNORECASE)
+    footer_m = _re.search(r'<footer\b[^>]*>.*?</footer>', full_html, _re.DOTALL | _re.IGNORECASE)
+    css         = css_m.group(1)    if css_m    else ""
+    nav_html    = nav_m.group(0)    if nav_m    else ""
+    footer_html = footer_m.group(0) if footer_m else ""
+
+    # Fix anchor links in nav → file links for subpages
+    nav_fixed = _re.sub(r'href="#([^"]+)"', lambda m: f'href="{m.group(1)}.html"', nav_html)
+
+    skip = {"hero", "cta", "services-overview"}
+    for m in _re.finditer(r'<section\s[^>]*\bid=["\']([^"\']+)["\'][^>]*>.*?</section>', full_html, _re.DOTALL | _re.IGNORECASE):
+        sec_id = m.group(1)
+        if sec_id in skip:
+            continue
+        filename = f"{sec_id}.html"
+        files[filename] = f"""<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{sec_id.replace("-", " ").title()}</title>
+<style>{css}</style>
+</head>
+<body>
+{nav_fixed}
+<div style="padding-top:80px">{m.group(0)}</div>
+{footer_html}
+</body>
+</html>"""
+        print(f"[unlock] Created subpage: {filename}")
+
+    return files
 
 def create_zip(files: dict) -> bytes:
     """Package {filename: html} dict into a ZIP archive."""

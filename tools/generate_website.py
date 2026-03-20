@@ -458,27 +458,18 @@ NAV:
 - Logo left, links right — links are the actual section names from the content
 - One highlight button (e.g. "Contact") in the accent color
 
-══ MULTI-PAGE WEBSITE — OUTPUT FORMAT ══════════════════════════════════
+══ PAGE STRUCTURE — BUILD IN THIS EXACT ORDER ══════════════════════════
 {section_count_note}
 
-Output EACH page separated by this marker on its own line:
-<!-- FILE: filename.html -->
-
-FILES TO GENERATE:
-<!-- FILE: index.html --> — Homepage
-{chr(10).join(f'<!-- FILE: {sp["filename"]} --> — {sp["label"]}' for sp in subpages)}
-
-══ HOMEPAGE (index.html) ══════════════════════════════════════════════
-Structure:
-1. <nav> linking to all pages: index.html{", " + ", ".join(sp["filename"] for sp in subpages) if subpages else ""}
+Generate ONE single HTML file with these sections in order:
+1. <nav> — logo left, links right. Nav links: Home→index.html{(", " + ", ".join(f'{sp["label"]}→{sp["filename"]}' for sp in subpages)) if subpages else ""}
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. Services overview: one card per subpage with 2-3 sentence summary + <a href="{subpages[0]["filename"] if subpages else "#"}">Mehr erfahren →</a> button for each
-4. <section id="cta"> — dark background, one CTA button
-5. <footer> — contact info, all nav links, copyright
+3. <section id="services-overview"> — one card per subpage (2–3 sentences) + <a href="SUBPAGE.html">Mehr erfahren →</a> per card
+{chr(10).join(f'4. <section id="{sp["filename"][:-5]}"> — heading: "{sp["label"]}" — use ALL content below verbatim' for sp in subpages)}
+{4+len(subpages)}. <section id="cta"> — dark background, one CTA
+{5+len(subpages)}. <footer> — contact info, all nav links, copyright
 
-══ SUBPAGES (MUST BE SHORT — max 150 lines each) ══════════════════════
-Each subpage: <nav> (copy from homepage) + <section class="page-header"> + content + <footer> (copy from homepage).
-NO hero, NO animations JS, NO elaborate CSS. Just clean content.
+CONTENT PER SECTION (use VERBATIM — do not skip, do not summarize):
 {subpage_content_blocks}
 
 ══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
@@ -552,12 +543,10 @@ After the closing </section> or </header> of the hero, add on its own line:
 <!-- HERO_END -->
 
 OUTPUT RULES:
-- Start with <!-- FILE: index.html --> immediately, then complete HTML
-- Each file separated by <!-- FILE: filename.html --> on its own line
-- Complete HTML (<!DOCTYPE html> to </html>) for each file
-- No markdown, no explanation — only file markers and HTML
-- index.html: full CSS inline. Subpages: copy ONLY :root variables + nav + footer CSS (no animations)
-- HERO MARKER <!-- HERO_END --> only in index.html"""
+- Output ONE complete HTML file from <!DOCTYPE html> to </html>
+- No markdown fences, no explanation, no <!-- FILE: --> markers — just the HTML
+- All CSS and JS inline
+- HERO MARKER <!-- HERO_END --> required after the hero section"""
     })
 
     with CLIENT.messages.stream(
