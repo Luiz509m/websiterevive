@@ -163,9 +163,9 @@ def analyze_website(url: str, html: str, business_name: str, full_text: str = ""
     pages_context = ""
     if pages:
         for pg in pages:
-            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:5000]}"
+            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:3000]}"
     elif full_text:
-        pages_context = f"\n\nFull site text:\n{full_text[:12000]}"
+        pages_context = f"\n\nFull site text:\n{full_text[:8000]}"
 
     prompt = f"""You are a professional website content analyst. Thoroughly read and extract ALL important information from this website.
 
@@ -366,7 +366,7 @@ GALLERY / ABOUT: use the remaining images from the list"""
             parts.append("Services / items:\n" + "\n".join(lines))
         for f in pc.get("specific_facts", []):
             parts.append(f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}")
-        return "\n\n".join(parts)[:4000]
+        return "\n\n".join(parts)[:2500]
 
     # Build subpage file list and per-page content blocks
     subpages = []  # list of {label, filename, content}
