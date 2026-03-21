@@ -292,6 +292,51 @@ def scrape(url: str) -> dict:
     return {"url": url, "slug": slug, "html": html, "html_path": str(html_path)}
 
 
+def extract_important_links(html: str, base_url: str) -> list[dict]:
+    """Extract important external links (maps, social, booking, phone, email, PDF) from HTML."""
+    from urllib.parse import urljoin
+
+    CATEGORIES = [
+        ("google_maps",  r"maps\.google\.|goo\.gl/maps|google\.[a-z]+/maps"),
+        ("phone",        r"^tel:"),
+        ("email",        r"^mailto:"),
+        ("pdf",          r"\.pdf(\?|$)"),
+        ("facebook",     r"facebook\.com/"),
+        ("instagram",    r"instagram\.com/"),
+        ("linkedin",     r"linkedin\.com/"),
+        ("twitter",      r"(?:twitter|x)\.com/"),
+        ("youtube",      r"youtube\.com/|youtu\.be/"),
+        ("tiktok",       r"tiktok\.com/"),
+        ("whatsapp",     r"wa\.me/|whatsapp\.com/"),
+        ("booking",      r"calendly\.com|bookatable|opentable|reservix|resy\.com|sevenrooms|easytable|planyo"),
+        ("tripadvisor",  r"tripadvisor\."),
+        ("google_review",r"google\.com/maps/place|g\.page/"),
+    ]
+
+    seen  = set()
+    links = []
+
+    for m in re.finditer(r'<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html, re.DOTALL | re.IGNORECASE):
+        raw  = m.group(1).strip()
+        text = re.sub(r"<[^>]+>", "", m.group(2)).strip()[:80]
+
+        # Resolve relative URLs (skip js: and # links)
+        if raw.startswith(("javascript:", "#")):
+            continue
+        href = raw if raw.startswith(("http", "mailto:", "tel:")) else urljoin(base_url, raw)
+
+        if href in seen:
+            continue
+
+        for category, pattern in CATEGORIES:
+            if re.search(pattern, href, re.IGNORECASE):
+                seen.add(href)
+                links.append({"category": category, "href": href, "text": text})
+                break
+
+    return links
+
+
 def screenshot(url: str, slug: str) -> str | None:
     """Take a full-page screenshot with Playwright. Returns path or None."""
     try:

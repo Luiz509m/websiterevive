@@ -258,7 +258,7 @@ Return ONLY valid JSON, no explanation."""
 
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
-def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None) -> str:
+def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None) -> str:
     """Send analysis + reference images to Claude. Returns generated HTML."""
     print("\n[generate] Sending to Claude for website generation...")
 
@@ -417,11 +417,34 @@ Include ALL of the following content verbatim on this page:
     )
     pages_block = ""  # not used in multi-page mode
 
+    # Build links block from extracted important links
+    links_block = ""
+    if important_links:
+        LABELS = {
+            "google_maps":   "Google Maps",
+            "phone":         "Telefon",
+            "email":         "E-Mail",
+            "pdf":           "PDF",
+            "facebook":      "Facebook",
+            "instagram":     "Instagram",
+            "linkedin":      "LinkedIn",
+            "twitter":       "Twitter/X",
+            "youtube":       "YouTube",
+            "tiktok":        "TikTok",
+            "whatsapp":      "WhatsApp",
+            "booking":       "Buchungssystem",
+            "tripadvisor":   "TripAdvisor",
+            "google_review": "Google Bewertungen",
+        }
+        lines = [f"  {LABELS.get(l['category'], l['category'])}: {l['href']}" + (f" ({l['text']})" if l['text'] else "") for l in important_links]
+        links_block = "\n══ ORIGINAL LINKS — USE THESE EXACT URLs ══════════════════════════════\n" + "\n".join(lines) + "\n"
+        links_block += "→ Use these URLs directly: phone/email in nav+footer+CTA, maps in footer, social icons in footer, booking for 'Termin buchen' buttons.\n"
+
     content.append({
         "type": "text",
         "text": f"""You are a senior web designer at a top agency. Redesign this business's website so it looks like it was built by a professional studio — NOT by AI.
 
-── BUSINESS DATA (use ONLY this — never invent facts) ──────────────────
+── BUSINESS DATA (use ONLY this — never invent facts) ──────────────────{links_block}
 Name:           {business_name}
 Industry:       {industry}
 Tone:           {tone}

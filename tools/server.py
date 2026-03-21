@@ -57,7 +57,7 @@ from generate_website import (
     analyze_website, generate_website, load_reference_images,
     extract_image_urls, extract_text_content,
 )
-from scrape_site import scrape, scrape_subpages
+from scrape_site import scrape, scrape_subpages, extract_important_links
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
@@ -303,6 +303,16 @@ def generate():
         full_text = "\n\n".join(full_text_parts)
         print(f"[server] Pages: {[p['label'] for p in pages]} | Total text: {len(full_text):,} chars")
 
+        # Collect important links from homepage + all subpages
+        seen_hrefs = set()
+        important_links = []
+        for html_source, source_url in [(scraped["html"], url)] + [(sp["html"], sp["url"]) for sp in subpages]:
+            for lnk in extract_important_links(html_source, source_url):
+                if lnk["href"] not in seen_hrefs:
+                    seen_hrefs.add(lnk["href"])
+                    important_links.append(lnk)
+        print(f"[server] Important links found: {len(important_links)} — {[l['category'] for l in important_links]}")
+
         # Use cached analysis if available
         analysis_path = TMP / f"{slug}_analysis.json"
         if analysis_path.exists():
@@ -317,7 +327,7 @@ def generate():
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )
 
-        full_html = generate_website(analysis, references, site_images, full_text, pages)
+        full_html = generate_website(analysis, references, site_images, full_text, pages, important_links)
 
         # Inject footer watermark (only at bottom of page, not fixed)
         watermark = (
