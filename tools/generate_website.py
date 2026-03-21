@@ -337,20 +337,28 @@ ORIGINAL SITE IMAGES (from the real website):
 {images_list}
 
 HERO BACKGROUND — strict rules:
-DO NOT use an image as hero background if it is:
-✗ A portrait/headshot or group staff photo
-✗ A small thumbnail (URL contains: thumb, small, 150, 300, icon, logo)
-✗ Unclear what it shows
 
-USE a CSS gradient hero instead in these cases. Example of a great gradient hero:
-  background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0d2137 100%);
-  Add a subtle SVG noise or mesh overlay for texture.
-  Add one large geometric accent shape (circle, diagonal) in the brand accent colour at low opacity.
+STEP 1 — Check if a real image is suitable:
+USE a real image from the list above ONLY if ALL of these are true:
+  ✓ It shows a space/interior, product, food, landscape, or architecture (NOT people/staff/portraits)
+  ✓ The URL suggests a large image (no "thumb", "small", "100", "150", "300", "icon", "logo" in path)
+  ✓ It is clearly related to the business (not a generic icon or banner)
+If using a real image:
+  - Use as <img> in a SPLIT layout (image right 50%, text left 50%) — do NOT stretch it as a full background
+  - Never use background-size:cover on a portrait/person photo — it always looks zoomed and bad
+  - OR use as background only if it is a wide landscape/interior image with background-position:center center
 
-USE a real image ONLY if it clearly shows: a space/interior, a product, food, landscape, or architecture — and the URL suggests a large image (no "thumb", "small", "icon" in path).
-  If using image: CSS background-image + linear-gradient overlay (not just rgba) + background-size:cover
+STEP 2 — If no suitable image: use a CSS-only thematic hero that matches the industry:
+  - Dental/Medical: clean gradient (white → light teal or deep navy), add a subtle cross or tooth SVG shape
+  - Restaurant/Food: warm gradient (deep burgundy → warm amber), add a subtle grain texture
+  - Legal/Finance: dark navy/charcoal gradient, gold accent line, serif feel
+  - Tech/Software: dark background, subtle grid or dot pattern, electric blue/purple accent
+  - Beauty/Wellness: soft gradient (blush → mauve), elegant thin lines
+  - Handwerk/Construction: dark slate gradient, subtle diagonal lines, strong contrast
+  - Generic: deep dark gradient with brand colour accent, geometric shape, NO stock clichés
+  The CSS hero must feel like a real agency built it — not a placeholder.
 
-Either way: hero must be min-height:100vh, all text white, centered, immersive.
+Either way: hero must be min-height:100vh, all text white, immersive, professional.
 
 GALLERY / ABOUT: use the remaining images from the list"""
 
