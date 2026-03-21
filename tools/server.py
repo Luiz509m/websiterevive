@@ -276,7 +276,7 @@ def generate():
         slug      = scraped["slug"]
         subpages  = scrape_subpages(url, scraped["html"], max_pages=4)
 
-        references  = load_reference_images(n=3)
+        references  = load_reference_images(n=5)
 
         # Collect images from homepage + all sub-pages
         site_images = extract_image_urls(scraped["html"], url)
