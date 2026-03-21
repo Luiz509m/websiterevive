@@ -348,7 +348,10 @@ If using a real image:
   - Never use background-size:cover on a portrait/person photo — it always looks zoomed and bad
   - OR use as background only if it is a wide landscape/interior image with background-position:center center
 
-STEP 2 — If no suitable image: use a CSS-only thematic hero that matches the industry:
+STEP 2 — If no suitable image: look at the REFERENCE DESIGNS provided above (the screenshots).
+  Study their hero sections: typography scale, spacing, colour combinations, layout composition.
+  Build a CSS-only hero in that same quality and style, adapted to this business's industry and brand colours:
+
   - Dental/Medical: clean gradient (white → light teal or deep navy), add a subtle cross or tooth SVG shape
   - Restaurant/Food: warm gradient (deep burgundy → warm amber), add a subtle grain texture
   - Legal/Finance: dark navy/charcoal gradient, gold accent line, serif feel
