@@ -2696,6 +2696,13 @@
     renderTabs();
   }
 
+  // Intercept link clicks from inside the iframe
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.action === 'loadPage' && zipPages[e.data.file]) {
+      loadPage(e.data.file);
+    }
+  });
+
   async function parseZipPages(zipB64) {
     if (!zipB64) return;
     try {
