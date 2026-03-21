@@ -336,12 +336,21 @@ HERO BACKGROUND — this is a tech/software company:
 ORIGINAL SITE IMAGES (from the real website):
 {images_list}
 
-HERO BACKGROUND — use your judgement:
-- Look at the image URLs above. If they appear to be real content images (food, products, people, places, spaces), use the best one as a full-screen hero background.
-- CSS: background-image: url('IMAGE_URL'); background-size: cover; background-position: center; min-height: 100vh;
-- Add a dark overlay (position:absolute; inset:0; background:rgba(0,0,0,0.45)) for text readability
-- If images look like icons/logos/thumbnails, use a CSS gradient with brand colours instead
-- Either way: the hero must be full viewport height (min-height:100vh), spacious, immersive, all text white and centered
+HERO BACKGROUND — strict rules:
+DO NOT use an image as hero background if it is:
+✗ A portrait/headshot or group staff photo
+✗ A small thumbnail (URL contains: thumb, small, 150, 300, icon, logo)
+✗ Unclear what it shows
+
+USE a CSS gradient hero instead in these cases. Example of a great gradient hero:
+  background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0d2137 100%);
+  Add a subtle SVG noise or mesh overlay for texture.
+  Add one large geometric accent shape (circle, diagonal) in the brand accent colour at low opacity.
+
+USE a real image ONLY if it clearly shows: a space/interior, a product, food, landscape, or architecture — and the URL suggests a large image (no "thumb", "small", "icon" in path).
+  If using image: CSS background-image + linear-gradient overlay (not just rgba) + background-size:cover
+
+Either way: hero must be min-height:100vh, all text white, centered, immersive.
 
 GALLERY / ABOUT: use the remaining images from the list"""
 
