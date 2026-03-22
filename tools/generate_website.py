@@ -340,13 +340,16 @@ HERO BACKGROUND — strict rules:
 
 STEP 1 — Check if a real image is suitable:
 USE a real image from the list above ONLY if ALL of these are true:
-  ✓ It shows a space/interior, product, food, landscape, or architecture (NOT people/staff/portraits)
-  ✓ The URL suggests a large image (no "thumb", "small", "100", "150", "300", "icon", "logo" in path)
+  ✓ It shows a space/interior, product, food, landscape, or architecture — NEVER people/staff/portraits/faces
+  ✓ The URL suggests a large image (no "thumb", "small", "100", "150", "300", "icon", "logo", "avatar" in path)
   ✓ It is clearly related to the business (not a generic icon or banner)
-If using a real image:
-  - Use as <img> in a SPLIT layout (image right 50%, text left 50%) — do NOT stretch it as a full background
-  - Never use background-size:cover on a portrait/person photo — it always looks zoomed and bad
-  - OR use as background only if it is a wide landscape/interior image with background-position:center center
+
+If using a real image — STRICT RULES (no exceptions):
+  ✗ NEVER use background-image + background-size:cover — this zooms and crops the image unpredictably
+  ✗ NEVER use any image of people/faces/staff as a background
+  ✓ ALWAYS use <img> tag in a SPLIT layout: text left 50%, image right 50%
+  ✓ On the <img> use: style="width:100%;height:100%;object-fit:contain;max-height:600px;"
+  ✓ This shows the image as-is without any cropping or zooming
 
 STEP 2 — If no suitable image: look at the REFERENCE DESIGNS provided above (the screenshots).
   Study their hero sections: typography scale, spacing, colour combinations, layout composition.
@@ -448,8 +451,16 @@ Include ALL of the following content verbatim on this page:
             "google_review": "Google Bewertungen",
         }
         lines = [f"  {LABELS.get(l['category'], l['category'])}: {l['href']}" + (f" ({l['text']})" if l['text'] else "") for l in important_links]
-        links_block = "\n══ ORIGINAL LINKS — USE THESE EXACT URLs ══════════════════════════════\n" + "\n".join(lines) + "\n"
-        links_block += "→ Use these URLs directly: phone/email in nav+footer+CTA, maps in footer, social icons in footer, booking for 'Termin buchen' buttons.\n"
+        links_block = "\n══ ORIGINAL LINKS — USE THESE EXACT URLs (MANDATORY) ══════════════════\n" + "\n".join(lines) + "\n"
+        links_block += """→ MANDATORY rules per type:
+  • Telefon: every phone number shown must be wrapped in <a href="tel:...">
+  • E-Mail: every email shown must be wrapped in <a href="mailto:...">
+  • Google Maps: add a button in the footer → <a href="MAPS_URL" target="_blank">Auf Google Maps öffnen →</a>
+  • PDF: for each PDF create a prominent download button in the relevant section → <a href="PDF_URL" target="_blank" download class="btn">Download PDF →</a>
+  • Booking/Calendly: use as the primary CTA button href
+  • Social (Facebook/Instagram/LinkedIn/etc.): add as icon links in footer
+  • Google Bewertungen: add "Bewertung schreiben" link in footer or CTA section
+  NEVER use placeholder # for any of these — always the exact URL from the list above.\n"""
 
     content.append({
         "type": "text",
