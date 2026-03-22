@@ -565,6 +565,14 @@ Count your <section> tags before finishing. If you are missing any, add them.
 - Nav links: href="#sectionid" matching actual section IDs
 - Brand colors as CSS custom properties on :root
 
+SEO META TAGS — include ALL of these in <head>:
+<meta name="description" content="[2 sentence description of the business and its main service — from the scraped content]">
+<meta property="og:title" content="[Business name — main service]">
+<meta property="og:description" content="[Same as meta description]">
+<meta property="og:type" content="website">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="[original URL]">
+
 BUTTON LINKS — CRITICAL, follow exactly:
 - Every CTA button MUST have a working href. Priority order:
   1. mailto:EMAIL if email found in the data
