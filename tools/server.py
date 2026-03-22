@@ -89,57 +89,72 @@ def parse_multifile_html(full_html: str) -> dict:
     footer_html = footer_m.group(0) if footer_m else ""
     nav_fixed   = _re.sub(r'href="#([^"]+)"', lambda m: f'href="{m.group(1)}.html"', nav_html)
 
-    # Extract <!-- SUBPAGE:id -->...<!-- /SUBPAGE:id --> blocks
-    link_intercept = """<script>
-document.querySelectorAll('a[href$=".html"]').forEach(function(a){
-  a.addEventListener('click',function(e){
-    var f=this.getAttribute('href');
-    if(f&&f!=='index.html'){e.preventDefault();window.parent.postMessage({action:'loadPage',file:f},'*');}
-  });
-});
+    # Collect all subpage IDs first so the intercept script knows which anchors to catch
+    subpage_ids = [m.group(1).strip() for m in _re.finditer(r'<!-- SUBPAGE:([^-]+?) -->', full_html)]
+    known_files_js = '[' + ','.join(f'"{sid}.html"' for sid in subpage_ids) + ']'
+
+    def make_intercept(known_js):
+        return f"""<script>
+(function(){{
+  var known={known_js};
+  function intercept(){{
+    document.querySelectorAll('a[href$=".html"]').forEach(function(a){{
+      if(a._wi)return; a._wi=1;
+      a.addEventListener('click',function(e){{
+        var f=this.getAttribute('href');
+        if(f&&f!=='index.html'){{e.preventDefault();window.parent.postMessage({{action:'loadPage',file:f}},'*');}}
+      }});
+    }});
+    document.querySelectorAll('a[href^="#"]').forEach(function(a){{
+      if(a._wi)return; a._wi=1;
+      a.addEventListener('click',function(e){{
+        var id=this.getAttribute('href').slice(1);
+        var file=id+'.html';
+        if(known.indexOf(file)!==-1){{e.preventDefault();window.parent.postMessage({{action:'loadPage',file:file}},'*');}}
+      }});
+    }});
+  }}
+  document.addEventListener('DOMContentLoaded',intercept);
+  setTimeout(intercept,500);
+}})();
 </script>"""
+
     index_html_raw = _re.sub(r'<!-- SUBPAGE:[^>]+ -->.*?<!-- /SUBPAGE:[^\-]+ -->', '', full_html, flags=_re.DOTALL).strip()
-    index_html = index_html_raw.replace('</body>', link_intercept + '\n</body>')
+    index_html = index_html_raw.replace('</body>', make_intercept(known_files_js) + '\n</body>')
     files = {"index.html": index_html}
+    subpage_intercept = make_intercept(known_files_js)
 
     for m in _re.finditer(r'<!-- SUBPAGE:([^-]+?) -->(.*?)<!-- /SUBPAGE:\1 -->', full_html, _re.DOTALL):
         sec_id  = m.group(1).strip()
         content = m.group(2).strip()
         filename = f"{sec_id}.html"
         title = sec_id.replace("-", " ").title()
-        files[filename] = f"""<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>{title}</title>
-<style>{css}
-main.subpage-main{{padding:120px 40px 60px;max-width:900px;margin:0 auto;}}
-main.subpage-main h1{{font-size:2.5rem;font-weight:800;margin-bottom:1rem;line-height:1.1;}}
-main.subpage-main h2{{font-size:1.6rem;font-weight:700;margin:2.5rem 0 1rem;}}
-main.subpage-main h3{{font-size:1.2rem;font-weight:600;margin:1.5rem 0 0.5rem;}}
-main.subpage-main p{{line-height:1.75;margin-bottom:1.2rem;font-size:1.05rem;}}
-main.subpage-main ul,main.subpage-main ol{{padding-left:1.5rem;margin-bottom:1.2rem;}}
-main.subpage-main li{{margin-bottom:0.5rem;line-height:1.6;}}
-main.subpage-main img{{max-width:100%;border-radius:8px;margin:1.5rem 0;}}
-</style>
-</head>
-<body>
-{nav_fixed}
-<main class="subpage-main">
-{content}
-</main>
-{footer_html}
-<script>
-document.querySelectorAll('a[href$=".html"]').forEach(function(a){{
-  a.addEventListener('click',function(e){{
-    var f=this.getAttribute('href');
-    if(f&&f!=='index.html'){{e.preventDefault();window.parent.postMessage({{action:'loadPage',file:f}},'*');}}
-  }});
-}});
-</script>
-</body>
-</html>"""
+        subpage_css = (css + """
+main.subpage-main{padding:120px 40px 60px;max-width:900px;margin:0 auto;}
+main.subpage-main h1{font-size:2.5rem;font-weight:800;margin-bottom:1rem;line-height:1.1;}
+main.subpage-main h2{font-size:1.6rem;font-weight:700;margin:2.5rem 0 1rem;}
+main.subpage-main h3{font-size:1.2rem;font-weight:600;margin:1.5rem 0 0.5rem;}
+main.subpage-main p{line-height:1.75;margin-bottom:1.2rem;font-size:1.05rem;}
+main.subpage-main ul,main.subpage-main ol{padding-left:1.5rem;margin-bottom:1.2rem;}
+main.subpage-main li{margin-bottom:0.5rem;line-height:1.6;}
+main.subpage-main img{max-width:100%;border-radius:8px;margin:1.5rem 0;}""")
+        page_parts = [
+            "<!DOCTYPE html>",
+            '<html lang="de"><head>',
+            '<meta charset="UTF-8">',
+            '<meta name="viewport" content="width=device-width,initial-scale=1.0">',
+            f"<title>{title}</title>",
+            f"<style>{subpage_css}</style>",
+            "</head><body>",
+            nav_fixed,
+            '<main class="subpage-main">',
+            content,
+            "</main>",
+            footer_html,
+            subpage_intercept,
+            "</body></html>",
+        ]
+        files[filename] = "\n".join(page_parts)
         print(f"[unlock] Created subpage: {filename}")
 
     return files
