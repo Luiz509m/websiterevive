@@ -2810,8 +2810,9 @@
         img.addEventListener('click', handleImageEdit);
       });
       // Make sections/divs with CSS background-image clickable (hero, banners)
+      const iframeWin = document.getElementById('full-iframe').contentWindow;
       doc.querySelectorAll('section,div,header').forEach(el => {
-        const bg = getComputedStyle(el).backgroundImage;
+        const bg = (iframeWin.getComputedStyle(el) || {}).backgroundImage || '';
         if (bg && bg !== 'none' && bg.includes('url(')) {
           el.dataset.reviveBg = '1';
           el.style.outline    = '3px dashed rgba(61,255,208,0.4)';
@@ -2871,13 +2872,26 @@
     replaceBtn.onclick = () => {
       menu.remove();
       const input = document.createElement('input');
-      input.type  = 'file';
+      input.type   = 'file';
       input.accept = 'image/*';
+      input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+      document.body.appendChild(input);
       input.onchange = ev => {
         const file = ev.target.files[0];
+        input.remove();
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = re => { img.src = re.result; };
+        reader.onload = re => {
+          img.src = re.result;
+          img.style.objectFit = 'contain';
+          img.style.backgroundSize = '';
+          img.removeAttribute('loading');
+          // Also update zipPages so the change persists across tab switches
+          const activeHtml = document.getElementById('full-iframe').contentDocument;
+          if (activeHtml && zipPages[activeTab]) {
+            zipPages[activeTab] = '<!DOCTYPE html>' + activeHtml.documentElement.outerHTML;
+          }
+        };
         reader.readAsDataURL(file);
       };
       input.click();
@@ -2909,12 +2923,18 @@
     const input = document.createElement('input');
     input.type   = 'file';
     input.accept = 'image/*';
+    input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(input);
     input.onchange = ev => {
       const file = ev.target.files[0];
+      input.remove();
       if (!file) return;
       const reader = new FileReader();
       reader.onload = re => {
         el.style.backgroundImage = `url('${re.result}')`;
+        el.style.backgroundSize  = 'contain';
+        el.style.backgroundRepeat = 'no-repeat';
+        el.style.backgroundPosition = 'center';
       };
       reader.readAsDataURL(file);
     };
