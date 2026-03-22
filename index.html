@@ -2941,16 +2941,26 @@
     input.click();
   }
 
-  function downloadEdited() {
-    if (unlockedZip) {
-      const bytes = Uint8Array.from(atob(unlockedZip), c => c.charCodeAt(0));
-      const blob  = new Blob([bytes], { type: 'application/zip' });
-      const a     = document.createElement('a');
-      a.href      = URL.createObjectURL(blob);
-      a.download  = `${unlockedSlug}_websiterevive.zip`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      return;
+  async function downloadEdited() {
+    // Save current iframe edits back to zipPages before downloading
+    const iframe = document.getElementById('full-iframe');
+    if (iframe.contentDocument && activeTab && zipPages[activeTab]) {
+      zipPages[activeTab] = '<!DOCTYPE html>' + iframe.contentDocument.documentElement.outerHTML;
+    }
+    // Rebuild ZIP from current zipPages (includes all edits)
+    if (Object.keys(zipPages).length > 0) {
+      try {
+        const JSZip = (await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm')).default;
+        const zip   = new JSZip();
+        Object.entries(zipPages).forEach(([name, html]) => zip.file(name, html));
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const a    = document.createElement('a');
+        a.href     = URL.createObjectURL(blob);
+        a.download = `${unlockedSlug || 'website'}_websiterevive.zip`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        return;
+      } catch(err) { console.error('ZIP rebuild failed:', err); }
     }
     // Fallback: download index.html from iframe (old single-file format)
     const iframe = document.getElementById('full-iframe');
