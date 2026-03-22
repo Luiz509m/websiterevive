@@ -527,7 +527,16 @@ HOMEPAGE SECTIONS (in order):
 SUBPAGE CONTENT — append AFTER </body> using these exact markers:
 {chr(10).join(f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\\n<h1>{sp["label"]}</h1>\\n[full content for {sp["label"]} here — use ALL text verbatim]\\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->' for sp in subpages)}
 
-Each block starts with <!-- SUBPAGE:id --> and ends with <!-- /SUBPAGE:id -->. Put ALL content between the markers. Use full HTML (headings, paragraphs, lists, images). Do NOT use <section> tags inside these blocks.
+Each block starts with <!-- SUBPAGE:id --> and ends with <!-- /SUBPAGE:id -->. Put ALL content between the markers. Use full HTML. Do NOT use <section> tags inside these blocks.
+
+SUBPAGE DESIGN RULES — NO wall of text:
+✓ Start with a large <h1> + short intro paragraph
+✓ Use at least ONE <img> from the site image list (pick the most relevant one) — styled with class="sp-img"
+✓ Break content into visual blocks: use <div class="sp-card"> for individual services/steps/facts
+✓ Use <div class="sp-highlight"> for key quotes, stats, or important callout text
+✓ Use <div class="sp-steps"> with numbered steps if the content describes a process
+✓ End with a CTA button (phone/email/booking link from the ORIGINAL LINKS section)
+✗ NEVER output a page that is only <h2> + <p> + <h2> + <p> — always break it up visually
 
 CONTENT FOR EACH SUBPAGE (copy verbatim between the markers):
 {subpage_content_blocks}
