@@ -1741,6 +1741,10 @@
           style="background:var(--surface3);color:var(--mint);border:1px solid var(--border-mid);font-family:'DM Mono',monospace;font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer;">
           Edit Content
         </button>
+        <button id="mobile-preview-btn" onclick="toggleMobilePreview()"
+          style="background:var(--surface3);color:var(--text);border:1px solid var(--border-mid);font-family:'DM Mono',monospace;font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer;">
+          📱 Mobile
+        </button>
         <button onclick="downloadEdited()"
           style="background:var(--mint);color:var(--black);border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;padding:7px 16px;border-radius:6px;cursor:pointer;">
           Download ZIP
@@ -2939,6 +2943,38 @@
       reader.readAsDataURL(file);
     };
     input.click();
+  }
+
+  let mobilePreviewActive = false;
+  function toggleMobilePreview() {
+    mobilePreviewActive = !mobilePreviewActive;
+    const iframe = document.getElementById('full-iframe');
+    const wrap   = iframe.parentElement;
+    const btn    = document.getElementById('mobile-preview-btn');
+    if (mobilePreviewActive) {
+      wrap.style.display         = 'flex';
+      wrap.style.justifyContent  = 'center';
+      wrap.style.background      = 'var(--surface2)';
+      wrap.style.padding         = '20px';
+      wrap.style.borderRadius    = '10px';
+      iframe.style.width         = '375px';
+      iframe.style.borderRadius  = '20px';
+      iframe.style.border        = '8px solid #222';
+      iframe.style.boxShadow     = '0 20px 60px rgba(0,0,0,0.5)';
+      btn.style.background       = 'var(--mint)';
+      btn.style.color            = 'var(--black)';
+    } else {
+      wrap.style.display         = '';
+      wrap.style.justifyContent  = '';
+      wrap.style.background      = '';
+      wrap.style.padding         = '';
+      iframe.style.width         = '100%';
+      iframe.style.borderRadius  = '';
+      iframe.style.border        = 'none';
+      iframe.style.boxShadow     = '';
+      btn.style.background       = 'var(--surface3)';
+      btn.style.color            = 'var(--text)';
+    }
   }
 
   async function downloadEdited() {
