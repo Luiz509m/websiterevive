@@ -2999,8 +2999,7 @@
       } catch(err) { console.error('ZIP rebuild failed:', err); }
     }
     // Fallback: download index.html from iframe (old single-file format)
-    const iframe = document.getElementById('full-iframe');
-    const doc    = iframe.contentDocument;
+    const doc = iframe.contentDocument;
     if (!doc) return;
 
     // Exit edit mode first (removes outlines)
