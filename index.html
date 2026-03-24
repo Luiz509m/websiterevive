@@ -3098,6 +3098,13 @@
       console.info('[WebsiteRevive] Map CDN unavailable, using fallback.', err.message);
     }
   })();
+
+  // ── Keepalive: ping Render every 10 min to prevent cold starts ──────────
+  (function keepAlive() {
+    const ping = () => fetch(`${REVIVE_API_URL}/health`, { method: 'GET' }).catch(() => {});
+    ping(); // immediate ping on page load
+    setInterval(ping, 10 * 60 * 1000); // then every 10 minutes
+  })();
 </script>
 
 </body>
