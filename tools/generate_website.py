@@ -569,7 +569,15 @@ Count your <section> tags before finishing. If you are missing any, add them.
 ══ TECHNICAL ═══════════════════════════════════════════════════════════
 - Single HTML file, all CSS and JS inline
 - Google Fonts: pick 2 that match the tone (e.g. a serif + a sans for luxury; two sans for tech)
-- Fully responsive — mobile nav hamburger, stacked sections on mobile
+- MOBILE-FIRST — every layout must work on 375px screens:
+  • Nav: hamburger menu on mobile (☰ button toggles nav links, JS toggle class)
+  • Hero: min-height:100svh, font-size clamp(2rem,6vw,4rem) for headline
+  • Grids/columns: CSS grid with auto-fit or explicit @media(max-width:768px) that stacks to 1 column
+  • Images: max-width:100%; height:auto — never fixed px widths on images
+  • Padding: use clamp() or reduce padding on mobile (e.g. padding:60px 20px instead of 120px 80px)
+  • Buttons: min-height:48px for touch targets
+  • Font sizes: body min 16px, headings scale with clamp()
+  • No horizontal scroll — test that nothing overflows
 - Smooth scroll: <html style="scroll-behavior:smooth">
 - Nav links: href="#sectionid" matching actual section IDs
 - Brand colors as CSS custom properties on :root
