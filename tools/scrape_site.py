@@ -316,11 +316,11 @@ def extract_important_links(html: str, base_url: str) -> list[dict]:
     seen  = set()
     links = []
 
+    # 1. Extract from <a href="..."> tags
     for m in re.finditer(r'<a\s[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', html, re.DOTALL | re.IGNORECASE):
         raw  = m.group(1).strip()
         text = re.sub(r"<[^>]+>", "", m.group(2)).strip()[:80]
 
-        # Resolve relative URLs (skip js: and # links)
         if raw.startswith(("javascript:", "#")):
             continue
         href = raw if raw.startswith(("http", "mailto:", "tel:")) else urljoin(base_url, raw)
@@ -333,6 +333,30 @@ def extract_important_links(html: str, base_url: str) -> list[dict]:
                 seen.add(href)
                 links.append({"category": category, "href": href, "text": text})
                 break
+
+    # 2. Extract plain-text phone numbers (not already found as tel: links)
+    found_phones = {l["href"].replace("tel:", "").replace(" ", "").replace("-", "") for l in links if l["category"] == "phone"}
+    plain_text = re.sub(r"<[^>]+>", " ", html)
+    for m in re.finditer(r'(\+\d{1,3}[\s\-]?\d{2,3}[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}|\b0\d{2}[\s\-]\d{3}[\s\-]\d{2}[\s\-]\d{2})', plain_text):
+        raw_phone = m.group(1).strip()
+        normalized = re.sub(r"[\s\-]", "", raw_phone)
+        if normalized not in found_phones and len(normalized) >= 10:
+            href = "tel:" + normalized
+            if href not in seen:
+                seen.add(href)
+                found_phones.add(normalized)
+                links.append({"category": "phone", "href": href, "text": raw_phone})
+
+    # 3. Extract plain-text email addresses
+    found_emails = {l["href"].replace("mailto:", "") for l in links if l["category"] == "email"}
+    for m in re.finditer(r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}', plain_text):
+        email = m.group(0).strip()
+        if email not in found_emails:
+            href = "mailto:" + email
+            if href not in seen:
+                seen.add(href)
+                found_emails.add(email)
+                links.append({"category": "email", "href": href, "text": email})
 
     return links
 

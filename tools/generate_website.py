@@ -452,15 +452,15 @@ Include ALL of the following content verbatim on this page:
         }
         lines = [f"  {LABELS.get(l['category'], l['category'])}: {l['href']}" + (f" ({l['text']})" if l['text'] else "") for l in important_links]
         links_block = "\n══ ORIGINAL LINKS — USE THESE EXACT URLs (MANDATORY) ══════════════════\n" + "\n".join(lines) + "\n"
-        links_block += """→ MANDATORY rules per type:
-  • Telefon: every phone number shown must be wrapped in <a href="tel:...">
-  • E-Mail: every email shown must be wrapped in <a href="mailto:...">
-  • Google Maps: add a button in the footer → <a href="MAPS_URL" target="_blank">Auf Google Maps öffnen →</a>
-  • PDF: for each PDF create a prominent download button in the relevant section → <a href="PDF_URL" target="_blank" download class="btn">Download PDF →</a>
-  • Booking/Calendly: use as the primary CTA button href
-  • Social (Facebook/Instagram/LinkedIn/etc.): add as icon links in footer
-  • Google Bewertungen: add "Bewertung schreiben" link in footer or CTA section
-  NEVER use placeholder # for any of these — always the exact URL from the list above.\n"""
+        links_block += """→ MANDATORY rules — NO EXCEPTIONS:
+  • Telefon: EVERY phone number in the entire page must use <a href="tel:NUMBER">NUMBER</a> — never plain text
+  • E-Mail: EVERY email address must use <a href="mailto:EMAIL">EMAIL</a> — never plain text
+  • Google Maps: footer must contain <a href="MAPS_URL" target="_blank" rel="noopener">Auf Google Maps öffnen →</a>
+  • PDF: create a visible <a href="PDF_URL" download target="_blank" class="btn-download">📄 PDF herunterladen →</a> button in the relevant section
+  • Booking/Calendly: this URL is the primary CTA — use it for ALL "Termin buchen" / "Jetzt anfragen" buttons
+  • Social media: add SVG icon links in footer for each platform found
+  • Google Bewertungen: add "⭐ Bewertung schreiben" link in footer
+  NEVER use href="#" for any of the above — always use the exact URL provided.\n"""
 
     content.append({
         "type": "text",
