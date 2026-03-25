@@ -65,6 +65,8 @@ def compress_image(img_path: Path, max_bytes: int = 4_500_000) -> tuple[bytes, s
 def load_reference_images(n: int = 3) -> list[dict]:
     """Pick n random reference design screenshots, compress if needed, encode as base64."""
     images = list(REFERENCE_DIR.glob("*.png")) + list(REFERENCE_DIR.glob("*.jpg"))
+    # Filter out large images to avoid API payload limits
+    images = [img for img in images if img.stat().st_size < 800_000]
     if not images:
         return []
     chosen = random.sample(images, min(n, len(images)))
