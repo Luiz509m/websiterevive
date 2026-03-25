@@ -296,7 +296,7 @@ def generate():
 
         scraped   = scrape(url)
         slug      = scraped["slug"]
-        subpages  = scrape_subpages(url, scraped["html"], max_pages=6)
+        subpages  = scrape_subpages(url, scraped["html"], max_pages=4)
 
         references  = load_reference_images(n=3)
 
