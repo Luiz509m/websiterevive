@@ -536,12 +536,12 @@ Generate ONE single HTML file. The homepage shows ONLY brief overview cards — 
 HOMEPAGE SECTIONS (in order):
 1. <nav> — logo left, links right. Nav links: Home→index.html{(", " + ", ".join(f'{sp["label"]}→{sp["filename"]}' for sp in subpages)) if subpages else ""}
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. <section id="services-overview"> — overview cards:
-   - For each SCRAPED subpage: title + 2-3 sentence teaser + <a href="FILENAME">Mehr erfahren →</a>
-   - For homepage topics with enough content (e.g. full menu, service descriptions): create a card + generate an EXTRA subpage for it using the homepage content
-   - ONLY add "Mehr erfahren →" if you are also generating that subpage — never link to a non-existent page
-   - Confirmed subpages: {", ".join(sp['filename'] for sp in subpages) if subpages else "none"}
-   DO NOT put full content here — full content goes in SUBPAGE markers only.
+3. <section id="services-overview"> — up to 6 topic cards from the full site content:
+   - Create one card for EVERY important topic/service/area found in the scraped content (up to 6)
+   - Each card: title + 2-3 sentence teaser from the real content
+   - Add <a href="FILENAME.html">Mehr erfahren →</a> ONLY for these confirmed subpages: {", ".join(sp['filename'] for sp in subpages) if subpages else "none"}
+   - For topics WITHOUT a subpage: show the card but NO button — never link to a non-existent page
+   - DO NOT put full content here — full content goes in SUBPAGE markers only
 4. <section id="cta"> — dark background, one CTA
 5. <footer> — contact info, all nav links, copyright
 
