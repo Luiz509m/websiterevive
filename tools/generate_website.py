@@ -545,12 +545,18 @@ HOMEPAGE SECTIONS (in order):
 4. <section id="cta"> — dark background, one CTA
 5. <footer> — contact info, all nav links, copyright
 
-SUBPAGE CONTENT — append AFTER </body> using these exact markers:
-{chr(10).join(f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\\n<h1>{sp["label"]}</h1>\\n[full content for {sp["label"]} here — use ALL text verbatim]\\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->' for sp in subpages)}
+SUBPAGE CONTENT — YOU MUST append ALL of these AFTER </body>:
+{chr(10).join(f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\\n<h1>{sp["label"]}</h1>\\n[FULL content for {sp["label"]} here]\\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->' for sp in subpages)}
 
-Each block starts with <!-- SUBPAGE:id --> and ends with <!-- /SUBPAGE:id -->. Put ALL content between the markers. Use full HTML. Do NOT use <section> tags inside these blocks.
+MANDATORY: Every single subpage listed above MUST have its marker block in the output.
+Count: {len(subpages)} subpages required → {len(subpages)} marker blocks required.
+If you output fewer than {len(subpages)} marker blocks, the output is INCOMPLETE and WRONG.
 
-You MAY add EXTRA subpages beyond the scraped ones if the homepage content has enough material (e.g. a full food menu → generate essen-trinken.html). Use the same marker format.
+Rules:
+- Each block: <!-- SUBPAGE:id --> ... <!-- /SUBPAGE:id -->
+- Full HTML between markers (headings, paragraphs, lists, images)
+- No <section> tags inside markers
+- Do NOT skip any subpage — even if content seems thin, write what you have
 
 SUBPAGE DESIGN RULES — NO wall of text:
 ✓ Start with a large <h1> + short intro paragraph
