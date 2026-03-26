@@ -87,11 +87,20 @@ def parse_multifile_html(full_html: str) -> dict:
     css         = css_m.group(1)    if css_m    else ""
     nav_html    = nav_m.group(0)    if nav_m    else ""
     footer_html = footer_m.group(0) if footer_m else ""
-    nav_fixed   = _re.sub(r'href="#([^"]+)"', lambda m: f'href="{m.group(1)}.html"', nav_html)
+    # Only convert #anchor → anchor.html if it matches a real subpage ID; keep other anchors as-is
+    # (run after subpage_ids is collected — defined inline via closure after ids are known below)
+    nav_fixed_placeholder = nav_html
 
     # Collect all subpage IDs first so the intercept script knows which anchors to catch
     subpage_ids = [m.group(1).strip() for m in _re.finditer(r'<!-- SUBPAGE:([^-]+?) -->', full_html)]
     known_files_js = '[' + ','.join(f'"{sid}.html"' for sid in subpage_ids) + ']'
+    subpage_ids_set = set(subpage_ids)
+    # Build nav_fixed: only convert #anchor → anchor.html for real subpage IDs
+    nav_fixed = _re.sub(
+        r'href="#([^"]+)"',
+        lambda m: f'href="{m.group(1)}.html"' if m.group(1) in subpage_ids_set else f'href="#{m.group(1)}"',
+        nav_fixed_placeholder
+    )
 
     def make_intercept(known_js):
         return f"""<script>
