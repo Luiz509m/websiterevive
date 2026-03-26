@@ -532,12 +532,12 @@ Generate ONE single HTML file. The homepage shows ONLY brief overview cards — 
 HOMEPAGE SECTIONS (in order):
 1. <nav> — logo left, links right. Nav links: Home→index.html{(", " + ", ".join(f'{sp["label"]}→{sp["filename"]}' for sp in subpages)) if subpages else ""}
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. <section id="services-overview"> — one card per subpage ONLY:
-   - Title + 2-3 sentence teaser
-   - ONLY add <a href="SUBPAGE_FILENAME">Mehr erfahren →</a> if that subpage is in the list above
-   - If a topic has NO subpage, show the card WITHOUT a "Mehr erfahren" button — never link to a non-existent page
-   - Subpages: {", ".join(sp['filename'] for sp in subpages) if subpages else "none"}
-   DO NOT put full content here.
+3. <section id="services-overview"> — overview cards:
+   - For each SCRAPED subpage: title + 2-3 sentence teaser + <a href="FILENAME">Mehr erfahren →</a>
+   - For homepage topics with enough content (e.g. full menu, service descriptions): create a card + generate an EXTRA subpage for it using the homepage content
+   - ONLY add "Mehr erfahren →" if you are also generating that subpage — never link to a non-existent page
+   - Confirmed subpages: {", ".join(sp['filename'] for sp in subpages) if subpages else "none"}
+   DO NOT put full content here — full content goes in SUBPAGE markers only.
 4. <section id="cta"> — dark background, one CTA
 5. <footer> — contact info, all nav links, copyright
 
@@ -545,6 +545,8 @@ SUBPAGE CONTENT — append AFTER </body> using these exact markers:
 {chr(10).join(f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\\n<h1>{sp["label"]}</h1>\\n[full content for {sp["label"]} here — use ALL text verbatim]\\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->' for sp in subpages)}
 
 Each block starts with <!-- SUBPAGE:id --> and ends with <!-- /SUBPAGE:id -->. Put ALL content between the markers. Use full HTML. Do NOT use <section> tags inside these blocks.
+
+You MAY add EXTRA subpages beyond the scraped ones if the homepage content has enough material (e.g. a full food menu → generate essen-trinken.html). Use the same marker format.
 
 SUBPAGE DESIGN RULES — NO wall of text:
 ✓ Start with a large <h1> + short intro paragraph
