@@ -508,6 +508,17 @@ Include ALL of the following content verbatim on this page:
     )
     pages_block = ""  # not used in multi-page mode
 
+    # Precompute strings that would require backslashes inside f-string expressions
+    subpage_markers_str = "\n".join(
+        f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\n<h1>{sp["label"]}</h1>\n[FULL content for {sp["label"]} here]\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->'
+        for sp in subpages
+    )
+    overview_cards_str = "\n".join(
+        f'   Card {i+1}: "{t["label"]}" — id="topic-{t["slug"]}"'
+        + (f' — add <a href="{t["href"]}">Mehr erfahren →</a>' if t["href"].endswith(".html") else " — NO button (no subpage exists)")
+        for i, t in enumerate(overview_topics)
+    )
+
     # Build links block from extracted important links
     links_block = ""
     if important_links:
@@ -607,14 +618,14 @@ USE EXACTLY THESE NAV LINKS — DO NOT ADD OR REMOVE ANY:
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
 3. <section id="services-overview"> — one card per nav topic (below):
    Create one card for EACH of these topics — in this exact order:
-{chr(10).join(f'   Card {i+1}: "{t["label"]}" — id="topic-{t["slug"]}"' + (' — add <a href="' + t["href"] + '">Mehr erfahren →</a>' if t["href"].endswith(".html") else " — NO button (no subpage exists)") for i, t in enumerate(overview_topics))}
+{overview_cards_str}
    • Each card: title + 2-3 sentence teaser using VERBATIM content from the scraped data
    • DO NOT put full content here — full content goes in SUBPAGE markers only
 4. <section id="cta"> — dark background, one CTA
 5. <footer id="kontakt"> — contact info, all nav links, copyright
 
 SUBPAGE CONTENT — YOU MUST append ALL of these AFTER </body>:
-{chr(10).join(f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\\n<h1>{sp["label"]}</h1>\\n[FULL content for {sp["label"]} here]\\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->' for sp in subpages)}
+{subpage_markers_str}
 
 MANDATORY: Every single subpage listed above MUST have its marker block in the output.
 Count: {len(subpages)} subpages required → {len(subpages)} marker blocks required.
