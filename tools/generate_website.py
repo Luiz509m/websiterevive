@@ -117,6 +117,8 @@ def extract_image_urls(html: str, base_url: str, max_images: int = 12) -> list[s
     raw_urls = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
     # Also pick up lazy-loaded images (data-src, data-lazy-src, data-original, etc.)
     raw_urls += re.findall(r'data-(?:src|lazy-src|original|lazy|bg)=["\']([^"\']+)["\']', html, re.IGNORECASE)
+    # CSS background-image (inline styles and <style> blocks) — often contains hero images
+    raw_urls += re.findall(r'background(?:-image)?\s*:\s*url\(["\']?([^)"\']+)["\']?\)', html, re.IGNORECASE)
 
     # Also find srcset
     srcsets = re.findall(r'srcset=["\']([^"\']+)["\']', html, re.IGNORECASE)
@@ -351,10 +353,12 @@ ORIGINAL SITE IMAGES (from the real website):
 HERO BACKGROUND — strict rules:
 
 STEP 1 — Check if a real image is suitable:
-USE a real image from the list above ONLY if ALL of these are true:
-  ✓ It shows a space/interior, product, food, landscape, or architecture — NEVER people/staff/portraits/faces
-  ✓ The URL suggests a large image (no "thumb", "small", "100", "150", "300", "icon", "logo", "avatar" in path)
-  ✓ It is clearly related to the business (not a generic icon or banner)
+PREFER using a real image from the list above. Use one if ANY of these match:
+  ✓ It shows a space/interior, product, food, landscape, architecture, or team/people
+  ✓ The URL does NOT contain "thumb", "small", "icon", "logo", "avatar", "50x", "100x", "150x"
+  ✓ It is related to the business
+
+Only skip real images if the list is empty or all URLs are clearly icons/logos.
 
 If using a real image — STRICT RULES (no exceptions):
   ✗ NEVER use background-image + background-size:cover — this zooms and crops the image unpredictably
