@@ -532,7 +532,12 @@ Generate ONE single HTML file. The homepage shows ONLY brief overview cards — 
 HOMEPAGE SECTIONS (in order):
 1. <nav> — logo left, links right. Nav links: Home→index.html{(", " + ", ".join(f'{sp["label"]}→{sp["filename"]}' for sp in subpages)) if subpages else ""}
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. <section id="services-overview"> — one card per subpage: title + 2-3 sentence teaser + <a href="{subpages[0]['filename'] if subpages else '#'}">Mehr erfahren →</a>. DO NOT put full content here.
+3. <section id="services-overview"> — one card per subpage ONLY:
+   - Title + 2-3 sentence teaser
+   - ONLY add <a href="SUBPAGE_FILENAME">Mehr erfahren →</a> if that subpage is in the list above
+   - If a topic has NO subpage, show the card WITHOUT a "Mehr erfahren" button — never link to a non-existent page
+   - Subpages: {", ".join(sp['filename'] for sp in subpages) if subpages else "none"}
+   DO NOT put full content here.
 4. <section id="cta"> — dark background, one CTA
 5. <footer> — contact info, all nav links, copyright
 
