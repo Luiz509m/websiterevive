@@ -167,9 +167,9 @@ def analyze_website(url: str, html: str, business_name: str, full_text: str = ""
     pages_context = ""
     if pages:
         for pg in pages:
-            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:3000]}"
+            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:5000]}"
     elif full_text:
-        pages_context = f"\n\nFull site text:\n{full_text[:8000]}"
+        pages_context = f"\n\nFull site text:\n{full_text[:20000]}"
 
     prompt = f"""You are a professional website content analyst. Thoroughly read and extract ALL important information from this website.
 
@@ -419,7 +419,7 @@ GALLERY / ABOUT: use the remaining images from the list"""
         for pg in pages[1:]:
             label    = pg.get("label", "Page")
             filename = label.lower().replace(" ", "-") + ".html"
-            subpages.append({"label": label, "filename": filename, "content": pg.get("text","")[:3000]})
+            subpages.append({"label": label, "filename": filename, "content": pg.get("text","")[:5000]})
         print(f"[generate] Multi-page (raw): index.html + {len(subpages)} subpages")
 
     # Build nav link list for ALL pages
