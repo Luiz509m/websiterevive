@@ -422,7 +422,68 @@ GALLERY / ABOUT: use the remaining images from the list"""
             subpages.append({"label": label, "filename": filename, "content": pg.get("text","")[:5000]})
         print(f"[generate] Multi-page (raw): index.html + {len(subpages)} subpages")
 
-    # Build nav link list for ALL pages
+    # Build nav_topics: subpages + extra topics from analysis to reach 3–6 items
+    import re as _re2
+    subpage_labels_lower = {sp["label"].lower() for sp in subpages}
+    nav_topics = [{"label": sp["label"], "href": sp["filename"], "cta": False} for sp in subpages]
+
+    # Fill remaining slots from main_services (up to 5 nav items before Kontakt)
+    for svc in services[:12]:
+        if len(nav_topics) >= 5:
+            break
+        label = svc if isinstance(svc, str) else (svc.get("name") or str(svc))
+        label = label.strip()
+        if not label or label.lower() in subpage_labels_lower:
+            continue
+        slug = _re2.sub(r'[^a-z0-9]+', '-', label.lower()).strip('-')
+        nav_topics.append({"label": label, "href": f"#topic-{slug}", "cta": False})
+        subpage_labels_lower.add(label.lower())
+
+    # Fill from pages_content labels if still fewer than 3
+    for pc in pages_analyzed[1:]:
+        if len(nav_topics) >= 5:
+            break
+        label = pc.get("label", "").strip()
+        if not label or label.lower() in subpage_labels_lower:
+            continue
+        slug = _re2.sub(r'[^a-z0-9]+', '-', label.lower()).strip('-')
+        nav_topics.append({"label": label, "href": f"#topic-{slug}", "cta": False})
+        subpage_labels_lower.add(label.lower())
+
+    # Always include Kontakt unless already present
+    has_contact = any(t["label"].lower() in ["kontakt", "contact", "kontaktieren"] for t in nav_topics)
+    if not has_contact:
+        nav_topics.append({"label": "Kontakt", "href": "#kontakt", "cta": False})
+
+    # Cap at 6
+    nav_topics = nav_topics[:6]
+
+    # Mark one item as CTA button (booking/contact type preferred)
+    cta_keywords = ["reservier", "buchen", "book", "termin", "anfrage", "kontakt", "contact"]
+    marked = False
+    for t in reversed(nav_topics):
+        if any(k in t["label"].lower() for k in cta_keywords):
+            t["cta"] = True; marked = True; break
+    if not marked and nav_topics:
+        nav_topics[-1]["cta"] = True
+
+    print(f"[generate] Nav topics ({len(nav_topics)}): {[t['label'] for t in nav_topics]}")
+
+    nav_topics_str = "\n".join(
+        f"  {'[CTA-BUTTON] ' if t['cta'] else ''}{t['label']} → {t['href']}"
+        for t in nav_topics
+    )
+
+    # Topics that get overview cards (exclude pure Kontakt/Contact)
+    def _slugify(s):
+        return _re2.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
+
+    overview_topics = [
+        {**t, "slug": _slugify(t["label"])}
+        for t in nav_topics if t["href"] not in ["#kontakt", "#contact"]
+    ]
+
+    # Build nav link list for ALL pages (kept for footer)
     all_nav = [("Home", "index.html")] + [(sp["label"], sp["filename"]) for sp in subpages]
     nav_links_str = " | ".join(f'<a href="{fn}">{lbl}</a>' for lbl, fn in all_nav)
 
@@ -525,8 +586,8 @@ VISUAL:
 
 NAV:
 - Transparent on load, dark/blurred on scroll (use JS scroll listener)
-- Logo left, links right — links are the actual section names from the content
-- One highlight button (e.g. "Contact") in the accent color
+- Logo left, links right
+- See PAGE STRUCTURE section below for the exact nav links to use
 
 ══ PAGE STRUCTURE — BUILD IN THIS EXACT ORDER ══════════════════════════
 {section_count_note}
@@ -536,28 +597,21 @@ Generate ONE single HTML file. The homepage shows ONLY brief overview cards — 
 HOMEPAGE SECTIONS (in order):
 1. <nav> — logo left, links right.
 
-NAV LINKS — EXACTLY 3 TO 6 TOPIC LINKS (mandatory):
-Pick the 3–6 most important topic areas from the full site content (services, sections, pages).
-For each topic:
-  - If it has a confirmed subpage below → link to SUBPAGE_FILENAME.html
-  - If it has NO subpage → link to #topic-SLUG on the homepage (anchor to its card in services-overview)
-
-Confirmed subpages (always include these in nav): {", ".join(f'{sp["label"]}→{sp["filename"]}' for sp in subpages) if subpages else "none"}
-
-Add other important topics from the scraped content as #anchor links until you have 3–6 nav items total.
-Example nav (adapt topics to this business): Home | Leistungen | Über uns | Galerie | Kontakt | Termin buchen
-One of these links should be a highlighted CTA button (e.g. "Termin buchen" or "Reservieren").
+USE EXACTLY THESE NAV LINKS — DO NOT ADD OR REMOVE ANY:
+  Home → index.html
+{nav_topics_str}
+  • Links ending in .html go to subpages
+  • Links starting with # are anchors to sections on this page
+  • The [CTA-BUTTON] item must be styled as a filled accent-color pill button (e.g. border-radius:100px, solid background)
 
 2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. <section id="services-overview"> — 3 to 6 topic cards from the full site content:
-   - Create one card for EVERY important topic/service/area (3–6 cards total, matching the nav topics)
-   - Give EACH card a unique id: id="topic-SLUG" (e.g. id="topic-galerie", id="topic-kontakt")
-   - Each card: title + 2-3 sentence teaser from the real content
-   - Add <a href="FILENAME.html">Mehr erfahren →</a> ONLY for these confirmed subpages: {", ".join(sp['filename'] for sp in subpages) if subpages else "none"}
-   - For topics WITHOUT a subpage: show the card but NO link button — never link to a non-existent page
-   - DO NOT put full content here — full content goes in SUBPAGE markers only
+3. <section id="services-overview"> — one card per nav topic (below):
+   Create one card for EACH of these topics — in this exact order:
+{chr(10).join(f'   Card {i+1}: "{t["label"]}" — id="topic-{t["slug"]}"' + (' — add <a href="' + t["href"] + '">Mehr erfahren →</a>' if t["href"].endswith(".html") else " — NO button (no subpage exists)") for i, t in enumerate(overview_topics))}
+   • Each card: title + 2-3 sentence teaser using VERBATIM content from the scraped data
+   • DO NOT put full content here — full content goes in SUBPAGE markers only
 4. <section id="cta"> — dark background, one CTA
-5. <footer> — contact info, all nav links, copyright
+5. <footer id="kontakt"> — contact info, all nav links, copyright
 
 SUBPAGE CONTENT — YOU MUST append ALL of these AFTER </body>:
 {chr(10).join(f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\\n<h1>{sp["label"]}</h1>\\n[FULL content for {sp["label"]} here]\\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->' for sp in subpages)}
