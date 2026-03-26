@@ -387,7 +387,7 @@ GALLERY / ABOUT: use the remaining images from the list"""
     # Build multi-page file structure
     pages_analyzed = analysis.get("pages_content", [])
 
-    def _build_page_content(pc: dict) -> str:
+    def _build_page_content(pc: dict, raw_text: str = "") -> str:
         parts = []
         for para in pc.get("key_paragraphs", []):
             parts.append(str(para) if not isinstance(para, dict) else para.get("text", str(para)))
@@ -405,22 +405,42 @@ GALLERY / ABOUT: use the remaining images from the list"""
             parts.append("Services / items:\n" + "\n".join(lines))
         for f in pc.get("specific_facts", []):
             parts.append(f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}")
-        return "\n\n".join(parts)[:2500]
+        result = "\n\n".join(parts)
+        # If analysis gave little content, supplement with raw scraped text
+        if len(result) < 800 and raw_text:
+            result += "\n\nAdditional scraped text:\n" + raw_text[:3000]
+        return result[:5000]
 
     # Build subpage file list and per-page content blocks
+    # Index raw pages by label for fallback content
+    raw_pages_by_label = {}
+    if pages:
+        for pg in pages[1:]:
+            raw_pages_by_label[pg.get("label", "").lower()] = pg.get("text", "")
+
     subpages = []  # list of {label, filename, content}
+    seen_labels = set()
+
+    # First: use analyzed pages (richest content)
     if pages_analyzed and len(pages_analyzed) > 1:
         for pc in pages_analyzed[1:]:
             label    = pc.get("label", "Page")
             filename = pc.get("id", label.lower().replace(" ", "-")) + ".html"
-            subpages.append({"label": label, "filename": filename, "content": _build_page_content(pc)})
-        print(f"[generate] Multi-page: index.html + {len(subpages)} subpages")
-    elif pages and len(pages) > 1:
+            raw      = raw_pages_by_label.get(label.lower(), "")
+            subpages.append({"label": label, "filename": filename, "content": _build_page_content(pc, raw)})
+            seen_labels.add(label.lower())
+
+    # Then: add any scraped pages not covered by analysis (analysis may have missed them)
+    if pages and len(pages) > 1:
         for pg in pages[1:]:
-            label    = pg.get("label", "Page")
+            label = pg.get("label", "Page")
+            if label.lower() in seen_labels:
+                continue
             filename = label.lower().replace(" ", "-") + ".html"
-            subpages.append({"label": label, "filename": filename, "content": pg.get("text","")[:5000]})
-        print(f"[generate] Multi-page (raw): index.html + {len(subpages)} subpages")
+            subpages.append({"label": label, "filename": filename, "content": pg.get("text","")[:4000]})
+            seen_labels.add(label.lower())
+
+    print(f"[generate] Multi-page: index.html + {len(subpages)} subpages: {[s['label'] for s in subpages]}")
 
     # Build nav_topics: subpages + extra topics from analysis to reach 3–6 items
     import re as _re2

@@ -120,17 +120,15 @@ def parse_multifile_html(full_html: str) -> dict:
 </script>"""
 
     index_html_raw = _re.sub(r'<!-- SUBPAGE:[^>]+ -->.*?<!-- /SUBPAGE:[^\-]+ -->', '', full_html, flags=_re.DOTALL).strip()
-    # Remove broken links — any href="x.html" that has no matching subpage marker
+    # Repair broken .html links: known subpages kept, unknown converted to #topic-slug anchor (stays clickable)
     known_set = set(f"{sid}.html" for sid in subpage_ids)
-    def remove_broken_link(m):
+    def repair_html_link(m):
         href = m.group(1)
         if href == "index.html" or href in known_set:
-            return m.group(0)
-        # Remove the <a> tag but keep the text
-        return _re.sub(r'<a\s[^>]*href=["\']' + _re.escape(href) + r'["\'][^>]*>(.*?)</a>', r'\1', m.group(0), flags=_re.DOTALL)
-    index_html_raw = _re.sub(r'href="([^"]+\.html)"', lambda m: f'href="{m.group(1)}"' if m.group(1) == "index.html" or m.group(1) in known_set else 'href="#"', index_html_raw)
-    # Strip <a href="#"> wrappers (broken links reduced to #)
-    index_html_raw = _re.sub(r'<a\s+href="#"[^>]*>(.*?)</a>', r'\1', index_html_raw, flags=_re.DOTALL)
+            return f'href="{href}"'
+        slug = href[:-5]  # strip .html
+        return f'href="#topic-{slug}"'
+    index_html_raw = _re.sub(r'href="([^"#][^"]*\.html)"', repair_html_link, index_html_raw)
     index_html = index_html_raw.replace('</body>', make_intercept(known_files_js) + '\n</body>')
     files = {"index.html": index_html}
     subpage_intercept = make_intercept(known_files_js)
