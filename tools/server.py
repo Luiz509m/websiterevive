@@ -78,7 +78,7 @@ import re as _re
 import base64 as _b64
 
 def _build_safety_css() -> str:
-    return (
+    css = (
         '<style id="revive-safety">'
         '#hero,section#hero,header#hero,#hero *{color:#fff !important;}'
         '#hero a[class],#hero button[class]{color:inherit !important;}'
@@ -86,6 +86,38 @@ def _build_safety_css() -> str:
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
         '</style>'
     )
+    # JS: after load, check if hero background is too light and fix it
+    js = (
+        '<script id="revive-hero-fix">'
+        'document.addEventListener("DOMContentLoaded",function(){'
+        'var h=document.getElementById("hero");'
+        'if(!h)return;'
+        'var cs=getComputedStyle(h);'
+        'var m=(cs.backgroundColor||"").match(/[\\d.]+/g);'
+        'var lum=255,alpha=0;'
+        'if(m&&m.length>=3){'
+        'lum=0.299*+m[0]+0.587*+m[1]+0.114*+m[2];'
+        'alpha=m[3]!==undefined?+m[3]:1;'
+        '}'
+        'var hasBgImg=cs.backgroundImage&&cs.backgroundImage!=="none";'
+        # No background image + light/transparent background → force dark gradient
+        'if(!hasBgImg&&(alpha<0.1||lum>180)){'
+        'h.style.background="linear-gradient(135deg,#0d1117 0%,#1a2236 60%,#0d1117 100%)";'
+        '}'
+        # Has background image but it looks light → inject a dark overlay div
+        'if(hasBgImg&&lum>130){'
+        'var ov=document.createElement("div");'
+        'ov.style.cssText="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:0;pointer-events:none;";'
+        'h.style.position="relative";'
+        'h.insertBefore(ov,h.firstChild);'
+        'Array.from(h.children).forEach(function(c){'
+        'if(c!==ov&&!c.style.position){c.style.position="relative";c.style.zIndex="1";}'
+        '});'
+        '}'
+        '});'
+        '</script>'
+    )
+    return css + js
 
 def parse_multifile_html(full_html: str) -> dict:
     """Split homepage HTML from hidden subpage sections and create separate page files."""
