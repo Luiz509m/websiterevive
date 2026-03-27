@@ -34,6 +34,55 @@ MODEL = "claude-opus-4-6"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def extract_brand_colors(html: str) -> list[str]:
+    """Deterministically extract the dominant brand colors from a page's CSS, skipping neutrals."""
+    import re
+    from collections import Counter
+
+    css_blocks = re.findall(r'<style[^>]*>(.*?)</style>', html, re.DOTALL | re.IGNORECASE)
+    css_text = '\n'.join(css_blocks)
+    inline = re.findall(r'style="([^"]*)"', html, re.IGNORECASE)
+    css_text += '\n' + '\n'.join(inline)
+
+    def is_neutral(h6: str) -> bool:
+        r, g, b = int(h6[0:2],16), int(h6[2:4],16), int(h6[4:6],16)
+        if r > 238 and g > 238 and b > 238: return True   # near-white
+        if r < 25  and g < 25  and b < 25:  return True   # near-black
+        if abs(r-g) < 18 and abs(g-b) < 18: return True   # grey
+        return False
+
+    def norm(h: str) -> str:
+        h = h.upper()
+        if len(h) == 3:
+            h = h[0]*2 + h[1]*2 + h[2]*2
+        return '#' + h
+
+    # 1. CSS custom properties with color-related names get highest priority
+    var_colors = []
+    for name, value in re.findall(r'--([\w-]+)\s*:\s*([^;}\n]+)', css_text):
+        if not re.search(r'color|primary|accent|brand|main|cta|button|link|highlight', name, re.I):
+            continue
+        m = re.search(r'#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b', value)
+        if m and not is_neutral(norm(m.group(1))[1:]):
+            var_colors.append(norm(m.group(1)))
+
+    # 2. Most frequent non-neutral hex colors across all CSS
+    all_hex = re.findall(r'#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b', css_text)
+    counter = Counter(norm(h) for h in all_hex if not is_neutral(norm(h)[1:]))
+    freq_colors = [c for c, _ in counter.most_common(10)]
+
+    seen, result = set(), []
+    for c in var_colors + freq_colors:
+        if c not in seen:
+            seen.add(c)
+            result.append(c)
+        if len(result) >= 5:
+            break
+
+    print(f"[colors] Brand colors extracted: {result or '(none — Claude will derive from industry)'}")
+    return result
+
+
 def compress_image(img_path: Path, max_bytes: int = 4_500_000) -> tuple[bytes, str]:
     """Resize and compress image to stay under max_bytes. Returns (bytes, media_type)."""
     try:
@@ -272,7 +321,7 @@ Return ONLY valid JSON, no explanation."""
 
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
-def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None) -> str:
+def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None) -> str:
     """Send analysis + reference images to Claude. Returns generated HTML."""
     print("\n[generate] Sending to Claude for website generation...")
 
@@ -305,7 +354,11 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     audience      = analysis.get("target_audience", "")
     key_content   = analysis.get("key_content", {})
     features      = key_content.get("features", key_content.get("unique_selling_points", []))
-    brand_colors  = analysis.get("current_colors", [])
+
+    # Deterministic color extraction beats Claude's analysis (more reliable)
+    brand_colors = extract_brand_colors(raw_html) if raw_html else []
+    if not brand_colors:
+        brand_colors = analysis.get("current_colors", [])
 
     # Build message content with reference images
     content = []
@@ -516,6 +569,19 @@ GALLERY / ABOUT: use the remaining images from the list"""
             "  • NEVER use href=\"#\" for any real link\n"
         )
 
+    # ── Precompute colors block ────────────────────────────────────────────────
+    if brand_colors:
+        colors_block = (
+            "BRAND COLORS — extracted from the original site. Use these EXACTLY.\n"
+            "Do NOT replace them with different colors. Set them as CSS custom properties on :root:\n"
+            + "\n".join(f"  {c}" for c in brand_colors)
+            + "\nApply the most prominent color as --clr-primary (buttons, links, accents, borders).\n"
+            "Use the others as --clr-secondary, --clr-accent etc.\n"
+            "The background should match the site's overall feel (light if site is light, dark if dark)."
+        )
+    else:
+        colors_block = "Colors: derive a cohesive palette from the industry and tone — no generic blues or greys."
+
     # ── Claude prompt ──────────────────────────────────────────────────────────
     content.append({
         "type": "text",
@@ -529,7 +595,7 @@ Tone:        {tone}
 Tagline:     {tagline or '—'}
 Services:    {_s(services)}
 Audience:    {audience}
-Colors:      {_s(brand_colors) if brand_colors else 'derive from industry and tone'}
+{colors_block}
 Headline:    {key_content.get('hero_headline') or '—'}
 Subtext:     {key_content.get('hero_subtext') or '—'}
 CTA:         {key_content.get('cta_text') or 'Kontakt'}
@@ -711,7 +777,7 @@ def main():
         analysis = analyze_website(url, scraped["html"], args.name)
 
     # Step 4: Generate
-    generated_html = generate_website(analysis, references, site_images, full_text)
+    generated_html = generate_website(analysis, references, site_images, full_text, raw_html=scraped["html"])
 
     # Save output
     output_path = TMP / f"{slug}_generated.html"

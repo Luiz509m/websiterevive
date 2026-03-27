@@ -367,7 +367,7 @@ def generate():
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )
 
-        full_html = generate_website(analysis, references, site_images, full_text, pages, important_links)
+        full_html = generate_website(analysis, references, site_images, full_text, pages, important_links, raw_html=scraped["html"])
 
         # Inject footer watermark (only at bottom of page, not fixed)
         watermark = (
