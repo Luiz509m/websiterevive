@@ -2206,6 +2206,31 @@
 
     <div class="pricing-grid">
 
+      <!-- Testing offer — limited 2 weeks -->
+      <div class="p-card" style="border-color:rgba(255,180,0,0.45);position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;background:linear-gradient(90deg,#b45309,#d97706);padding:5px 12px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#fff;text-align:center;">
+          🧪 Beta Offer · <span id="testing-countdown">Limited time</span>
+        </div>
+        <div style="margin-top:24px;">
+          <div class="p-tier">Testing</div>
+          <div class="p-price" style="position:relative;display:inline-block;">
+            <sup>CHF</sup>19<span style="font-size:1.5rem;">.90</span>
+            <span style="position:absolute;top:8px;right:-52px;font-size:0.75rem;color:var(--muted);text-decoration:line-through;font-weight:400;">29.–</span>
+          </div>
+          <div class="p-price-sub">1 token</div>
+          <p class="p-desc">Try WebsiteRevive at a reduced price and give us your feedback — helps us make it even better.</p>
+          <ul class="p-features-list">
+            <li><span class="check">✓</span> 1 website generation</li>
+            <li><span class="check">✓</span> Full AI redesign</li>
+            <li><span class="check">✓</span> Brand colour matching</li>
+            <li><span class="check">✓</span> Clean HTML export</li>
+            <li><span class="check">✓</span> Mobile responsive</li>
+            <li><span style="color:#d97706;">✓</span> <span style="color:#d97706;font-weight:500;">Feedback welcome</span></li>
+          </ul>
+          <button onclick="handleBuyTokens('test')" class="btn-plan-outline" style="border-color:rgba(255,180,0,0.5);color:#d97706;">Get Testing Token</button>
+        </div>
+      </div>
+
       <div class="p-card">
         <div class="p-tier">Single</div>
         <div class="p-price"><sup>CHF</sup>29</div>
@@ -2235,21 +2260,6 @@
           <li><span class="check">✓</span> Mobile responsive</li>
         </ul>
         <button onclick="handleBuyTokens('5')" class="btn-plan-primary">Buy 5 Tokens</button>
-      </div>
-
-      <div class="p-card">
-        <div class="p-tier">Agency</div>
-        <div class="p-price"><sup>CHF</sup>149</div>
-        <div class="p-price-sub">50 tokens</div>
-        <p class="p-desc">For teams and agencies with a large portfolio of client websites.</p>
-        <ul class="p-features-list">
-          <li><span class="check">✓</span> 50 website generations</li>
-          <li><span class="check">✓</span> Full AI redesign</li>
-          <li><span class="check">✓</span> Brand colour matching</li>
-          <li><span class="check">✓</span> Clean HTML export</li>
-          <li><span class="check">✓</span> Mobile responsive</li>
-        </ul>
-        <button onclick="handleBuyTokens('50')" class="btn-plan-outline">Buy 50 Tokens</button>
       </div>
 
     </div>
@@ -3084,6 +3094,21 @@
     a.click();
   }
 
+
+  // ── Testing offer countdown ──────────────────────────────────────────────────
+  (function() {
+    const expiry = new Date('2026-04-10T23:59:59');
+    const el = document.getElementById('testing-countdown');
+    if (!el) return;
+    function update() {
+      const diff = expiry - Date.now();
+      if (diff <= 0) { el.textContent = 'Expired'; return; }
+      const days = Math.floor(diff / 86400000);
+      el.textContent = days === 1 ? '1 day left' : `${days} days left`;
+    }
+    update();
+    setInterval(update, 60000);
+  })();
 
   // ── Buy tokens ───────────────────────────────────────────────────────────────
   async function handleBuyTokens(pkg) {
