@@ -384,101 +384,46 @@ Either way: hero must be min-height:100vh, all text white, immersive, profession
 
 GALLERY / ABOUT: use the remaining images from the list"""
 
-    # Build multi-page file structure
+    # ── Build nav topics (anchor links — single page) ────────────────────────
     pages_analyzed = analysis.get("pages_content", [])
-
-    def _build_page_content(pc: dict, raw_text: str = "") -> str:
-        parts = []
-        for para in pc.get("key_paragraphs", []):
-            parts.append(str(para) if not isinstance(para, dict) else para.get("text", str(para)))
-        svcs = pc.get("services_or_items", [])
-        if svcs:
-            lines = []
-            for s in svcs:
-                if isinstance(s, dict):
-                    line = s.get("name", "")
-                    if s.get("description"): line += f": {s['description']}"
-                    if s.get("price"):       line += f" — {s['price']}"
-                else:
-                    line = str(s)
-                lines.append(f"  • {line}")
-            parts.append("Services / items:\n" + "\n".join(lines))
-        for f in pc.get("specific_facts", []):
-            parts.append(f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}")
-        result = "\n\n".join(parts)
-        # If analysis gave little content, supplement with raw scraped text
-        if len(result) < 800 and raw_text:
-            result += "\n\nAdditional scraped text:\n" + raw_text[:3000]
-        return result[:5000]
-
-    # Build subpage file list and per-page content blocks
-    # Index raw pages by label for fallback content
-    raw_pages_by_label = {}
-    if pages:
-        for pg in pages[1:]:
-            raw_pages_by_label[pg.get("label", "").lower()] = pg.get("text", "")
-
-    subpages = []  # list of {label, filename, content}
-    seen_labels = set()
-
-    # First: use analyzed pages (richest content)
-    if pages_analyzed and len(pages_analyzed) > 1:
-        for pc in pages_analyzed[1:]:
-            label    = pc.get("label", "Page")
-            filename = pc.get("id", label.lower().replace(" ", "-")) + ".html"
-            raw      = raw_pages_by_label.get(label.lower(), "")
-            subpages.append({"label": label, "filename": filename, "content": _build_page_content(pc, raw)})
-            seen_labels.add(label.lower())
-
-    # Then: add any scraped pages not covered by analysis (analysis may have missed them)
-    if pages and len(pages) > 1:
-        for pg in pages[1:]:
-            label = pg.get("label", "Page")
-            if label.lower() in seen_labels:
-                continue
-            filename = label.lower().replace(" ", "-") + ".html"
-            subpages.append({"label": label, "filename": filename, "content": pg.get("text","")[:4000]})
-            seen_labels.add(label.lower())
-
-    print(f"[generate] Multi-page: index.html + {len(subpages)} subpages: {[s['label'] for s in subpages]}")
-
-    # Build nav_topics: subpages + extra topics from analysis to reach 3–6 items
     import re as _re2
-    subpage_labels_lower = {sp["label"].lower() for sp in subpages}
-    nav_topics = [{"label": sp["label"], "href": sp["filename"], "cta": False} for sp in subpages]
 
-    # Fill remaining slots from main_services (up to 5 nav items before Kontakt)
+    def _slugify(s):
+        return _re2.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
+
+    nav_topics = []
+    seen_nav = set()
+
+    # Pull topic names from scraped subpages first (richest content)
+    for pc in pages_analyzed[1:]:
+        if len(nav_topics) >= 5:
+            break
+        label = pc.get("label", "").strip()
+        if not label or label.lower() in seen_nav:
+            continue
+        slug = _slugify(label)
+        nav_topics.append({"label": label, "href": f"#{slug}", "cta": False})
+        seen_nav.add(label.lower())
+
+    # Fill remaining slots from main_services
     for svc in services[:12]:
         if len(nav_topics) >= 5:
             break
         label = svc if isinstance(svc, str) else (svc.get("name") or str(svc))
         label = label.strip()
-        if not label or label.lower() in subpage_labels_lower:
+        if not label or label.lower() in seen_nav:
             continue
-        slug = _re2.sub(r'[^a-z0-9]+', '-', label.lower()).strip('-')
-        nav_topics.append({"label": label, "href": f"#topic-{slug}", "cta": False})
-        subpage_labels_lower.add(label.lower())
+        slug = _slugify(label)
+        nav_topics.append({"label": label, "href": f"#{slug}", "cta": False})
+        seen_nav.add(label.lower())
 
-    # Fill from pages_content labels if still fewer than 3
-    for pc in pages_analyzed[1:]:
-        if len(nav_topics) >= 5:
-            break
-        label = pc.get("label", "").strip()
-        if not label or label.lower() in subpage_labels_lower:
-            continue
-        slug = _re2.sub(r'[^a-z0-9]+', '-', label.lower()).strip('-')
-        nav_topics.append({"label": label, "href": f"#topic-{slug}", "cta": False})
-        subpage_labels_lower.add(label.lower())
-
-    # Always include Kontakt unless already present
-    has_contact = any(t["label"].lower() in ["kontakt", "contact", "kontaktieren"] for t in nav_topics)
-    if not has_contact:
+    # Always include Kontakt
+    if not any(t["label"].lower() in ["kontakt", "contact", "kontaktieren"] for t in nav_topics):
         nav_topics.append({"label": "Kontakt", "href": "#kontakt", "cta": False})
 
-    # Cap at 6
     nav_topics = nav_topics[:6]
 
-    # Mark one item as CTA button (booking/contact type preferred)
+    # Mark CTA button
     cta_keywords = ["reservier", "buchen", "book", "termin", "anfrage", "kontakt", "contact"]
     marked = False
     for t in reversed(nav_topics):
@@ -487,79 +432,58 @@ GALLERY / ABOUT: use the remaining images from the list"""
     if not marked and nav_topics:
         nav_topics[-1]["cta"] = True
 
-    # Convert all #topic-* anchor links to .html subpages so every nav topic has a real page.
-    # This guarantees links always work AND every topic card gets a "Mehr erfahren" button.
-    for t in nav_topics:
-        if t["href"].startswith("#topic-"):
-            slug = t["href"][7:]          # strip '#topic-'
-            filename = f"{slug}.html"
-            t["href"] = filename
-            label = t["label"]
-            label_lower = label.lower()
-            # Try to find content from analysis pages_content
-            page_content = ""
-            for pc in pages_analyzed:
-                if pc.get("label", "").lower() == label_lower or pc.get("id", "") == slug:
-                    raw = raw_pages_by_label.get(label_lower, "")
-                    page_content = _build_page_content(pc, raw)
-                    break
-            subpages.append({"label": label, "filename": filename, "content": page_content})
-            seen_labels.add(label_lower)
-
     print(f"[generate] Nav topics ({len(nav_topics)}): {[t['label'] for t in nav_topics]}")
-    print(f"[generate] Total subpages: {len(subpages)}: {[s['filename'] for s in subpages]}")
 
     nav_topics_str = "\n".join(
         f"  {'[CTA-BUTTON] ' if t['cta'] else ''}{t['label']} → {t['href']}"
         for t in nav_topics
     )
 
-    # Topics that get overview cards (exclude pure Kontakt/Contact)
-    def _slugify(s):
-        return _re2.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
+    # ── Build per-section content blocks from scraped data ────────────────────
+    pages_by_label = {}
+    if pages:
+        for pg in pages[1:]:
+            pages_by_label[pg.get("label", "").lower()] = pg.get("text", "")
 
-    overview_topics = [
-        {**t, "slug": _slugify(t["label"])}
-        for t in nav_topics if t["href"] not in ["#kontakt", "#contact"]
-    ]
+    section_content_blocks = ""
+    for t in nav_topics:
+        if t["href"] in ["#kontakt", "#contact"]:
+            continue
+        slug = t["href"].lstrip("#")
+        label = t["label"]
+        label_lower = label.lower()
 
-    # Build nav link list for ALL pages (kept for footer)
-    all_nav = [("Home", "index.html")] + [(sp["label"], sp["filename"]) for sp in subpages]
-    nav_links_str = " | ".join(f'<a href="{fn}">{lbl}</a>' for lbl, fn in all_nav)
+        content_parts = []
+        for pc in pages_analyzed:
+            if _slugify(pc.get("label", "")) == slug or pc.get("label", "").lower() == label_lower:
+                for para in pc.get("key_paragraphs", []):
+                    content_parts.append(str(para) if not isinstance(para, dict) else para.get("text", str(para)))
+                svcs = pc.get("services_or_items", [])
+                if svcs:
+                    item_lines = []
+                    for s in svcs:
+                        if isinstance(s, dict):
+                            line = s.get("name", "")
+                            if s.get("description"): line += f": {s['description']}"
+                            if s.get("price"):       line += f" — {s['price']}"
+                        else:
+                            line = str(s)
+                        item_lines.append(f"  • {line}")
+                    content_parts.append("Items:\n" + "\n".join(item_lines))
+                for f in pc.get("specific_facts", []):
+                    content_parts.append(f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}")
+                break
 
-    # Build file list header for the prompt
-    file_list_str = "<!-- FILE: index.html --> — Homepage (hero, service overview cards, CTA)"
-    for sp in subpages:
-        file_list_str += f'\n<!-- FILE: {sp["filename"]} --> — Dedicated page: {sp["label"]}'
+        raw_text = "\n\n".join(content_parts)[:4000]
+        if len(raw_text) < 400:
+            raw_text += "\n\n" + pages_by_label.get(label_lower, "")[:2000]
 
-    # Build per-subpage content blocks
-    subpage_content_blocks = ""
-    for sp in subpages:
-        subpage_content_blocks += f"""
-
-━━ SUBPAGE FILE: {sp['filename']} — "{sp['label']}" ━━━━━━━━━━━━━━━━━━━━━━━━
-Include ALL of the following content verbatim on this page:
-{sp['content'] or '(use business data above for this topic)'}
+        section_content_blocks += f"""
+━━ SECTION id="{slug}" — "{label}" ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{raw_text.strip() or f'Write content about {label} using the business data above.'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
-    section_count_note = (
-        f"Generate {1 + len(subpages)} HTML files: index.html + {len(subpages)} subpages."
-        if subpages else "Generate index.html with at minimum: nav, hero, 2–3 content sections, cta, footer."
-    )
-    pages_block = ""  # not used in multi-page mode
-
-    # Precompute strings that would require backslashes inside f-string expressions
-    subpage_markers_str = "\n".join(
-        f'<!-- SUBPAGE:{sp["filename"][:-5]} -->\n<h1>{sp["label"]}</h1>\n[FULL content for {sp["label"]} here]\n<!-- /SUBPAGE:{sp["filename"][:-5]} -->'
-        for sp in subpages
-    )
-    overview_cards_str = "\n".join(
-        f'   Card {i+1}: "{t["label"]}" — id="topic-{t["slug"]}"'
-        + (f' — add <a href="{t["href"]}">Mehr erfahren →</a>' if t["href"].endswith(".html") else " — NO button (no subpage exists)")
-        for i, t in enumerate(overview_topics)
-    )
-
-    # Build links block from extracted important links
+    # ── Build important links block ────────────────────────────────────────────
     links_block = ""
     if important_links:
         LABELS = {
@@ -578,208 +502,150 @@ Include ALL of the following content verbatim on this page:
             "tripadvisor":   "TripAdvisor",
             "google_review": "Google Bewertungen",
         }
-        lines = [f"  {LABELS.get(l['category'], l['category'])}: {l['href']}" + (f" ({l['text']})" if l['text'] else "") for l in important_links]
-        links_block = "\n══ ORIGINAL LINKS — USE THESE EXACT URLs (MANDATORY) ══════════════════\n" + "\n".join(lines) + "\n"
-        links_block += """→ MANDATORY rules — NO EXCEPTIONS:
-  • Telefon: EVERY phone number in the entire page must use <a href="tel:NUMBER">NUMBER</a> — never plain text
-  • E-Mail: EVERY email address must use <a href="mailto:EMAIL">EMAIL</a> — never plain text
-  • Google Maps: footer must contain <a href="MAPS_URL" target="_blank" rel="noopener">Auf Google Maps öffnen →</a>
-  • PDF: create a visible <a href="PDF_URL" download target="_blank" class="btn-download">📄 PDF herunterladen →</a> button in the relevant section
-  • Booking/Calendly: this URL is the primary CTA — use it for ALL "Termin buchen" / "Jetzt anfragen" buttons
-  • Social media: add SVG icon links in footer for each platform found
-  • Google Bewertungen: add "⭐ Bewertung schreiben" link in footer
-  NEVER use href="#" for any of the above — always use the exact URL provided.\n"""
+        link_lines = [
+            f"  {LABELS.get(l['category'], l['category'])}: {l['href']}" + (f" ({l['text']})" if l['text'] else "")
+            for l in important_links
+        ]
+        links_block = "\nORIGINAL LINKS — use these exact URLs:\n" + "\n".join(link_lines) + "\n"
+        links_block += (
+            "  • Phone numbers → <a href=\"tel:...\">...</a>\n"
+            "  • Emails → <a href=\"mailto:...\">...</a>\n"
+            "  • Google Maps → link in footer\n"
+            "  • Booking URL → primary CTA button\n"
+            "  • Social icons → in footer\n"
+            "  • NEVER use href=\"#\" for any real link\n"
+        )
 
+    # ── Claude prompt ──────────────────────────────────────────────────────────
     content.append({
         "type": "text",
-        "text": f"""You are a senior web designer at a top agency. Redesign this business's website so it looks like it was built by a professional studio — NOT by AI.
+        "text": f"""You are an elite web designer. Study the reference screenshots above carefully — your output must match their quality: typographic scale, whitespace, visual depth, section variety, and overall polish. Build something that looks like it came from a top design studio.
 
-── BUSINESS DATA (use ONLY this — never invent facts) ──────────────────{links_block}
-Name:           {business_name}
-Industry:       {industry}
-Tone:           {tone}
-Tagline:        {tagline or '—'}
-Services:       {_s(services)}
-Audience:       {audience}
-Brand colors:   {_s(brand_colors) if brand_colors else 'derive from industry/tone'}
-Headline:       {key_content.get('hero_headline') or '—'}
-Subtext:        {key_content.get('hero_subtext') or '—'}
-CTA text:       {key_content.get('cta_text') or 'Contact'}
-About:          {key_content.get('about_summary') or '—'}
-Features:       {_s(features)}
-Prices:         {_s(key_content.get('prices', []))}
-Hours:          {_s(key_content.get('opening_hours', []))}
-Phone:          {key_content.get('phone') or '—'}
-Email:          {key_content.get('email') or '—'}
-Address:        {key_content.get('address') or '—'}
+── BUSINESS DATA (never invent — only use what is listed here) ──────────
+{links_block}
+Name:        {business_name}
+Industry:    {industry}
+Tone:        {tone}
+Tagline:     {tagline or '—'}
+Services:    {_s(services)}
+Audience:    {audience}
+Colors:      {_s(brand_colors) if brand_colors else 'derive from industry and tone'}
+Headline:    {key_content.get('hero_headline') or '—'}
+Subtext:     {key_content.get('hero_subtext') or '—'}
+CTA:         {key_content.get('cta_text') or 'Kontakt'}
+About:       {key_content.get('about_summary') or '—'}
+USPs:        {_s(features)}
+Prices:      {_s(key_content.get('prices', []))}
+Hours:       {_s(key_content.get('opening_hours', []))}
+Phone:       {key_content.get('phone') or '—'}
+Email:       {key_content.get('email') or '—'}
+Address:     {key_content.get('address') or '—'}
 {images_block}
 
-══ HERO — THIS IS THE MOST IMPORTANT SECTION ══════════════════════════
-The hero must be jaw-dropping. Follow these rules exactly:
+── NAV ──────────────────────────────────────────────────────────────────
+Transparent on load → solid + backdrop-blur on scroll (JS scroll listener).
+Logo left (business name or text logo), nav links right, hamburger on mobile.
 
-TYPOGRAPHY:
-- Main headline: 5–9rem on desktop, bold or black weight, tight line-height (0.95–1.1)
-- Use the actual business headline/tagline from the data above — NOT a generic one
-- Max 6 words on the first line. If headline is long, break it with a <br> at a natural point
-- Subtext: 1.1–1.3rem, max 2 lines, light/regular weight, 60% opacity
-
-LAYOUT — pick the one that fits best:
-A) Full-bleed background (image or gradient) + centered text + single CTA button
-B) Split: left half text, right half image — dark left side, image right
-C) Large headline top-left, small descriptor bottom-right, diagonal accent
-
-VISUAL:
-- If background image: use it at full opacity with a gradient overlay (not just rgba black)
-  e.g. linear-gradient(to right, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0.2) 100%)
-- If gradient: use 3 colors min, include a subtle CSS mesh or noise texture via SVG filter
-- Add one decorative element: a thin horizontal line, a large outlined letter, a geometric shape — in the accent color
-- CTA button: pill shape (border-radius:100px), solid accent color, padding 14px 36px, no shadow
-
-NAV:
-- Transparent on load, dark/blurred on scroll (use JS scroll listener)
-- Logo left, links right
-- See PAGE STRUCTURE section below for the exact nav links to use
-
-══ PAGE STRUCTURE — BUILD IN THIS EXACT ORDER ══════════════════════════
-{section_count_note}
-
-Generate ONE single HTML file. The homepage shows ONLY brief overview cards — full content lives on subpages only.
-
-HOMEPAGE SECTIONS (in order):
-1. <nav> — logo left, links right.
-
-USE EXACTLY THESE NAV LINKS — DO NOT ADD OR REMOVE ANY:
-  Home → index.html
+USE EXACTLY THESE LINKS — no additions, no removals:
+  Home → #
 {nav_topics_str}
-  • Links ending in .html go to subpages
-  • Links starting with # are anchors to sections on this page
-  • The [CTA-BUTTON] item must be styled as a filled accent-color pill button (e.g. border-radius:100px, solid background)
 
-2. <section id="hero"> — full-viewport hero (HERO MARKER required)
-3. <section id="services-overview"> — one card per nav topic (below):
-   Create one card for EACH of these topics — in this exact order:
-{overview_cards_str}
-   • Each card: title + 2-3 sentence teaser using VERBATIM content from the scraped data
-   • DO NOT put full content here — full content goes in SUBPAGE markers only
-4. <section id="cta"> — dark background, one CTA
-5. <footer id="kontakt"> — contact info, all nav links, copyright
+[CTA-BUTTON] = filled pill button, accent color background, white text, border-radius:100px.
+All other links = plain text, hover underline.
 
-SUBPAGE CONTENT — YOU MUST append ALL of these AFTER </body>:
-{subpage_markers_str}
+── HERO ──────────────────────────────────────────────────────────────────
+Full viewport height (min-height:100svh). This is the most important part.
 
-MANDATORY: Every single subpage listed above MUST have its marker block in the output.
-Count: {len(subpages)} subpages required → {len(subpages)} marker blocks required.
-If you output fewer than {len(subpages)} marker blocks, the output is INCOMPLETE and WRONG.
+HEADLINE: Use the EXACT headline from the data above. Never write a generic one.
+• Size: clamp(3rem,8vw,7rem) — bold or black weight, line-height 0.95–1.1
+• If longer than 6 words, break with <br> at the most natural point
+• Subtext: clamp(1rem,2vw,1.25rem), max 2 lines, 60% opacity, light weight
 
-Rules:
-- Each block: <!-- SUBPAGE:id --> ... <!-- /SUBPAGE:id -->
-- Full HTML between markers (headings, paragraphs, lists, images)
-- No <section> tags inside markers
-- Do NOT skip any subpage — even if content seems thin, write what you have
+LAYOUT — choose the one that fits this industry best:
+A) Full-bleed image (use a real site image) with gradient overlay + centered text
+B) Split 50/50: dark text side left, image right — <img> with object-fit:contain, no cropping
+C) Large headline overlapping a full-bleed atmospheric photo (offset, not centered)
 
-SUBPAGE DESIGN RULES — NO wall of text:
-✓ Start with a large <h1> + short intro paragraph
-✓ Use at least ONE <img> from the site image list (pick the most relevant one) — styled with class="sp-img"
-✓ Break content into visual blocks: use <div class="sp-card"> for individual services/steps/facts
-✓ Use <div class="sp-highlight"> for key quotes, stats, or important callout text
-✓ Use <div class="sp-steps"> with numbered steps if the content describes a process
-✓ End with a CTA button (phone/email/booking link from the ORIGINAL LINKS section)
-✗ NEVER output a page that is only <h2> + <p> + <h2> + <p> — always break it up visually
+BACKGROUND — follow these rules strictly:
+{images_block}
 
-CONTENT FOR EACH SUBPAGE (copy verbatim between the markers):
-{subpage_content_blocks}
+DECORATION: Add exactly one accent element — thin line, oversized letter, or geometric shape in the accent color.
+CTA BUTTON: pill shape, accent color, padding:14px 40px, no box-shadow, hover: slight darken.
 
-══ SECTION LAYOUT — NO AI PATTERNS ════════════════════════════════════
-DO NOT use these AI clichés:
-✗ Three equal cards in a row with icon + title + description
-✗ "Our Services", "About Us", "Why Choose Us" as headings
-✗ Alternating light/dark sections all with the same padding
-✗ Stock-looking placeholder text
+Add <!-- HERO_END --> on its own line immediately after the closing </section> of the hero.
 
-DO use these human patterns:
-✓ Use the actual section names from the scraped pages
-✓ Vary the layout: full-width text → split image/text → grid → quote → form
-✓ Pull quotes, large numbers (e.g. "12+ years"), subtle background textures
-✓ One section with a dark/colored background, the rest light — creates rhythm
-✓ Let sections breathe differently: some compact, some very spacious
+── SECTIONS ──────────────────────────────────────────────────────────────
+Build one <section> per nav topic (Kontakt goes in the footer, not a section).
+Each section's id attribute MUST exactly match the href from the nav (e.g. href="#events" → id="events").
 
-Count your <section> tags before finishing. If you are missing any, add them.
+CONTENT — use the scraped text below verbatim, do not invent or paraphrase:
+{section_content_blocks}
 
-══ COPY RULES ══════════════════════════════════════════════════════════
-- Use the EXACT text from the scraped content — do not rewrite or summarise
-- Section headings: use the page names listed in REQUIRED CONTENT SECTIONS
-- Include ALL key_paragraphs provided for each section — do not cut them short
-- NEVER invent ANY facts: no numbers, no "7+ languages", no "20+ years", no prices, no claims not in the data
-- If the data says "4 languages" → write "4 languages". Never round up or exaggerate.
-- Contact info from the scraped text → show in footer AND contact section
-- If a fact is not in the scraped data → leave it out entirely. Empty is better than invented.
+LAYOUT — vary each section's design. Never repeat the same layout twice:
+✓ Full-width editorial text with a large pull quote or number
+✓ 2-column split: image left + text right (or reversed)
+✓ Card grid (2–3 cols desktop, 1 col mobile) — only when items/services exist
+✓ Timeline or numbered steps — for process-based content
+✓ One dark-background section for contrast (max one per page)
+✓ Large stat, year, or metric as a typographic design element
 
-══ TECHNICAL ═══════════════════════════════════════════════════════════
-- Single HTML file, all CSS and JS inline
-- Google Fonts: pick 2 that match the tone (e.g. a serif + a sans for luxury; two sans for tech)
-- MOBILE-FIRST — every layout must work on 375px screens:
-  • Nav: hamburger menu on mobile (☰ button toggles nav links, JS toggle class)
-  • Hero: min-height:100svh, font-size clamp(2rem,6vw,4rem) for headline
-  • Grids/columns: CSS grid with auto-fit or explicit @media(max-width:768px) that stacks to 1 column
-  • Images: max-width:100%; height:auto — never fixed px widths on images
-  • Padding: use clamp() or reduce padding on mobile (e.g. padding:60px 20px instead of 120px 80px)
-  • Buttons: min-height:48px for touch targets
-  • Font sizes: body min 16px, headings scale with clamp()
-  • No horizontal scroll — test that nothing overflows
-- Smooth scroll: <html style="scroll-behavior:smooth">
-- Nav links: href="#sectionid" matching actual section IDs
-- Brand colors as CSS custom properties on :root
+NEVER:
+✗ Three identical icon-cards in a row — this is the #1 AI tell
+✗ Generic headings like "Our Services", "About Us", "Why Choose Us"
+✗ All sections with identical padding and background
+✗ Placeholder or invented text
 
-SEO META TAGS — include ALL of these in <head>:
-<meta name="description" content="[2 sentence description of the business and its main service — from the scraped content]">
-<meta property="og:title" content="[Business name — main service]">
-<meta property="og:description" content="[Same as meta description]">
-<meta property="og:type" content="website">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="[original URL]">
+── FOOTER / KONTAKT ──────────────────────────────────────────────────────
+id="kontakt". Show all contact details (phone, email, address, hours).
+Include all nav links. Social media icons (SVG inline) if found in links.
+Copyright line. Dark background preferred.
 
-BUTTON LINKS — CRITICAL, follow exactly:
-- Every CTA button MUST have a working href. Priority order:
-  1. mailto:EMAIL if email found in the data
-  2. tel:PHONE if phone found in the data
-  3. href="#contact" if a contact section exists on the page
-  4. href="#" is FORBIDDEN — never use it
-- "Contact" nav button → mailto: or tel: or #contact
-- "Book", "Reservieren", "Anfrage" buttons → mailto: or tel:
-- Double-check every single <a> and <button> before finishing
+── COPY RULES ────────────────────────────────────────────────────────────
+• Use EXACT scraped text — never shorten, paraphrase, or rewrite
+• NEVER invent any fact: no numbers, no stats, no prices not in the data
+• Missing info → omit entirely. Empty is better than made up.
 
-SCROLL ANIMATIONS — REQUIRED:
-Add this exact JS block before </body>. Do not modify it:
+── TECHNICAL ─────────────────────────────────────────────────────────────
+• Single HTML file, all CSS and JS inline
+• Google Fonts: 2 fonts that match the tone (e.g. serif + sans for luxury, two sans for tech)
+• CSS custom properties on :root for all brand colors
+• Mobile-first:
+  - Nav: hamburger (☰) on mobile, JS toggles .open class
+  - Hero headline: clamp(2.5rem,7vw,6rem)
+  - Grids: CSS grid, auto-fit or @media(max-width:768px) → 1 column
+  - Images: max-width:100%; height:auto
+  - Padding: clamp(40px,8vw,120px) vertically, clamp(20px,5vw,80px) horizontally
+  - Buttons: min-height:48px
+  - No horizontal scroll
+• Smooth scroll: <html style="scroll-behavior:smooth">
+• Every <img>: onerror="this.style.display='none'"
+
+SCROLL ANIMATIONS — add exactly this JS before </body>:
 <script>
 (function(){{
-  const els = document.querySelectorAll('section, .animate');
-  const io = new IntersectionObserver((entries) => {{
-    entries.forEach(e => {{
-      if(e.isIntersecting){{ e.target.classList.add('visible'); io.unobserve(e.target); }}
-    }});
-  }}, {{threshold: 0.12}});
-  els.forEach(el => {{ el.classList.add('fade-up'); io.observe(el); }});
+  const io=new IntersectionObserver((e)=>{{e.forEach(x=>{{if(x.isIntersecting){{x.target.classList.add('visible');io.unobserve(x.target);}}}});}},{{threshold:0.1}});
+  document.querySelectorAll('section,.fade').forEach(el=>{{el.classList.add('fade-up');io.observe(el);}});
 }})();
 </script>
 
-Add this CSS in the <style> block:
-.fade-up{{opacity:0;transform:translateY(32px);transition:opacity 0.7s ease,transform 0.7s ease;}}
+And this CSS inside <style>:
+.fade-up{{opacity:0;transform:translateY(28px);transition:opacity 0.65s ease,transform 0.65s ease;}}
 .fade-up.visible{{opacity:1;transform:none;}}
-.fade-up:nth-child(2){{transition-delay:0.1s;}}
-.fade-up:nth-child(3){{transition-delay:0.2s;}}
 
-IMAGE FALLBACKS — REQUIRED:
-Every <img> tag must have: onerror="this.style.display='none'"
+SEO — in <head>:
+<meta name="description" content="2-sentence description from scraped content">
+<meta property="og:title" content="Business name — main service">
+<meta property="og:type" content="website">
+<meta name="robots" content="index,follow">
 
-HERO MARKER — REQUIRED:
-After the closing </section> or </header> of the hero, add on its own line:
-<!-- HERO_END -->
+CTA LINKS — every button must have a real href:
+1. Booking URL (from links above) → all primary CTAs
+2. mailto:email → if no booking URL
+3. tel:phone → if no email
+4. #kontakt → last resort
+NEVER use href="#"
 
-OUTPUT RULES:
-- Output ONE complete HTML file from <!DOCTYPE html> to </html>
-- No markdown fences, no explanation, no <!-- FILE: --> markers — just the HTML
-- All CSS and JS inline
-- HERO MARKER <!-- HERO_END --> required after the hero section"""
+OUTPUT: One complete HTML file from <!DOCTYPE html> to </html>. No markdown fences. No explanation. Just the HTML."""
     })
 
     for attempt in range(3):
