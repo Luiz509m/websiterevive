@@ -1734,10 +1734,13 @@
           <p style="font-size:13px;color:var(--muted-light);margin:0;">Hero preview — unlock to edit &amp; download the full website</p>
           <a href="#pricing" style="font-size:12px;color:var(--mint);text-decoration:none;border:1px solid rgba(61,255,208,0.3);border-radius:4px;padding:3px 10px;white-space:nowrap;transition:background .2s;" onmouseover="this.style.background='rgba(61,255,208,0.08)'" onmouseout="this.style.background='transparent'">Buy Tokens →</a>
         </div>
-        <button onclick="handleUnlock()" id="unlock-btn"
-          style="background:var(--mint);color:var(--black);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:0.5px;padding:10px 22px;border:none;border-radius:6px;cursor:pointer;">
-          Unlock Full Website — 1 Token
-        </button>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+          <button onclick="handleUnlock()" id="unlock-btn"
+            style="background:var(--mint);color:var(--black);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:0.5px;padding:10px 22px;border:none;border-radius:6px;cursor:pointer;">
+            Unlock Full Website — 1 Token
+          </button>
+          <span style="font-size:11px;color:var(--muted);letter-spacing:0.3px;">⏱ Full site generates in ~3 min</span>
+        </div>
       </div>
       <p id="unlock-status" style="display:none;font-size:13px;color:var(--mint);margin-top:0.8rem;"></p>
 
