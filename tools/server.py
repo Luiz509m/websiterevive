@@ -54,7 +54,7 @@ from auth import (
 )
 import db
 from generate_website import (
-    analyze_website, generate_website, load_reference_images,
+    analyze_website, generate_website, generate_hero_only, load_reference_images,
     extract_image_urls, extract_text_content,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links
@@ -76,6 +76,16 @@ PACKAGES = {
 
 import re as _re
 import base64 as _b64
+
+def _build_safety_css() -> str:
+    return (
+        '<style id="revive-safety">'
+        '#hero,section#hero,header#hero,#hero *{color:#fff !important;}'
+        '#hero a[class],#hero button[class]{color:inherit !important;}'
+        'nav a,nav li a,header nav a{color:#fff !important;}'
+        'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
+        '</style>'
+    )
 
 def parse_multifile_html(full_html: str) -> dict:
     """Split homepage HTML from hidden subpage sections and create separate page files."""
@@ -367,40 +377,27 @@ def generate():
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )
 
-        full_html = generate_website(analysis, references, site_images, full_text, pages, important_links, raw_html=scraped["html"])
+        # Step 1: Generate hero only (cheap — full site generated later on unlock)
+        hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"])
 
-        # Safety CSS: force white text in hero (prevents white-on-white), white nav links, nav spacing
-        safety_css = (
-            '<style id="revive-safety">'
-            # Hero text always white — safe on any dark background, fixes white-on-white
-            '#hero,section#hero,header#hero,#hero *{'
-            'color:#fff !important;'
-            '}'
-            # Restore button/link styling that should keep their own bg color
-            '#hero a[class],#hero button[class]{color:inherit !important;}'
-            # Nav links always white
-            'nav a,nav li a,header nav a{color:#fff !important;}'
-            # Nav spacing: logo and links never cramped
-            'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
-            '</style>'
-        )
-        full_html = full_html.replace('</head>', safety_css + '\n</head>', 1)
+        # Apply safety CSS to hero preview
+        safety_css = _build_safety_css()
+        hero_html_full = hero_html_full.replace('</head>', safety_css + '\n</head>', 1)
 
-        # Inject footer watermark (only at bottom of page, not fixed)
-        watermark = (
-            '<div style="text-align:center;padding:18px 20px;font-size:11px;'
-            'color:rgba(150,150,150,0.7);font-family:sans-serif;letter-spacing:0.3px;'
-            'border-top:1px solid rgba(150,150,150,0.15);margin-top:0;">'
-            'Website made with '
-            '<a href="https://websiterevive.com" target="_blank" '
-            'style="color:inherit;text-decoration:underline;">WebsiteRevive</a>'
-            '</div>'
-        )
-        full_html = full_html.replace('</body>', watermark + '\n</body>')
+        hero_html = extract_hero_html(hero_html_full)
 
-        hero_html = extract_hero_html(full_html)
+        # Store generation context as JSON in full_html field (full site generated on unlock)
+        pending_context = json.dumps({
+            "url":             url,
+            "slug":            slug,
+            "site_images":     site_images,
+            "important_links": important_links,
+            "pages":           pages,
+            "full_text":       full_text,
+            "raw_html_slug":   slug,  # raw HTML saved to .tmp/{slug}.html by scraper
+        }, ensure_ascii=False)
 
-        generation = db.save_generation(user_id, url, slug, hero_html, full_html)
+        generation = db.save_generation(user_id, url, slug, hero_html, "##PENDING##:" + pending_context)
 
         print(f"[server] Done — generation {generation['id']}")
         return jsonify({
@@ -437,19 +434,56 @@ def unlock(user_id):
 
     full_html = generation["full_html"]
 
-    # Debug: log subpage markers found in generated HTML
-    import re as _re2
-    markers = _re2.findall(r'<!-- SUBPAGE:([^-]+?) -->', full_html)
-    print(f"[unlock] Subpage markers found: {markers}")
-    if not markers:
-        # Log last 500 chars to see what Claude actually generated at the end
-        print(f"[unlock] No markers — HTML tail: ...{full_html[-500:]}")
+    # ── If pending: generate full site now ────────────────────────────────────
+    if full_html.startswith("##PENDING##:"):
+        print(f"[unlock] Pending generation — building full site now...")
+        ctx = json.loads(full_html[len("##PENDING##:"):])
 
-    files     = parse_multifile_html(full_html)
+        # Reload analysis (cached on disk from /generate step)
+        slug           = ctx["slug"]
+        site_images    = ctx.get("site_images", [])
+        important_links = ctx.get("important_links", [])
+        pages          = ctx.get("pages", [])
+        full_text      = ctx.get("full_text", "")
+
+        analysis_path = TMP / f"{slug}_analysis.json"
+        if analysis_path.exists():
+            analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+        else:
+            return jsonify({"error": "Analysis cache expired — please regenerate the site"}), 410
+
+        # Try to reload raw HTML for color extraction
+        raw_html_path = TMP / f"{slug}.html"
+        raw_html = raw_html_path.read_text(encoding="utf-8") if raw_html_path.exists() else None
+
+        references = load_reference_images(n=3)
+        full_html = generate_website(
+            analysis, references, site_images, full_text, pages, important_links,
+            raw_html=raw_html
+        )
+
+        # Apply safety CSS + watermark
+        full_html = full_html.replace('</head>', _build_safety_css() + '\n</head>', 1)
+        watermark = (
+            '<div style="text-align:center;padding:18px 20px;font-size:11px;'
+            'color:rgba(150,150,150,0.7);font-family:sans-serif;letter-spacing:0.3px;'
+            'border-top:1px solid rgba(150,150,150,0.15);margin-top:0;">'
+            'Website made with '
+            '<a href="https://websiterevive.com" target="_blank" '
+            'style="color:inherit;text-decoration:underline;">WebsiteRevive</a>'
+            '</div>'
+        )
+        full_html = full_html.replace('</body>', watermark + '\n</body>')
+
+        # Save to DB so next unlock is instant
+        db.update_full_html(generation_id, full_html)
+        print(f"[unlock] Full site generated and saved ({len(full_html):,} chars)")
+
+    # ── Package and return ────────────────────────────────────────────────────
+    files      = parse_multifile_html(full_html)
     index_html = files.get("index.html") or next(iter(files.values()), full_html)
-
-    zip_bytes = create_zip(files)
-    zip_b64   = _b64.b64encode(zip_bytes).decode()
+    zip_bytes  = create_zip(files)
+    zip_b64    = _b64.b64encode(zip_bytes).decode()
 
     print(f"[unlock] ZIP with {len(files)} file(s): {list(files.keys())}")
 

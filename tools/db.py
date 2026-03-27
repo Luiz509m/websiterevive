@@ -81,6 +81,10 @@ def mark_unlocked(generation_id: str) -> None:
     get_client().table("generations").update({"unlocked": True}).eq("id", generation_id).execute()
 
 
+def update_full_html(generation_id: str, full_html: str) -> None:
+    get_client().table("generations").update({"full_html": full_html}).eq("id", generation_id).execute()
+
+
 # ── Purchases ─────────────────────────────────────────────────────────────────
 
 def record_purchase(user_id: str, tokens_bought: int, amount_chf: float, stripe_session_id: str) -> dict:

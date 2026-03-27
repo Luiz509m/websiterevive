@@ -206,6 +206,136 @@ def extract_image_urls(html: str, base_url: str, max_images: int = 12) -> list[s
     return result
 
 
+# ── Step 1b: Hero-only generation (cheap preview) ────────────────────────────
+
+def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None) -> str:
+    """Generate ONLY nav + hero. Fast and cheap — used before token unlock."""
+    print("\n[hero] Generating hero preview...")
+
+    def _s(lst):
+        if not lst: return "—"
+        return ", ".join(i if isinstance(i, str) else (i.get("name") or str(i)) for i in lst)
+
+    business_name = analysis.get("business_name", "Business")
+    industry      = analysis.get("industry", "")
+    tone          = analysis.get("tone", "professional")
+    tagline       = analysis.get("tagline", "")
+    services      = analysis.get("main_services", [])
+    key_content   = analysis.get("key_content", {})
+    pages_analyzed = analysis.get("pages_content", [])
+    brand_colors  = extract_brand_colors(raw_html) if raw_html else analysis.get("current_colors", [])
+
+    import re as _re
+    def _slugify(s):
+        return _re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
+
+    # Build nav topics (same logic as full generation)
+    nav_topics = []
+    seen = set()
+    for pc in pages_analyzed[1:]:
+        if len(nav_topics) >= 5: break
+        label = pc.get("label", "").strip()
+        if not label or label.lower() in seen: continue
+        nav_topics.append({"label": label, "href": f"#{_slugify(label)}", "cta": False})
+        seen.add(label.lower())
+    for svc in services[:8]:
+        if len(nav_topics) >= 5: break
+        label = svc if isinstance(svc, str) else (svc.get("name") or str(svc))
+        label = label.strip()
+        if not label or label.lower() in seen: continue
+        nav_topics.append({"label": label, "href": f"#{_slugify(label)}", "cta": False})
+        seen.add(label.lower())
+    if not any(t["label"].lower() in ["kontakt", "contact"] for t in nav_topics):
+        nav_topics.append({"label": "Kontakt", "href": "#kontakt", "cta": False})
+    nav_topics = nav_topics[:6]
+    cta_kw = ["reservier", "buchen", "book", "termin", "anfrage", "kontakt", "contact"]
+    marked = False
+    for t in reversed(nav_topics):
+        if any(k in t["label"].lower() for k in cta_kw):
+            t["cta"] = True; marked = True; break
+    if not marked and nav_topics:
+        nav_topics[-1]["cta"] = True
+
+    nav_str = "\n".join(
+        f"  {'[CTA-BUTTON] ' if t['cta'] else ''}{t['label']} → {t['href']}"
+        for t in nav_topics
+    )
+    colors_note = f"Use these exact brand colors: {', '.join(brand_colors[:4])}" if brand_colors else "Derive colors from industry/tone."
+
+    tech_kw = ["saas","software","erp","crm","app","platform","cloud","api","tech","digital","it ","ai ","data"]
+    is_tech = any(k in industry.lower() for k in tech_kw)
+    if is_tech:
+        images_note = "Tech/software business — use a dark CSS gradient for hero, no real image."
+    elif site_image_urls:
+        images_note = "Site images (use one for hero if suitable — dark photo with overlay):\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+    else:
+        images_note = "No site images — use a dark gradient hero."
+
+    msg_content = []
+    if reference_images:
+        msg_content.append({"type": "text", "text": f"Study these {len(reference_images)} reference designs for hero inspiration:"})
+        for ref in reference_images:
+            msg_content.append({"type": "image", "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}})
+
+    msg_content.append({"type": "text", "text": f"""Generate a complete HTML page with ONLY a nav bar and hero section.
+
+BUSINESS:
+Name:     {business_name}
+Industry: {industry}
+Tone:     {tone}
+Tagline:  {tagline or '—'}
+Headline: {key_content.get('hero_headline') or '—'}
+Subtext:  {key_content.get('hero_subtext') or '—'}
+CTA:      {key_content.get('cta_text') or 'Kontakt'}
+Phone:    {key_content.get('phone') or '—'}
+Services: {_s(services)}
+{colors_note}
+{images_note}
+
+NAV: logo left (business name), links right. Transparent → blur on scroll. Hamburger on mobile.
+USE EXACTLY THESE LINKS:
+  Home → #
+{nav_str}
+[CTA-BUTTON] = pill button, accent color bg, white text, border-radius:100px.
+ALL nav link text: white/light — never dark. Min 48px gap between logo and first link.
+
+HERO (strictly enforced):
+✗ NEVER a white or light background — text becomes invisible
+✓ Dark background: photo with overlay OR dark gradient OR deep solid color
+✓ If photo: always add overlay like linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55))
+✓ ALL hero text: color:#fff explicitly
+✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95, color:#fff
+✓ Subtext: clamp(1rem,2vw,1.25rem), color:rgba(255,255,255,0.65)
+✓ min-height:100svh, immersive, jaw-dropping quality
+✓ CTA: pill shape, accent color bg, color:#fff, padding:14px 40px
+
+Add <!-- HERO_END --> immediately after the closing </section> of the hero.
+
+Google Fonts: 2 fonts matching the tone. Mobile-first. All CSS+JS inline.
+OUTPUT: Complete HTML <!DOCTYPE html> to </html>. Nothing below the hero. No markdown."""})
+
+    for attempt in range(3):
+        try:
+            with CLIENT.messages.stream(
+                model=MODEL, max_tokens=8000,
+                messages=[{"role": "user", "content": msg_content}]
+            ) as stream:
+                html = stream.get_final_text().strip()
+            break
+        except anthropic.APIStatusError as e:
+            if e.status_code in (529, 500) and attempt < 2:
+                wait = (attempt + 1) * 15
+                print(f"[hero] API {e.status_code} — retrying in {wait}s")
+                import time; time.sleep(wait)
+            else:
+                raise
+
+    if html.startswith("```"):
+        html = html.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    print(f"[hero] ✓ Generated {len(html)} chars")
+    return html
+
+
 # ── Step 1: Analyze ───────────────────────────────────────────────────────────
 
 def analyze_website(url: str, html: str, business_name: str, full_text: str = "", pages: list = None) -> dict:

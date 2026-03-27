@@ -2809,16 +2809,30 @@
     const statusEl = document.getElementById('unlock-status');
 
     btn.disabled    = true;
-    btn.textContent = 'Unlocking…';
+    btn.textContent = 'Building…';
     statusEl.style.display = 'block';
     statusEl.style.color   = 'var(--mint)';
     statusEl.textContent   = 'Verifying token…';
+
+    // Progress messages while full site is being generated (2-3 min)
+    const progressMsgs = [
+      [3000,  'Analysing your brand…'],
+      [12000, 'Designing sections…'],
+      [30000, 'Writing content…'],
+      [55000, 'Styling & polishing…'],
+      [90000, 'Almost there…'],
+      [130000,'Finalising your website…'],
+    ];
+    const progressTimers = progressMsgs.map(([delay, msg]) =>
+      setTimeout(() => { if (statusEl.style.display !== 'none') statusEl.textContent = msg; }, delay)
+    );
 
     try {
       const res  = await fetch(`${REVIVE_API_URL}/unlock`, {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ generation_id: currentGenerationId }),
       });
+      progressTimers.forEach(t => clearTimeout(t));
       const data = await res.json();
 
       if (res.status === 402 || data.error === 'Not enough tokens') {
@@ -2859,6 +2873,7 @@
       if (user) { user.tokens = Math.max(0, user.tokens - 1); setUser(user); updateNavAuth(); }
 
     } catch (err) {
+      progressTimers.forEach(t => clearTimeout(t));
       statusEl.style.color = 'var(--red)';
       statusEl.textContent = `Error: ${err.message}`;
       btn.disabled    = false;
