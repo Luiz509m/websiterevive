@@ -497,13 +497,13 @@ GALLERY / ABOUT: use the remaining images from the list"""
             label = t["label"]
             label_lower = label.lower()
             # Try to find content from analysis pages_content
-            content = ""
+            page_content = ""
             for pc in pages_analyzed:
                 if pc.get("label", "").lower() == label_lower or pc.get("id", "") == slug:
                     raw = raw_pages_by_label.get(label_lower, "")
-                    content = _build_page_content(pc, raw)
+                    page_content = _build_page_content(pc, raw)
                     break
-            subpages.append({"label": label, "filename": filename, "content": content})
+            subpages.append({"label": label, "filename": filename, "content": page_content})
             seen_labels.add(label_lower)
 
     print(f"[generate] Nav topics ({len(nav_topics)}): {[t['label'] for t in nav_topics]}")
