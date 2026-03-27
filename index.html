@@ -2761,7 +2761,8 @@
         renderTabs();
         loadPage('index.html');
       } else {
-        // Fallback: single file
+        // Single-page site: still set activeTab so edits are tracked and included in ZIP download
+        activeTab = 'index.html';
         const blob = new Blob([unlockedHtml], { type: 'text/html' });
         document.getElementById('full-iframe').src = URL.createObjectURL(blob);
       }
