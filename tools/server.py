@@ -369,6 +369,23 @@ def generate():
 
         full_html = generate_website(analysis, references, site_images, full_text, pages, important_links, raw_html=scraped["html"])
 
+        # Safety CSS: force white text in hero (prevents white-on-white), white nav links, nav spacing
+        safety_css = (
+            '<style id="revive-safety">'
+            # Hero text always white — safe on any dark background, fixes white-on-white
+            '#hero,section#hero,header#hero,#hero *{'
+            'color:#fff !important;'
+            '}'
+            # Restore button/link styling that should keep their own bg color
+            '#hero a[class],#hero button[class]{color:inherit !important;}'
+            # Nav links always white
+            'nav a,nav li a,header nav a{color:#fff !important;}'
+            # Nav spacing: logo and links never cramped
+            'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
+            '</style>'
+        )
+        full_html = full_html.replace('</head>', safety_css + '\n</head>', 1)
+
         # Inject footer watermark (only at bottom of page, not fixed)
         watermark = (
             '<div style="text-align:center;padding:18px 20px;font-size:11px;'

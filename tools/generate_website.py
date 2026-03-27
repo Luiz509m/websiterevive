@@ -610,33 +610,45 @@ Address:     {key_content.get('address') or '—'}
 
 ── NAV ──────────────────────────────────────────────────────────────────
 Transparent on load → solid + backdrop-blur on scroll (JS scroll listener).
-Logo left (business name or text logo), nav links right, hamburger on mobile.
+Layout: logo on far left, nav links in the center/right — use justify-content:space-between and a
+generous gap (min 48px) between the logo and the first nav link so they never feel cramped.
+Hamburger on mobile.
 
 USE EXACTLY THESE LINKS — no additions, no removals:
   Home → #
 {nav_topics_str}
 
 [CTA-BUTTON] = filled pill button, accent color background, white text, border-radius:100px.
-All other links = plain text, hover underline.
+All other links = plain text, color:#fff or light color, hover underline or opacity change.
+CRITICAL: ALL nav link text must be white or light — never dark/black text in the nav.
 
 ── HERO ──────────────────────────────────────────────────────────────────
 Full viewport height (min-height:100svh). This is the most important part.
 
+CRITICAL — BACKGROUND & CONTRAST RULES (read carefully, no exceptions):
+✗ NEVER use a white, cream, or light background for the hero — text will be invisible
+✓ The hero background MUST be dark: a dark photo with overlay, a dark gradient, or a deep solid color
+✓ If using a photo: ALWAYS add a CSS overlay: background: linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55))
+✓ If using a gradient: use dark tones — e.g. #0a0a0a → #1a1a2e, or deep brand color
+✓ ALL text in the hero (headline, subtext, button labels) must be explicitly color:#fff or color:rgba(255,255,255,0.X)
+✓ Add this as a CSS safety rule: #hero * {{ color: inherit; }} and set color:#fff on the hero section itself
+
 HEADLINE: Use the EXACT headline from the data above. Never write a generic one.
 • Size: clamp(3rem,8vw,7rem) — bold or black weight, line-height 0.95–1.1
 • If longer than 6 words, break with <br> at the most natural point
-• Subtext: clamp(1rem,2vw,1.25rem), max 2 lines, 60% opacity, light weight
+• color: #fff — explicit, always
+• Subtext: clamp(1rem,2vw,1.25rem), max 2 lines, color:rgba(255,255,255,0.65), light weight
 
 LAYOUT — choose the one that fits this industry best:
-A) Full-bleed image (use a real site image) with gradient overlay + centered text
-B) Split 50/50: dark text side left, image right — <img> with object-fit:contain, no cropping
-C) Large headline overlapping a full-bleed atmospheric photo (offset, not centered)
+A) Full-bleed dark photo with overlay + centered text + CTA button
+B) Split 50/50: dark left side with text (color:#fff), image right
+C) Large headline overlapping a full-bleed dark photo (offset, not centered)
 
 BACKGROUND — follow these rules strictly:
 {images_block}
 
 DECORATION: Add exactly one accent element — thin line, oversized letter, or geometric shape in the accent color.
-CTA BUTTON: pill shape, accent color, padding:14px 40px, no box-shadow, hover: slight darken.
+CTA BUTTON: pill shape, accent color background, color:#fff, padding:14px 40px, no box-shadow.
 
 Add <!-- HERO_END --> on its own line immediately after the closing </section> of the hero.
 
