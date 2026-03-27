@@ -267,7 +267,17 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     if is_tech:
         images_note = "Tech/software business — use a dark CSS gradient for hero, no real image."
     elif site_image_urls:
-        images_note = "Site images (use one for hero if suitable — dark photo with overlay):\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+        images_note = (
+            "HERO IMAGE — use AT MOST ONE image from this list, only if it fits (space/product/food/architecture).\n"
+            "STRICT RULES (no exceptions):\n"
+            "  ✗ NEVER background-size:cover or background-image on hero — zooms and crops unpredictably\n"
+            "  ✗ NEVER use more than one image in the hero\n"
+            "  ✓ Place image as <img> in a 50/50 split layout: text left, image right\n"
+            "  ✓ <img style=\"width:100%;height:100%;object-fit:contain;max-height:600px;\">\n"
+            "  ✓ Shows the image exactly as-is — no cropping, no zooming\n"
+            "  ✓ If no suitable image exists: use a dark CSS gradient instead\n"
+            "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+        )
     else:
         images_note = "No site images — use a dark gradient hero."
 
@@ -526,33 +536,40 @@ HERO BACKGROUND — this is a tech/software company:
 - You may use real images in other sections (features, about, etc.)"""
         if site_image_urls:
             images_list = "\n".join(f"- {u}" for u in site_image_urls[:8])
-            images_block += f"\n\nOTHER SECTION IMAGES (use in features/about/gallery, NOT hero):\n{images_list}"
+            images_block += (
+                f"\n\nOTHER SECTION IMAGES (use in features/about/gallery, NOT hero):\n{images_list}\n"
+                "Use <img> tags only. Every <img>: style=\"max-width:100%;height:auto;\" — no zooming, no cropping."
+            )
     elif site_image_urls:
         images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
         images_block = f"""
-ORIGINAL SITE IMAGES (from the real website):
+ORIGINAL SITE IMAGES — taken 1:1 from the real website. Use them exactly as-is:
 {images_list}
+
+GLOBAL IMAGE RULES (apply everywhere on the page, no exceptions):
+  ✗ NEVER use background-size:cover or background-size:contain on any image — zooms/crops unpredictably
+  ✗ NEVER use background-image with a URL for any visible image
+  ✓ ALWAYS use the <img> HTML tag for every image from this list
+  ✓ Every <img> must have: style="max-width:100%;height:auto;" — preserves aspect ratio, no zoom
+  ✓ Images must appear exactly as they are on the original site — no cropping, no stretching
 
 HERO BACKGROUND — strict rules:
 
-STEP 1 — Check if a real image is suitable:
-PREFER using a real image from the list above. Use one if ANY of these match:
-  ✓ It shows a space/interior, product, food, landscape, architecture, or team/people
+STEP 1 — Check if ONE real image is suitable for the hero:
+Use it ONLY if ALL of these are true:
+  ✓ It shows a space/interior, product, food, landscape, or architecture (NOT people/faces)
   ✓ The URL does NOT contain "thumb", "small", "icon", "logo", "avatar", "50x", "100x", "150x"
-  ✓ It is related to the business
+  ✓ It clearly relates to the business
 
-Only skip real images if the list is empty or all URLs are clearly icons/logos.
+If using a hero image — STRICT RULES:
+  ✗ NEVER use it as a CSS background-image — use an <img> tag instead
+  ✗ NEVER use more than one image in the hero
+  ✓ ALWAYS use a SPLIT layout: text left 50%, <img> right 50%
+  ✓ On the <img>: style="width:100%;height:100%;object-fit:contain;max-height:600px;"
+  ✓ This shows the image exactly as-is without any cropping or zooming
 
-If using a real image — STRICT RULES (no exceptions):
-  ✗ NEVER use background-image + background-size:cover — this zooms and crops the image unpredictably
-  ✗ NEVER use any image of people/faces/staff as a background
-  ✓ ALWAYS use <img> tag in a SPLIT layout: text left 50%, image right 50%
-  ✓ On the <img> use: style="width:100%;height:100%;object-fit:contain;max-height:600px;"
-  ✓ This shows the image as-is without any cropping or zooming
-
-STEP 2 — If no suitable image: look at the REFERENCE DESIGNS provided above (the screenshots).
-  Study their hero sections: typography scale, spacing, colour combinations, layout composition.
-  Build a CSS-only hero in that same quality and style, adapted to this business's industry and brand colours:
+STEP 2 — If no suitable image, use the REFERENCE DESIGNS (the screenshots) as style inspiration.
+  Build a CSS-only hero matching their quality, adapted to this business's industry and brand colours:
 
   - Dental/Medical: clean gradient (white → light teal or deep navy), add a subtle cross or tooth SVG shape
   - Restaurant/Food: warm gradient (deep burgundy → warm amber), add a subtle grain texture
@@ -565,7 +582,7 @@ STEP 2 — If no suitable image: look at the REFERENCE DESIGNS provided above (t
 
 Either way: hero must be min-height:100vh, all text white, immersive, professional.
 
-GALLERY / ABOUT: use the remaining images from the list"""
+GALLERY / ABOUT: use remaining images from the list with <img> tags (max-width:100%;height:auto)"""
 
     # ── Build nav topics (anchor links — single page) ────────────────────────
     pages_analyzed = analysis.get("pages_content", [])
@@ -821,7 +838,7 @@ Copyright line. Dark background preferred.
   - Nav: hamburger (☰) on mobile, JS toggles .open class
   - Hero headline: clamp(2.5rem,7vw,6rem)
   - Grids: CSS grid, auto-fit or @media(max-width:768px) → 1 column
-  - Images: max-width:100%; height:auto
+  - Images: always <img> tags, never background-image with URL; max-width:100%; height:auto; object-fit:contain — no zooming, no cropping
   - Padding: clamp(40px,8vw,120px) vertically, clamp(20px,5vw,80px) horizontally
   - Buttons: min-height:48px
   - No horizontal scroll
