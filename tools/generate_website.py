@@ -487,7 +487,27 @@ GALLERY / ABOUT: use the remaining images from the list"""
     if not marked and nav_topics:
         nav_topics[-1]["cta"] = True
 
+    # Convert all #topic-* anchor links to .html subpages so every nav topic has a real page.
+    # This guarantees links always work AND every topic card gets a "Mehr erfahren" button.
+    for t in nav_topics:
+        if t["href"].startswith("#topic-"):
+            slug = t["href"][7:]          # strip '#topic-'
+            filename = f"{slug}.html"
+            t["href"] = filename
+            label = t["label"]
+            label_lower = label.lower()
+            # Try to find content from analysis pages_content
+            content = ""
+            for pc in pages_analyzed:
+                if pc.get("label", "").lower() == label_lower or pc.get("id", "") == slug:
+                    raw = raw_pages_by_label.get(label_lower, "")
+                    content = _build_page_content(pc, raw)
+                    break
+            subpages.append({"label": label, "filename": filename, "content": content})
+            seen_labels.add(label_lower)
+
     print(f"[generate] Nav topics ({len(nav_topics)}): {[t['label'] for t in nav_topics]}")
+    print(f"[generate] Total subpages: {len(subpages)}: {[s['filename'] for s in subpages]}")
 
     nav_topics_str = "\n".join(
         f"  {'[CTA-BUTTON] ' if t['cta'] else ''}{t['label']} → {t['href']}"
