@@ -982,7 +982,11 @@
       padding: 32px 28px;
       position: relative;
       transition: border-color 0.2s;
+      display: flex;
+      flex-direction: column;
     }
+    .p-card .btn-plan-primary,
+    .p-card .btn-plan-outline { margin-top: auto; }
 
     .p-card:hover { border-color: var(--border-mid); }
 
@@ -1906,8 +1910,8 @@
             <li><span class="check">✓</span> Mobile responsive</li>
             <li><span style="color:#d97706;">✓</span> <span style="color:#d97706;font-weight:500;">Feedback welcome</span></li>
           </ul>
-          <button onclick="handleBuyTokens('test')" class="btn-plan-outline" style="border-color:rgba(255,180,0,0.5);color:#d97706;">Get Testing Token</button>
         </div>
+        <button onclick="handleBuyTokens('test')" class="btn-plan-outline" style="border-color:rgba(255,180,0,0.5);color:#d97706;">Get Testing Token</button>
       </div>
 
       <div class="p-card">
