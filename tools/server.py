@@ -507,28 +507,29 @@ def unlock(user_id):
         hero_html_full = ctx.get("hero_html_full", "")
         hero_marker = "<!-- HERO_END -->"
         if hero_html_full and hero_marker in hero_html_full and hero_marker in full_html:
-            # Extract <head> from hero preview (has the right fonts/CSS)
-            hero_head_start = hero_html_full.find("<head")
-            hero_head_end   = hero_html_full.find("</head>") + len("</head>")
-            hero_head       = hero_html_full[hero_head_start:hero_head_end]
+            # Extract hero's <style> blocks and inject into full site's <head>
+            # (keeps full site CSS intact, just adds hero-specific styles)
+            import re as _re_hero
+            hero_styles = "\n".join(
+                m.group(0) for m in _re_hero.finditer(r'<style[^>]*>.*?</style>', hero_html_full, _re_hero.DOTALL)
+            )
 
             # Extract nav+hero body content from hero preview
-            hero_body_start  = hero_html_full.find("<body")
+            hero_body_start   = hero_html_full.find("<body")
             hero_body_tag_end = hero_html_full.find(">", hero_body_start) + 1
-            hero_end_idx     = hero_html_full.index(hero_marker) + len(hero_marker)
-            preserved_body   = hero_html_full[hero_body_tag_end:hero_end_idx]
+            hero_end_idx      = hero_html_full.index(hero_marker) + len(hero_marker)
+            preserved_body    = hero_html_full[hero_body_tag_end:hero_end_idx]
 
-            # Replace <head> in full site with hero's <head>
-            full_head_start = full_html.find("<head")
-            full_head_end   = full_html.find("</head>") + len("</head>")
-            full_html = full_html[:full_head_start] + hero_head + full_html[full_head_end:]
+            # Inject hero styles before </head> in full site (full site CSS stays intact)
+            if hero_styles:
+                full_html = full_html.replace("</head>", hero_styles + "\n</head>", 1)
 
             # Replace nav+hero body section with preserved hero
             full_body_start   = full_html.find("<body")
             full_body_tag_end = full_html.find(">", full_body_start) + 1
             full_hero_end     = full_html.index(hero_marker) + len(hero_marker)
             full_html = full_html[:full_body_tag_end] + preserved_body + full_html[full_hero_end:]
-            print("[unlock] ✓ Reused hero preview (head + body) — preview matches full site exactly")
+            print("[unlock] ✓ Reused hero preview body + injected hero styles — preview matches full site exactly")
 
         # Apply safety CSS + watermark
         full_html = full_html.replace('</head>', _build_safety_css() + '\n</head>', 1)
