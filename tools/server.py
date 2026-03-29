@@ -422,6 +422,7 @@ def generate():
         hero_html = extract_hero_html(hero_html_full)
 
         # Store generation context as JSON in full_html field (full site generated on unlock)
+        # analysis + raw_html stored inline so Render filesystem restarts don't break unlock
         pending_context = json.dumps({
             "url":             url,
             "slug":            slug,
@@ -429,7 +430,8 @@ def generate():
             "important_links": important_links,
             "pages":           pages,
             "full_text":       full_text,
-            "raw_html_slug":   slug,  # raw HTML saved to .tmp/{slug}.html by scraper
+            "analysis":        analysis,
+            "raw_html":        scraped["html"][:200_000],  # cap at 200KB to stay within DB limits
         }, ensure_ascii=False)
 
         generation = db.save_generation(user_id, url, slug, hero_html, "##PENDING##:" + pending_context)
@@ -474,22 +476,24 @@ def unlock(user_id):
         print(f"[unlock] Pending generation — building full site now...")
         ctx = json.loads(full_html[len("##PENDING##:"):])
 
-        # Reload analysis (cached on disk from /generate step)
-        slug           = ctx["slug"]
-        site_images    = ctx.get("site_images", [])
+        slug            = ctx["slug"]
+        site_images     = ctx.get("site_images", [])
         important_links = ctx.get("important_links", [])
-        pages          = ctx.get("pages", [])
-        full_text      = ctx.get("full_text", "")
+        pages           = ctx.get("pages", [])
+        full_text       = ctx.get("full_text", "")
 
-        analysis_path = TMP / f"{slug}_analysis.json"
-        if analysis_path.exists():
-            analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
-        else:
-            return jsonify({"error": "Analysis cache expired — please regenerate the site"}), 410
+        # Analysis stored inline in pending context (filesystem not reliable on Render)
+        analysis = ctx.get("analysis")
+        if not analysis:
+            # Fallback: try filesystem cache (older generations)
+            analysis_path = TMP / f"{slug}_analysis.json"
+            if analysis_path.exists():
+                analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+            else:
+                return jsonify({"error": "Analysis expired — please paste the URL again to regenerate"}), 410
 
-        # Try to reload raw HTML for color extraction
-        raw_html_path = TMP / f"{slug}.html"
-        raw_html = raw_html_path.read_text(encoding="utf-8") if raw_html_path.exists() else None
+        # Raw HTML stored inline in pending context
+        raw_html = ctx.get("raw_html") or None
 
         references = load_reference_images(n=3)
         full_html = generate_website(
