@@ -85,8 +85,6 @@ def _build_safety_css() -> str:
         'body>*,main>*,body>section,body>div{position:relative !important;z-index:auto !important;}'
         # Nav spacing
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
-        # Nav links always visible — default white, overridden by JS if nav is light
-        'nav a,header a,.nav-link{color:#fff !important;}'
         '</style>'
     )
     # JS: runs AFTER full page load (window.onload) so computed styles are accurate
@@ -140,13 +138,15 @@ def _build_safety_css() -> str:
     var c=l>160?'#111':'#fff';
     nav.querySelectorAll('a').forEach(function(a){col(a,c);});
   }
-  // Run after full load so all CSS is applied and computed styles are accurate
-  window.addEventListener('load',function(){
+  // Run on DOMContentLoaded AND load to catch both early and late rendering
+  function runFixes(){
     var hero=document.getElementById('hero');
     if(hero)fixSection(hero);
     fixNav();
-    window.addEventListener('scroll',fixNav,{passive:true});
-  });
+  }
+  document.addEventListener('DOMContentLoaded',runFixes);
+  window.addEventListener('load',runFixes);
+  window.addEventListener('scroll',fixNav,{passive:true});
 })();
 </script>"""
     return css + js
