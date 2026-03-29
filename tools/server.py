@@ -81,73 +81,68 @@ def _build_safety_css() -> str:
     css = (
         '<style id="revive-safety">'
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
+        # Prevent sections from overlapping each other
+        'section,main>div,[id]{position:relative;z-index:auto;}'
         '</style>'
     )
     js = (
         '<script id="revive-hero-fix">'
-        # Helper: compute luminance from getComputedStyle background
+        # Helper: luminance from computed background (-1 = transparent)
         'function _lum(el){'
-        'var cs=getComputedStyle(el);'
-        'var m=(cs.backgroundColor||"").match(/[\\d.]+/g);'
-        'if(!m||m.length<3)return -1;'  # -1 = transparent/unknown
+        'var m=(getComputedStyle(el).backgroundColor||"").match(/[\\d.]+/g);'
+        'if(!m||m.length<3)return -1;'
         'var a=m[3]!==undefined?+m[3]:1;'
-        'if(a<0.1)return -1;'  # transparent
+        'if(a<0.05)return -1;'
         'return 0.299*+m[0]+0.587*+m[1]+0.114*+m[2];'
         '}'
-        # Helper: set text color on element and all its text children
+        # Helper: force color with !important via setProperty so it beats stylesheet !important
+        'function _col(el,col){'
+        'el.style.setProperty("color",col,"important");'
+        '}'
+        # Helper: set text color on el + all text descendants that have transparent bg
         'function _setTextColor(el,col){'
-        'el.style.color=col;'
-        'Array.from(el.querySelectorAll("p,h1,h2,h3,h4,h5,h6,span,a,li,label,button,div")).forEach(function(c){'
-        'var cLum=_lum(c);'
-        'if(cLum===-1){c.style.color=col;}'  # transparent bg → inherit parent color
+        '_col(el,col);'
+        'el.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,button,label").forEach(function(c){'
+        'if(_lum(c)===-1)_col(c,col);'
         '});'
         '}'
         'document.addEventListener("DOMContentLoaded",function(){'
-        # ── Hero contrast fix ────────────────────────────────────────────
+        # ── Hero contrast fix ─────────────────────────────────────────────
         'var h=document.getElementById("hero");'
         'if(h){'
         'var cs=getComputedStyle(h);'
         'var hasBgImg=cs.backgroundImage&&cs.backgroundImage!=="none";'
         'var lum=_lum(h);'
-        'var isLight=lum>160;'
-        'var isTransparent=lum===-1;'
         'if(hasBgImg){'
-        # Background image: add dark overlay so white text works
-        'if(lum>130||lum===-1){'
+        # Has bg image → add dark overlay + white text
         'var ov=document.createElement("div");'
-        'ov.style.cssText="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:0;pointer-events:none;";'
-        'h.style.position="relative";'
+        'ov.style.cssText="position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:0;pointer-events:none;";'
+        'h.style.setProperty("position","relative","important");'
         'h.insertBefore(ov,h.firstChild);'
-        'Array.from(h.children).forEach(function(c){if(c!==ov&&!c.style.position){c.style.position="relative";c.style.zIndex="1";}});'
+        'h.querySelectorAll(":scope>*:not(#revive-overlay)").forEach(function(c){'
+        'if(!c.style.position){c.style.setProperty("position","relative","important");}'
+        'c.style.setProperty("z-index","1","important");'
+        '});'
         '_setTextColor(h,"#fff");'
-        '}'
-        '}else if(isLight){'
-        # Light solid background → dark text
+        '}else if(lum>160){'
+        # Light solid bg → dark text
         '_setTextColor(h,"#111");'
-        '}else if(isTransparent){'
-        # Transparent/unknown → force dark background + white text
-        'h.style.background="linear-gradient(135deg,#0d1117 0%,#1a2236 60%,#0d1117 100%)";'
+        '}else if(lum===-1){'
+        # Transparent → force dark bg + white text
+        'h.style.setProperty("background","linear-gradient(135deg,#0d1117 0%,#1a2236 60%,#0d1117 100%)","important");'
         '_setTextColor(h,"#fff");'
         '}else{'
-        # Dark background → white text
+        # Dark bg → white text
         '_setTextColor(h,"#fff");'
         '}'
         '}'
-        # ── Nav contrast fix (initial + on scroll) ───────────────────────
+        # ── Nav contrast fix (initial + scroll) ───────────────────────────
         'function fixNav(){'
         'var nav=document.querySelector("nav,header");'
         'if(!nav)return;'
         'var lum=_lum(nav);'
-        'if(lum>160){'
-        # Light nav → dark text
-        'Array.from(nav.querySelectorAll("a")).forEach(function(a){a.style.color="#111";});'
-        '}else if(lum>=0&&lum<=160){'
-        # Dark nav → white text
-        'Array.from(nav.querySelectorAll("a")).forEach(function(a){a.style.color="#fff";});'
-        '}else{'
-        # Transparent (top of page) → white text
-        'Array.from(nav.querySelectorAll("a")).forEach(function(a){a.style.color="#fff";});'
-        '}'
+        'var col=lum>160?"#111":"#fff";'
+        'nav.querySelectorAll("a").forEach(function(a){_col(a,col);});'
         '}'
         'fixNav();'
         'window.addEventListener("scroll",fixNav,{passive:true});'
