@@ -135,8 +135,8 @@ def _build_safety_css() -> str:
     # CSS: structural safety rules that don't depend on JS timing
     css = (
         '<style id="revive-safety">'
-        # Prevent sections from stacking on top of each other
-        'body>*,main>*,body>section,body>div{position:relative !important;z-index:auto !important;}'
+        # Prevent sections (not nav/header) from stacking on top of each other
+        'body>section,body>main,body>div:not(nav):not(header){position:relative !important;z-index:auto !important;}'
         # Nav spacing
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
         '</style>'
