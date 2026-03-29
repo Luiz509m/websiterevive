@@ -335,12 +335,12 @@ IF no suitable image (CSS-only hero):
   ✓ Optional: subtle CSS geometric shape or thin accent line only if it enhances the design
 
 ALWAYS:
-✓ Set background explicitly on #hero — NEVER leave it white or default
-✓ Minimum: background:#0d1117 — always override, no exceptions
-✓ ALL hero text: color:#fff explicitly on every element
-✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95, color:#fff
-✓ Subtext: clamp(1rem,2vw,1.25rem), color:rgba(255,255,255,0.75), max-width:600px
-✓ CTA: pill shape, accent color bg, color:#fff, padding:14px 40px, font-weight:600
+✓ Set background explicitly on #hero — NEVER leave it unset/default
+✓ CONTRAST RULE (no exceptions): light background → dark text (#111 or brand dark color)
+✓ CONTRAST RULE (no exceptions): dark background → light text (#fff or rgba(255,255,255,0.85))
+✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95
+✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, matching contrast color
+✓ CTA: pill shape, accent color bg, contrasting text, padding:14px 40px, font-weight:600
 ✓ Google Fonts: 2 fonts matching the tone (e.g. serif + sans for luxury, two sans for tech)
 ✗ NO random decorative symbols, dots, or special characters that don't belong to the content
 

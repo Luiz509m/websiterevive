@@ -80,60 +80,77 @@ import base64 as _b64
 def _build_safety_css() -> str:
     css = (
         '<style id="revive-safety">'
-        'html,body{background:#0d1117;}'
-        '#hero,section#hero,header#hero{color:#fff !important;}'
-        '#hero *,section#hero *{color:#fff !important;}'
-        '#hero a[class],#hero button[class]{color:inherit !important;}'
-        'nav a,nav li a,header nav a,nav a:visited,.nav-link,.navbar a{color:#fff !important;}'
-        'nav.scrolled,header.scrolled,.navbar.scrolled,.nav--scrolled,.nav-scrolled{'
-        'background:rgba(10,10,20,0.95) !important;backdrop-filter:blur(12px) !important;}'
-        'nav.scrolled a,header.scrolled a,.navbar.scrolled a,.nav--scrolled a{color:#fff !important;}'
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
         '</style>'
     )
-    # JS: after load, check if hero background is too light and fix it
     js = (
         '<script id="revive-hero-fix">'
-        'document.addEventListener("DOMContentLoaded",function(){'
-        'var h=document.getElementById("hero");'
-        'if(!h)return;'
-        'var cs=getComputedStyle(h);'
+        # Helper: compute luminance from getComputedStyle background
+        'function _lum(el){'
+        'var cs=getComputedStyle(el);'
         'var m=(cs.backgroundColor||"").match(/[\\d.]+/g);'
-        'var lum=255,alpha=0;'
-        'if(m&&m.length>=3){'
-        'lum=0.299*+m[0]+0.587*+m[1]+0.114*+m[2];'
-        'alpha=m[3]!==undefined?+m[3]:1;'
+        'if(!m||m.length<3)return -1;'  # -1 = transparent/unknown
+        'var a=m[3]!==undefined?+m[3]:1;'
+        'if(a<0.1)return -1;'  # transparent
+        'return 0.299*+m[0]+0.587*+m[1]+0.114*+m[2];'
         '}'
+        # Helper: set text color on element and all its text children
+        'function _setTextColor(el,col){'
+        'el.style.color=col;'
+        'Array.from(el.querySelectorAll("p,h1,h2,h3,h4,h5,h6,span,a,li,label,button,div")).forEach(function(c){'
+        'var cLum=_lum(c);'
+        'if(cLum===-1){c.style.color=col;}'  # transparent bg → inherit parent color
+        '});'
+        '}'
+        'document.addEventListener("DOMContentLoaded",function(){'
+        # ── Hero contrast fix ────────────────────────────────────────────
+        'var h=document.getElementById("hero");'
+        'if(h){'
+        'var cs=getComputedStyle(h);'
         'var hasBgImg=cs.backgroundImage&&cs.backgroundImage!=="none";'
-        # No background image + light/transparent background → force dark gradient
-        'if(!hasBgImg&&(alpha<0.1||lum>180)){'
-        'h.style.background="linear-gradient(135deg,#0d1117 0%,#1a2236 60%,#0d1117 100%)";'
-        '}'
-        # Has background image but it looks light → inject a dark overlay div
-        'if(hasBgImg&&lum>130){'
+        'var lum=_lum(h);'
+        'var isLight=lum>160;'
+        'var isTransparent=lum===-1;'
+        'if(hasBgImg){'
+        # Background image: add dark overlay so white text works
+        'if(lum>130||lum===-1){'
         'var ov=document.createElement("div");'
         'ov.style.cssText="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:0;pointer-events:none;";'
         'h.style.position="relative";'
         'h.insertBefore(ov,h.firstChild);'
-        'Array.from(h.children).forEach(function(c){'
-        'if(c!==ov&&!c.style.position){c.style.position="relative";c.style.zIndex="1";}'
-        '});'
+        'Array.from(h.children).forEach(function(c){if(c!==ov&&!c.style.position){c.style.position="relative";c.style.zIndex="1";}});'
+        '_setTextColor(h,"#fff");'
         '}'
-        '});'
-        # Nav scroll fix: if nav background becomes light on scroll, force it dark
-        'window.addEventListener("scroll",function(){'
+        '}else if(isLight){'
+        # Light solid background → dark text
+        '_setTextColor(h,"#111");'
+        '}else if(isTransparent){'
+        # Transparent/unknown → force dark background + white text
+        'h.style.background="linear-gradient(135deg,#0d1117 0%,#1a2236 60%,#0d1117 100%)";'
+        '_setTextColor(h,"#fff");'
+        '}else{'
+        # Dark background → white text
+        '_setTextColor(h,"#fff");'
+        '}'
+        '}'
+        # ── Nav contrast fix (initial + on scroll) ───────────────────────
+        'function fixNav(){'
         'var nav=document.querySelector("nav,header");'
         'if(!nav)return;'
-        'var bg=getComputedStyle(nav).backgroundColor;'
-        'var m=bg.match(/[\\d.]+/g);'
-        'if(m&&m.length>=3){'
-        'var lum=0.299*+m[0]+0.587*+m[1]+0.114*+m[2];'
+        'var lum=_lum(nav);'
         'if(lum>160){'
-        'nav.style.background="rgba(10,10,20,0.95)";'
-        'nav.style.backdropFilter="blur(12px)";'
+        # Light nav → dark text
+        'Array.from(nav.querySelectorAll("a")).forEach(function(a){a.style.color="#111";});'
+        '}else if(lum>=0&&lum<=160){'
+        # Dark nav → white text
+        'Array.from(nav.querySelectorAll("a")).forEach(function(a){a.style.color="#fff";});'
+        '}else{'
+        # Transparent (top of page) → white text
         'Array.from(nav.querySelectorAll("a")).forEach(function(a){a.style.color="#fff";});'
         '}'
         '}'
+        'fixNav();'
+        'window.addEventListener("scroll",fixNav,{passive:true});'
         '});'
         '</script>'
     )
