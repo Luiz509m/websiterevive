@@ -77,6 +77,60 @@ PACKAGES = {
 import re as _re
 import base64 as _b64
 
+def _css_lum(hex_or_rgb: str) -> float:
+    """Return perceived luminance (0–255) from a CSS color string. -1 if unparseable."""
+    import re as _r
+    h = _r.search(r'#([0-9a-fA-F]{3,6})', hex_or_rgb)
+    if h:
+        v = h.group(1)
+        if len(v) == 3:
+            v = v[0]*2 + v[1]*2 + v[2]*2
+        r, g, b = int(v[0:2],16), int(v[2:4],16), int(v[4:6],16)
+        return 0.299*r + 0.587*g + 0.114*b
+    m = _r.search(r'rgba?\s*\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)', hex_or_rgb)
+    if m:
+        return 0.299*float(m.group(1)) + 0.587*float(m.group(2)) + 0.114*float(m.group(3))
+    return -1
+
+def _fix_nav_contrast(html: str) -> str:
+    """
+    Detect nav/header background color from the generated CSS.
+    Inject a high-specificity rule forcing readable text color for nav links.
+    This is done server-side so it never loses to Claude's !important CSS.
+    """
+    import re as _r
+    # Extract all CSS from <style> blocks
+    css_text = ' '.join(_r.findall(r'<style[^>]*>(.*?)</style>', html, _r.DOTALL))
+
+    # Find nav/header background color (most specific rule wins — take last match)
+    nav_bg = None
+    for pat in [
+        r'(?:nav|header)[^{]*\{[^}]*background(?:-color)?\s*:\s*([^;}\n]+)',
+        r'\.nav[^{]*\{[^}]*background(?:-color)?\s*:\s*([^;}\n]+)',
+        r'\.navbar[^{]*\{[^}]*background(?:-color)?\s*:\s*([^;}\n]+)',
+    ]:
+        matches = _r.findall(pat, css_text, _r.IGNORECASE)
+        if matches:
+            nav_bg = matches[-1].strip()
+
+    if nav_bg is None:
+        return html  # can't determine — leave as-is
+
+    lum = _css_lum(nav_bg)
+    if lum < 0:
+        return html  # transparent or gradient — leave JS to handle it
+
+    # Determine correct text color and inject override
+    text_color = '#111111' if lum > 160 else '#ffffff'
+    override = (
+        f'<style id="revive-nav-fix">'
+        f'nav a,nav a *,header a,header a *,.nav-link,.navbar a,'
+        f'nav li a,nav li a *,nav span,header span'
+        f'{{color:{text_color} !important;}}</style>'
+    )
+    return html.replace('</head>', override + '\n</head>', 1)
+
+
 def _build_safety_css() -> str:
     # CSS: structural safety rules that don't depend on JS timing
     css = (
@@ -450,6 +504,7 @@ def generate():
         # Apply safety CSS to hero preview
         safety_css = _build_safety_css()
         hero_html_full = hero_html_full.replace('</head>', safety_css + '\n</head>', 1)
+        hero_html_full = _fix_nav_contrast(hero_html_full)
 
         hero_html = extract_hero_html(hero_html_full)
 
@@ -565,6 +620,7 @@ def unlock(user_id):
 
         # Apply safety CSS + watermark
         full_html = full_html.replace('</head>', _build_safety_css() + '\n</head>', 1)
+        full_html = _fix_nav_contrast(full_html)
         watermark = (
             '<div style="text-align:center;padding:18px 20px;font-size:11px;'
             'color:rgba(150,150,150,0.7);font-family:sans-serif;letter-spacing:0.3px;'
