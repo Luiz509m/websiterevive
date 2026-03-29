@@ -36,15 +36,15 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/auth/*":          {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
-    r"/generate":        {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
-    r"/unlock":          {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
-    r"/checkout":        {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
-    r"/checkout/*":      {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
-    r"/deploy":          {"origins": os.environ.get("ALLOWED_ORIGIN", "*")},
-    r"/health":          {"origins": "*"},
-})
+# Allow all origins — origin restriction is handled by auth tokens, not CORS
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    return response
 
 # ── Internal imports ──────────────────────────────────────────────────────────
 import stripe
