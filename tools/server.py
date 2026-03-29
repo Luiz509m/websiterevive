@@ -80,11 +80,14 @@ import base64 as _b64
 def _build_safety_css() -> str:
     css = (
         '<style id="revive-safety">'
-        'html,body{background:#0d1117;}'  # prevent white flash before hero loads
+        'html,body{background:#0d1117;}'
         '#hero,section#hero,header#hero{color:#fff !important;}'
         '#hero *,section#hero *{color:#fff !important;}'
         '#hero a[class],#hero button[class]{color:inherit !important;}'
-        'nav a,nav li a,header nav a{color:#fff !important;}'
+        'nav a,nav li a,header nav a,nav a:visited,.nav-link,.navbar a{color:#fff !important;}'
+        'nav.scrolled,header.scrolled,.navbar.scrolled,.nav--scrolled,.nav-scrolled{'
+        'background:rgba(10,10,20,0.95) !important;backdrop-filter:blur(12px) !important;}'
+        'nav.scrolled a,header.scrolled a,.navbar.scrolled a,.nav--scrolled a{color:#fff !important;}'
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
         '</style>'
     )
@@ -115,6 +118,21 @@ def _build_safety_css() -> str:
         'Array.from(h.children).forEach(function(c){'
         'if(c!==ov&&!c.style.position){c.style.position="relative";c.style.zIndex="1";}'
         '});'
+        '}'
+        '});'
+        # Nav scroll fix: if nav background becomes light on scroll, force it dark
+        'window.addEventListener("scroll",function(){'
+        'var nav=document.querySelector("nav,header");'
+        'if(!nav)return;'
+        'var bg=getComputedStyle(nav).backgroundColor;'
+        'var m=bg.match(/[\\d.]+/g);'
+        'if(m&&m.length>=3){'
+        'var lum=0.299*+m[0]+0.587*+m[1]+0.114*+m[2];'
+        'if(lum>160){'
+        'nav.style.background="rgba(10,10,20,0.95)";'
+        'nav.style.backdropFilter="blur(12px)";'
+        'Array.from(nav.querySelectorAll("a")).forEach(function(a){a.style.color="#fff";});'
+        '}'
         '}'
         '});'
         '</script>'
