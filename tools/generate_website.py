@@ -267,23 +267,48 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
 
     tech_kw = ["saas","software","erp","crm","app","platform","cloud","api","tech","digital","it ","ai ","data"]
     is_tech = any(k in industry.lower() for k in tech_kw)
+    import random as _rnd
     if is_tech:
         images_note = "Tech/software business — use a dark CSS gradient for hero, no real image."
     elif site_image_urls:
-        images_note = (
-            "HERO IMAGE — pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
-            "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
-            "HOW TO USE IT — full-cover background with readable text overlay:\n"
-            "  ✓ Apply it as CSS: background-image:url('...'); background-size:cover; background-position:center;\n"
-            "  ✓ Add a dark overlay div INSIDE the hero: position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;\n"
-            "  ✓ All hero content goes in a child div with position:relative;z-index:1;\n"
-            "  ✓ ALL text must be color:#ffffff because the overlay makes it dark\n"
-            "  ✓ This is the ONLY allowed usage — no <img> tag in the hero\n"
-            "  ✗ NEVER use an image in the hero without the dark overlay\n"
-            "  ✗ NEVER more than one image in the hero\n\n"
-            "If no suitable image: use a dark CSS gradient hero instead.\n\n"
-            "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
-        )
+        _layout = _rnd.choice(["fullcover", "split-right", "split-left"])
+        if _layout == "fullcover":
+            images_note = (
+                "HERO IMAGE LAYOUT: FULL-COVER BACKGROUND\n"
+                "Pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
+                "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
+                "  ✓ CSS on #hero: background-image:url('...'); background-size:cover; background-position:center;\n"
+                "  ✓ Dark overlay div inside #hero: position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;\n"
+                "  ✓ All content in a child div: position:relative;z-index:1;\n"
+                "  ✓ ALL text color:#ffffff\n"
+                "  ✗ No <img> tag inside the hero\n"
+                "If no suitable image: use a dark CSS gradient instead.\n\n"
+                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+            )
+        elif _layout == "split-right":
+            images_note = (
+                "HERO IMAGE LAYOUT: SPLIT — text left 55%, image right 45%\n"
+                "Pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
+                "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
+                "  ✓ Left side: dark background (dark gradient or solid dark brand color), text + CTA\n"
+                "  ✓ Right side: <img src='...' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>\n"
+                "  ✓ Left text: color:#ffffff (dark left side)\n"
+                "  ✗ No background-image on the hero container itself\n"
+                "If no suitable image: use a dark CSS gradient instead.\n\n"
+                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+            )
+        else:  # split-left
+            images_note = (
+                "HERO IMAGE LAYOUT: SPLIT — image left 45%, text right 55%\n"
+                "Pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
+                "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
+                "  ✓ Left side: <img src='...' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>\n"
+                "  ✓ Right side: dark background (dark gradient or solid dark brand color), text + CTA\n"
+                "  ✓ Right text: color:#ffffff (dark right side)\n"
+                "  ✗ No background-image on the hero container itself\n"
+                "If no suitable image: use a dark CSS gradient instead.\n\n"
+                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+            )
     else:
         images_note = "No site images — use a dark gradient hero."
 
@@ -570,7 +595,31 @@ HERO BACKGROUND — this is a tech/software company:
                 "Use <img> tags only. Every <img>: style=\"max-width:100%;height:auto;\" — no zooming, no cropping."
             )
     elif site_image_urls:
+        import random as _rnd2
+        _layout2 = _rnd2.choice(["fullcover", "split-right", "split-left"])
         images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
+        if _layout2 == "fullcover":
+            _hero_layout_rule = """HERO IMAGE LAYOUT: FULL-COVER BACKGROUND
+If a suitable image exists (space/interior/food/product/landscape, URL has no thumb/small/icon/logo/avatar):
+  ✓ CSS on #hero: background-image:url('URL'); background-size:cover; background-position:center;
+  ✓ Dark overlay div inside #hero: <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;"></div>
+  ✓ Content wrapper: position:relative;z-index:1; text-align:center;
+  ✓ ALL text: color:#ffffff
+  ✗ No <img> tag inside the hero"""
+        elif _layout2 == "split-right":
+            _hero_layout_rule = """HERO IMAGE LAYOUT: SPLIT — text left 55%, image right 45%
+If a suitable image exists (space/interior/food/product/landscape, URL has no thumb/small/icon/logo/avatar):
+  ✓ Left side: dark background (dark gradient or solid dark brand color), headline + subtext + CTA
+  ✓ Right side: <img src='URL' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>
+  ✓ Left text: color:#ffffff
+  ✗ No background-image on the hero container"""
+        else:
+            _hero_layout_rule = """HERO IMAGE LAYOUT: SPLIT — image left 45%, text right 55%
+If a suitable image exists (space/interior/food/product/landscape, URL has no thumb/small/icon/logo/avatar):
+  ✓ Left side: <img src='URL' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>
+  ✓ Right side: dark background (dark gradient or solid dark brand color), headline + subtext + CTA
+  ✓ Right text: color:#ffffff
+  ✗ No background-image on the hero container"""
         images_block = f"""
 ORIGINAL SITE IMAGES:
 {images_list}
@@ -580,29 +629,18 @@ NON-HERO IMAGE RULES (gallery, about, features sections):
   ✓ Images show exactly as-is — no zoom, no crop, no stretching
   ✗ NEVER background-size:cover or background-size:contain on non-hero images
 
-HERO BACKGROUND — pick ONE suitable image or use CSS gradient:
+{_hero_layout_rule}
 
-STEP 1 — Is there a good hero image?
-Use it if: it shows a space/interior, food, product, landscape, architecture
-Skip if: URL contains thumb, small, icon, logo, avatar, 50x, 100x, 150x
-
-If using a hero image:
-  ✓ CSS on #hero: background-image:url('IMAGE_URL'); background-size:cover; background-position:center;
-  ✓ Dark overlay div INSIDE #hero: <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;"></div>
-  ✓ Content wrapper: position:relative;z-index:1;
-  ✓ ALL text: color:#ffffff (the dark overlay ensures readability)
-  ✗ NEVER use an <img> tag in the hero section itself
-
-STEP 2 — If no suitable image, CSS-only dark gradient:
+If no suitable image — CSS-only dark gradient:
   - Restaurant/Food: deep burgundy → warm amber gradient
   - Dental/Medical: deep navy → teal gradient
-  - Legal/Finance: dark navy/charcoal gradient, gold accent
+  - Legal/Finance: dark navy/charcoal, gold accent
   - Beauty/Wellness: blush → mauve gradient
-  - Handwerk/Construction: dark slate gradient, diagonal accent lines
+  - Handwerk/Construction: dark slate, diagonal accent lines
   - Generic: dark brand-color gradient, geometric accent
   Hero must look like it came from a top design agency — not a placeholder.
 
-Either way: hero min-height:100svh, overflow:hidden, ALL text color:#ffffff, immersive, professional.
+Either way: hero min-height:100svh, overflow:hidden, ALL text color:#ffffff.
 
 GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:auto)"""
 
