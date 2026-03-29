@@ -226,16 +226,18 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     pages_analyzed = analysis.get("pages_content", [])
     brand_colors  = extract_brand_colors(raw_html) if raw_html else analysis.get("current_colors", [])
 
-    import re as _re
+    import re as _re, html as _html_mod
     def _slugify(s):
         return _re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
+    def _decode(s):
+        return _html_mod.unescape(s).strip()
 
     # Build nav topics (same logic as full generation)
     nav_topics = []
     seen = set()
     for pc in pages_analyzed[1:]:
         if len(nav_topics) >= 5: break
-        label = pc.get("label", "").strip()
+        label = _decode(pc.get("label", ""))
         if not label or label.lower() in seen: continue
         nav_topics.append({"label": label, "href": f"#{_slugify(label)}", "cta": False})
         seen.add(label.lower())
@@ -614,6 +616,12 @@ GALLERY / ABOUT: use remaining images from the list with <img> tags (max-width:1
     def _slugify(s):
         return _re2.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
 
+    import html as _html_mod
+
+    def _decode(s):
+        """Decode HTML entities like &amp; &AMP; → & """
+        return _html_mod.unescape(s).strip()
+
     nav_topics = []
     seen_nav = set()
 
@@ -621,7 +629,7 @@ GALLERY / ABOUT: use remaining images from the list with <img> tags (max-width:1
     for pc in pages_analyzed[1:]:
         if len(nav_topics) >= 5:
             break
-        label = pc.get("label", "").strip()
+        label = _decode(pc.get("label", ""))
         if not label or label.lower() in seen_nav:
             continue
         slug = _slugify(label)
