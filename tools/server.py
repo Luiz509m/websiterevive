@@ -46,6 +46,16 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
     return response
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    print(f"[server] Unhandled exception: {e}\n{traceback.format_exc()}")
+    from flask import jsonify
+    resp = jsonify({"error": str(e)})
+    resp.status_code = 500
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    return resp
+
 # ── Internal imports ──────────────────────────────────────────────────────────
 import stripe
 from auth import (
