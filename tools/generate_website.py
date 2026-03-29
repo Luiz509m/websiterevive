@@ -283,11 +283,15 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
 
     msg_content = []
     if reference_images:
-        msg_content.append({"type": "text", "text": f"Study these {len(reference_images)} reference designs for hero inspiration:"})
+        msg_content.append({"type": "text", "text": (
+            f"You have {len(reference_images)} reference hero designs below. "
+            "Study them carefully — their layout, typography scale, spacing, depth, and visual polish. "
+            "If no real image is available for the hero, build a CSS-only hero that matches this quality level exactly."
+        )})
         for ref in reference_images:
             msg_content.append({"type": "image", "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}})
 
-    msg_content.append({"type": "text", "text": f"""Generate a complete HTML page with ONLY a nav bar and hero section.
+    msg_content.append({"type": "text", "text": f"""You are an elite web designer. Generate a complete HTML page with ONLY a nav bar and hero section — this must look like it came from a top design studio.
 
 BUSINESS:
 Name:     {business_name}
@@ -300,7 +304,6 @@ CTA:      {key_content.get('cta_text') or 'Kontakt'}
 Phone:    {key_content.get('phone') or '—'}
 Services: {_s(services)}
 {colors_note}
-{images_note}
 
 NAV: logo left (business name), links right. Transparent → blur on scroll. Hamburger on mobile.
 USE EXACTLY THESE LINKS:
@@ -309,19 +312,37 @@ USE EXACTLY THESE LINKS:
 [CTA-BUTTON] = pill button, accent color bg, white text, border-radius:100px.
 ALL nav link text: white/light — never dark. Min 48px gap between logo and first link.
 
-HERO (strictly enforced):
+── HERO IMAGE DECISION ──────────────────────────────────────────────────
+{images_note}
+
+── HERO DESIGN (strictly enforced) ─────────────────────────────────────
 ✗ NEVER a white or light background — text becomes invisible
-✓ Dark background: photo with overlay OR dark gradient OR deep solid color
-✓ If photo: always add overlay like linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55))
+✓ min-height:100svh, full viewport, immersive, jaw-dropping quality
+
+IF using a real image from the list above:
+  ✓ Use a SPLIT layout: text+CTA left 50%, <img> right 50%
+  ✓ <img style="width:100%;height:100%;object-fit:contain;max-height:600px;">
+  ✓ Left side: dark background using brand color or deep gradient
+  ✓ No background-size:cover — never zoom or crop the image
+  ✗ Do NOT use it as CSS background-image
+
+IF no suitable image (CSS-only hero):
+  ✓ Study the reference designs above and match their quality
+  ✓ Use a dark gradient, geometric shapes, or abstract CSS art
+  ✓ Pick the layout from the references that fits this industry best
+  ✓ Typography-led: oversized headline, strong hierarchy, accent color details
+  ✓ Add one decoration: thin accent line, oversized letter, or geometric shape
+
+ALWAYS:
 ✓ ALL hero text: color:#fff explicitly
 ✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95, color:#fff
-✓ Subtext: clamp(1rem,2vw,1.25rem), color:rgba(255,255,255,0.65)
-✓ min-height:100svh, immersive, jaw-dropping quality
-✓ CTA: pill shape, accent color bg, color:#fff, padding:14px 40px
+✓ Subtext: clamp(1rem,2vw,1.25rem), color:rgba(255,255,255,0.75), max-width:600px
+✓ CTA: pill shape, accent color bg, color:#fff, padding:14px 40px, font-weight:600
+✓ Google Fonts: 2 fonts matching the tone (e.g. serif + sans for luxury, two sans for tech)
 
 Add <!-- HERO_END --> immediately after the closing </section> of the hero.
 
-Google Fonts: 2 fonts matching the tone. Mobile-first. All CSS+JS inline.
+Mobile-first. All CSS+JS inline.
 OUTPUT: Complete HTML <!DOCTYPE html> to </html>. Nothing below the hero. No markdown."""})
 
     for attempt in range(3):
