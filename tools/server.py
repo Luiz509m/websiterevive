@@ -644,8 +644,9 @@ def unlock(user_id):
 
     ctx = json.loads(full_html[len("##PENDING##:"):])
 
-    # Mark as generating immediately so duplicate clicks don't deduct twice
-    db.update_full_html(generation_id, "##GENERATING##")
+    # Mark as generating with Unix timestamp so /status can detect stuck jobs
+    import time as _time
+    db.update_full_html(generation_id, f"##GENERATING##:{int(_time.time())}")
 
     _threading.Thread(target=_build_full_site, args=(generation_id, ctx), daemon=True).start()
     print(f"[unlock] Background job started for {generation_id}")
@@ -656,13 +657,25 @@ def unlock(user_id):
 @app.route("/status/<generation_id>", methods=["GET"])
 @require_auth
 def job_status(user_id, generation_id):
+    import time as _time
     generation = db.get_generation(generation_id)
     if not generation:
         return jsonify({"error": "Not found"}), 404
 
     full_html = generation["full_html"]
 
-    if full_html.startswith("##GENERATING##") or full_html.startswith("##PENDING##:"):
+    if full_html.startswith("##GENERATING##"):
+        # Check for stuck job: if >10 min since start, treat as error
+        try:
+            started_at = int(full_html.split(":", 1)[1])
+            if _time.time() - started_at > 600:
+                db.update_full_html(generation_id, "##ERROR##:Generation timed out (server restart). Please try again.")
+                return jsonify({"status": "error", "error": "Generation timed out — please try again"})
+        except (IndexError, ValueError):
+            pass
+        return jsonify({"status": "generating"})
+
+    if full_html.startswith("##PENDING##:"):
         return jsonify({"status": "generating"})
 
     if full_html.startswith("##ERROR##:"):
