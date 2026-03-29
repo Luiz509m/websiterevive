@@ -80,7 +80,9 @@ import base64 as _b64
 def _build_safety_css() -> str:
     css = (
         '<style id="revive-safety">'
-        '#hero,section#hero,header#hero,#hero *{color:#fff !important;}'
+        'html,body{background:#0d1117;}'  # prevent white flash before hero loads
+        '#hero,section#hero,header#hero{color:#fff !important;}'
+        '#hero *,section#hero *{color:#fff !important;}'
         '#hero a[class],#hero button[class]{color:inherit !important;}'
         'nav a,nav li a,header nav a{color:#fff !important;}'
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'

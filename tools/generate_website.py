@@ -332,14 +332,17 @@ IF no suitable image (CSS-only hero):
   ✓ Use a dark gradient, geometric shapes, or abstract CSS art
   ✓ Pick the layout from the references that fits this industry best
   ✓ Typography-led: oversized headline, strong hierarchy, accent color details
-  ✓ Add one decoration: thin accent line, oversized letter, or geometric shape
+  ✓ Optional: subtle CSS geometric shape or thin accent line only if it enhances the design
 
 ALWAYS:
-✓ ALL hero text: color:#fff explicitly
+✓ Set background explicitly on #hero — NEVER leave it white or default
+✓ Minimum: background:#0d1117 — always override, no exceptions
+✓ ALL hero text: color:#fff explicitly on every element
 ✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95, color:#fff
 ✓ Subtext: clamp(1rem,2vw,1.25rem), color:rgba(255,255,255,0.75), max-width:600px
 ✓ CTA: pill shape, accent color bg, color:#fff, padding:14px 40px, font-weight:600
 ✓ Google Fonts: 2 fonts matching the tone (e.g. serif + sans for luxury, two sans for tech)
+✗ NO random decorative symbols, dots, or special characters that don't belong to the content
 
 Add <!-- HERO_END --> immediately after the closing </section> of the hero.
 
@@ -816,7 +819,6 @@ C) Large headline overlapping a full-bleed dark photo (offset, not centered)
 BACKGROUND — follow these rules strictly:
 {images_block}
 
-DECORATION: Add exactly one accent element — thin line, oversized letter, or geometric shape in the accent color.
 CTA BUTTON: pill shape, accent color background, color:#fff, padding:14px 40px, no box-shadow.
 
 Add <!-- HERO_END --> on its own line immediately after the closing </section> of the hero.
