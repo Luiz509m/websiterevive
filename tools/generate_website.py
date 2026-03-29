@@ -29,7 +29,8 @@ TMP = Path(__file__).parent.parent / ".tmp"
 TMP.mkdir(exist_ok=True)
 
 CLIENT = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-MODEL = "claude-opus-4-6"
+MODEL_FAST = "claude-sonnet-4-6"   # analysis + hero (cheap, fast)
+MODEL_FULL = "claude-opus-4-6"     # full website generation (best quality)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -348,7 +349,7 @@ OUTPUT: Complete HTML <!DOCTYPE html> to </html>. Nothing below the hero. No mar
     for attempt in range(3):
         try:
             with CLIENT.messages.stream(
-                model=MODEL, max_tokens=8000,
+                model=MODEL_FAST, max_tokens=8000,
                 messages=[{"role": "user", "content": msg_content}]
             ) as stream:
                 html = stream.get_final_text().strip()
@@ -445,7 +446,7 @@ Return ONLY valid JSON, no explanation."""
     for attempt in range(3):
         try:
             response = CLIENT.messages.create(
-                model=MODEL,
+                model=MODEL_FAST,
                 max_tokens=8000,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -897,7 +898,7 @@ OUTPUT: One complete HTML file from <!DOCTYPE html> to </html>. No markdown fenc
     for attempt in range(3):
         try:
             with CLIENT.messages.stream(
-                model=MODEL,
+                model=MODEL_FULL,
                 max_tokens=32000,
                 extra_headers={"anthropic-beta": "output-128k-2025-02-19"},
                 messages=[{"role": "user", "content": content}]
