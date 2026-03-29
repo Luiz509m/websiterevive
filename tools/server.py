@@ -529,87 +529,54 @@ def generate():
         return jsonify({"error": str(exc)}), 500
 
 
-# ── Unlock ────────────────────────────────────────────────────────────────────
+# ── Unlock (async) ───────────────────────────────────────────────────────────
 
-@app.route("/unlock", methods=["POST"])
-@require_auth
-def unlock(user_id):
-    data          = request.get_json(silent=True) or {}
-    generation_id = (data.get("generation_id") or "").strip()
+import threading as _threading
 
-    if not generation_id:
-        return jsonify({"error": "generation_id is required"}), 400
-
-    generation = db.get_generation(generation_id)
-    if not generation:
-        return jsonify({"error": "Generation not found"}), 404
-
-    # Deduct 1 token (atomic check)
-    if not db.deduct_token(user_id):
-        return jsonify({"error": "Not enough tokens"}), 402
-
-    db.mark_unlocked(generation_id)
-
-    full_html = generation["full_html"]
-
-    # ── If pending: generate full site now ────────────────────────────────────
-    if full_html.startswith("##PENDING##:"):
-        print(f"[unlock] Pending generation — building full site now...")
-        ctx = json.loads(full_html[len("##PENDING##:"):])
-
+def _build_full_site(generation_id: str, ctx: dict) -> None:
+    """Background thread: generate full site HTML and save to DB."""
+    try:
         slug            = ctx["slug"]
         site_images     = ctx.get("site_images", [])
         important_links = ctx.get("important_links", [])
         pages           = ctx.get("pages", [])
         full_text       = ctx.get("full_text", "")
+        raw_html        = ctx.get("raw_html") or None
 
-        # Analysis stored inline in pending context (filesystem not reliable on Render)
         analysis = ctx.get("analysis")
         if not analysis:
-            # Fallback: try filesystem cache (older generations)
             analysis_path = TMP / f"{slug}_analysis.json"
             if analysis_path.exists():
                 analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
             else:
-                return jsonify({"error": "Analysis expired — please paste the URL again to regenerate"}), 410
-
-        # Raw HTML stored inline in pending context
-        raw_html = ctx.get("raw_html") or None
+                db.update_full_html(generation_id, "##ERROR##:Analysis expired — please paste the URL again to regenerate")
+                return
 
         references = load_reference_images(n=3)
-        full_html = generate_website(
+        full_html  = generate_website(
             analysis, references, site_images, full_text, pages, important_links,
             raw_html=raw_html
         )
 
         # ── Reuse the existing hero so it matches the preview exactly ──────────
-        # Use hero_html_full (complete HTML with <head>) stored in pending context
         hero_html_full = ctx.get("hero_html_full", "")
-        hero_marker = "<!-- HERO_END -->"
+        hero_marker    = "<!-- HERO_END -->"
         if hero_html_full and hero_marker in hero_html_full and hero_marker in full_html:
-            # Extract hero's <style> blocks and inject into full site's <head>
-            # (keeps full site CSS intact, just adds hero-specific styles)
             import re as _re_hero
             hero_styles = "\n".join(
                 m.group(0) for m in _re_hero.finditer(r'<style[^>]*>.*?</style>', hero_html_full, _re_hero.DOTALL)
             )
-
-            # Extract nav+hero body content from hero preview
             hero_body_start   = hero_html_full.find("<body")
             hero_body_tag_end = hero_html_full.find(">", hero_body_start) + 1
             hero_end_idx      = hero_html_full.index(hero_marker) + len(hero_marker)
             preserved_body    = hero_html_full[hero_body_tag_end:hero_end_idx]
-
-            # Inject hero styles before </head> in full site (full site CSS stays intact)
             if hero_styles:
                 full_html = full_html.replace("</head>", hero_styles + "\n</head>", 1)
-
-            # Replace nav+hero body section with preserved hero
             full_body_start   = full_html.find("<body")
             full_body_tag_end = full_html.find(">", full_body_start) + 1
             full_hero_end     = full_html.index(hero_marker) + len(hero_marker)
             full_html = full_html[:full_body_tag_end] + preserved_body + full_html[full_hero_end:]
-            print("[unlock] ✓ Reused hero preview body + injected hero styles — preview matches full site exactly")
+            print("[unlock] ✓ Reused hero preview")
 
         # Apply safety CSS + watermark
         full_html = full_html.replace('</head>', _build_safety_css() + '\n</head>', 1)
@@ -625,23 +592,83 @@ def unlock(user_id):
         )
         full_html = full_html.replace('</body>', watermark + '\n</body>')
 
-        # Save to DB so next unlock is instant
         db.update_full_html(generation_id, full_html)
-        print(f"[unlock] Full site generated and saved ({len(full_html):,} chars)")
+        print(f"[unlock] ✓ Job done — {len(full_html):,} chars saved")
 
-    # ── Package and return ────────────────────────────────────────────────────
+    except Exception as e:
+        traceback.print_exc()
+        db.update_full_html(generation_id, f"##ERROR##:{e}")
+        print(f"[unlock] ✗ Job failed: {e}")
+
+
+def _package_result(generation: dict, full_html: str) -> dict:
     files      = parse_multifile_html(full_html)
     index_html = files.get("index.html") or next(iter(files.values()), full_html)
     zip_bytes  = create_zip(files)
     zip_b64    = _b64.b64encode(zip_bytes).decode()
+    return {"status": "done", "html": index_html, "zip": zip_b64, "slug": generation["slug"]}
 
-    print(f"[unlock] ZIP with {len(files)} file(s): {list(files.keys())}")
 
-    return jsonify({
-        "html": index_html,
-        "zip":  zip_b64,
-        "slug": generation["slug"],
-    })
+@app.route("/unlock", methods=["POST"])
+@require_auth
+def unlock(user_id):
+    data          = request.get_json(silent=True) or {}
+    generation_id = (data.get("generation_id") or "").strip()
+
+    if not generation_id:
+        return jsonify({"error": "generation_id is required"}), 400
+
+    generation = db.get_generation(generation_id)
+    if not generation:
+        return jsonify({"error": "Generation not found"}), 404
+
+    full_html = generation["full_html"]
+
+    # ── Already fully generated → return immediately (e.g. re-unlock) ────────
+    if not any(full_html.startswith(p) for p in ("##PENDING##:", "##GENERATING##", "##ERROR##:")):
+        return jsonify(_package_result(generation, full_html))
+
+    # ── Already generating in background → just return job_id ────────────────
+    if full_html.startswith("##GENERATING##"):
+        return jsonify({"status": "generating", "job_id": generation_id})
+
+    # ── Error from previous attempt → surface it ─────────────────────────────
+    if full_html.startswith("##ERROR##:"):
+        return jsonify({"error": full_html[len("##ERROR##:"):]}), 500
+
+    # ── Pending: deduct token and start background job ────────────────────────
+    if not db.deduct_token(user_id):
+        return jsonify({"error": "Not enough tokens"}), 402
+
+    db.mark_unlocked(generation_id)
+
+    ctx = json.loads(full_html[len("##PENDING##:"):])
+
+    # Mark as generating immediately so duplicate clicks don't deduct twice
+    db.update_full_html(generation_id, "##GENERATING##")
+
+    _threading.Thread(target=_build_full_site, args=(generation_id, ctx), daemon=True).start()
+    print(f"[unlock] Background job started for {generation_id}")
+
+    return jsonify({"status": "generating", "job_id": generation_id})
+
+
+@app.route("/status/<generation_id>", methods=["GET"])
+@require_auth
+def job_status(user_id, generation_id):
+    generation = db.get_generation(generation_id)
+    if not generation:
+        return jsonify({"error": "Not found"}), 404
+
+    full_html = generation["full_html"]
+
+    if full_html.startswith("##GENERATING##") or full_html.startswith("##PENDING##:"):
+        return jsonify({"status": "generating"})
+
+    if full_html.startswith("##ERROR##:"):
+        return jsonify({"status": "error", "error": full_html[len("##ERROR##:"):]})
+
+    return jsonify(_package_result(generation, full_html))
 
 
 # ── Checkout ──────────────────────────────────────────────────────────────────

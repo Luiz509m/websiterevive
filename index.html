@@ -2837,6 +2837,72 @@
   let unlockedZip  = '';
   let unlockedSlug = '';
 
+  async function applyUnlockedResult(data) {
+    unlockedHtml = data.html;
+    unlockedZip  = data.zip  || '';
+    unlockedSlug = data.slug || 'revived';
+
+    await parseZipPages(unlockedZip);
+    if (Object.keys(zipPages).length > 1) {
+      activeTab = 'index.html';
+      renderTabs();
+      loadPage('index.html');
+    } else {
+      activeTab = 'index.html';
+      const blob = new Blob([unlockedHtml], { type: 'text/html' });
+      document.getElementById('full-iframe').src = URL.createObjectURL(blob);
+    }
+
+    document.getElementById('unlock-bar').style.display    = 'none';
+    document.getElementById('preview-wrap').style.display  = 'none';
+    document.getElementById('fullsite-wrap').style.display = 'block';
+    document.getElementById('editor-toolbar').style.display = 'flex';
+    document.getElementById('unlock-status').style.display = 'none';
+
+    const user = getUser();
+    if (user) { user.tokens = Math.max(0, user.tokens - 1); setUser(user); updateNavAuth(); }
+  }
+
+  function startPolling(jobId) {
+    const btn      = document.getElementById('unlock-btn');
+    const statusEl = document.getElementById('unlock-status');
+    const msgs = [
+      'Analysing your brand…',
+      'Designing sections…',
+      'Writing content…',
+      'Styling & polishing…',
+      'Almost there…',
+      'Finalising your website…',
+    ];
+    let msgIdx = 0;
+
+    const interval = setInterval(async () => {
+      // Rotate progress messages
+      statusEl.textContent = msgs[msgIdx % msgs.length];
+      msgIdx++;
+
+      try {
+        const res  = await fetch(`${REVIVE_API_URL}/status/${jobId}`, { headers: authHeaders() });
+        const data = await res.json();
+
+        if (data.status === 'done') {
+          clearInterval(interval);
+          await applyUnlockedResult(data);
+        } else if (data.status === 'error') {
+          clearInterval(interval);
+          statusEl.style.color = 'var(--red)';
+          statusEl.textContent = `Error: ${data.error}`;
+          btn.disabled    = false;
+          btn.textContent = 'Unlock Full Website — 1 Token';
+        }
+        // status === 'generating' → keep polling
+      } catch (e) {
+        // Network hiccup — keep polling silently
+        console.warn('[poll] retrying…', e);
+      }
+    }, 6000);
+  }
+
   async function handleUnlock() {
     if (!getToken()) { openAuthModal(); return; }
 
@@ -2844,30 +2910,16 @@
     const statusEl = document.getElementById('unlock-status');
 
     btn.disabled    = true;
-    btn.textContent = 'Building…';
+    btn.textContent = 'Starting…';
     statusEl.style.display = 'block';
     statusEl.style.color   = 'var(--mint)';
     statusEl.textContent   = 'Verifying token…';
-
-    // Progress messages while full site is being generated (2-3 min)
-    const progressMsgs = [
-      [3000,  'Analysing your brand…'],
-      [12000, 'Designing sections…'],
-      [30000, 'Writing content…'],
-      [55000, 'Styling & polishing…'],
-      [90000, 'Almost there…'],
-      [130000,'Finalising your website…'],
-    ];
-    const progressTimers = progressMsgs.map(([delay, msg]) =>
-      setTimeout(() => { if (statusEl.style.display !== 'none') statusEl.textContent = msg; }, delay)
-    );
 
     try {
       const res  = await fetch(`${REVIVE_API_URL}/unlock`, {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ generation_id: currentGenerationId }),
       });
-      progressTimers.forEach(t => clearTimeout(t));
       const data = await res.json();
 
       if (res.status === 402 || data.error === 'Not enough tokens') {
@@ -2879,36 +2931,17 @@
       }
       if (!res.ok || data.error) throw new Error(data.error || 'Unlock failed');
 
-      unlockedHtml = data.html;
-      unlockedZip  = data.zip  || '';
-      unlockedSlug = data.slug || 'revived';
-
-      // Parse ZIP and build tabs
-      await parseZipPages(unlockedZip);
-      if (Object.keys(zipPages).length > 1) {
-        activeTab = 'index.html';
-        renderTabs();
-        loadPage('index.html');
+      if (data.status === 'done') {
+        // Already generated (re-unlock) — apply immediately
+        await applyUnlockedResult(data);
       } else {
-        // Single-page site: still set activeTab so edits are tracked and included in ZIP download
-        activeTab = 'index.html';
-        const blob = new Blob([unlockedHtml], { type: 'text/html' });
-        document.getElementById('full-iframe').src = URL.createObjectURL(blob);
+        // Generation started in background — poll every 6s
+        btn.textContent      = 'Generating…';
+        statusEl.textContent = 'Analysing your brand…';
+        startPolling(data.job_id);
       }
 
-      // Swap UI
-      document.getElementById('unlock-bar').style.display   = 'none';
-      document.getElementById('preview-wrap').style.display = 'none';
-      document.getElementById('fullsite-wrap').style.display = 'block';
-      document.getElementById('editor-toolbar').style.display = 'flex';
-      statusEl.style.display = 'none';
-
-      // Update token count in nav
-      const user = getUser();
-      if (user) { user.tokens = Math.max(0, user.tokens - 1); setUser(user); updateNavAuth(); }
-
     } catch (err) {
-      progressTimers.forEach(t => clearTimeout(t));
       statusEl.style.color = 'var(--red)';
       statusEl.textContent = `Error: ${err.message}`;
       btn.disabled    = false;
