@@ -494,6 +494,24 @@ def unlock(user_id):
             raw_html=raw_html
         )
 
+        # ── Reuse the existing hero HTML so it matches the preview exactly ──
+        existing_hero = generation.get("hero_html", "")
+        hero_marker = "<!-- HERO_END -->"
+        if existing_hero and hero_marker in existing_hero and hero_marker in full_html:
+            # Extract nav+hero from the already-shown preview
+            hero_end_idx = existing_hero.index(hero_marker) + len(hero_marker)
+            # Get the body content from existing hero (between <body> and HERO_END)
+            body_start = existing_hero.find("<body")
+            body_tag_end = existing_hero.find(">", body_start) + 1
+            preserved_hero = existing_hero[body_tag_end:hero_end_idx]
+
+            # Replace the new hero with the preserved one in full_html
+            new_body_start = full_html.find("<body")
+            new_body_tag_end = full_html.find(">", new_body_start) + 1
+            new_hero_end = full_html.index(hero_marker) + len(hero_marker)
+            full_html = full_html[:new_body_tag_end] + preserved_hero + full_html[new_hero_end:]
+            print("[unlock] ✓ Reused existing hero HTML — preview matches full site")
+
         # Apply safety CSS + watermark
         full_html = full_html.replace('</head>', _build_safety_css() + '\n</head>', 1)
         watermark = (
