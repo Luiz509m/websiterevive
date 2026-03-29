@@ -540,13 +540,17 @@ def checkout(user_id):
     pkg      = PACKAGES[package]
     frontend = os.environ.get("ALLOWED_ORIGIN", "http://localhost:5000")
 
-    session = stripe.checkout.Session.create(
-        mode="payment",
-        line_items=[{"price": pkg["price_id"], "quantity": 1}],
-        success_url=f"{frontend}?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{frontend}?checkout=cancelled",
-        metadata={"user_id": user_id, "tokens": str(pkg["tokens"])},
-    )
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            line_items=[{"price": pkg["price_id"], "quantity": 1}],
+            success_url=f"{frontend}?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend}?checkout=cancelled",
+            metadata={"user_id": user_id, "tokens": str(pkg["tokens"])},
+        )
+    except Exception as e:
+        print(f"[checkout] Stripe error: {e}")
+        return jsonify({"error": str(e)}), 500
 
     return jsonify({"checkout_url": session.url})
 
