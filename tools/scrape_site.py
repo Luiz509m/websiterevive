@@ -278,11 +278,17 @@ def scrape(url: str) -> dict:
     }
     try:
         resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code == 403:
+            raise ValueError(f"This website blocks automated access (403 Forbidden). Try a different URL.")
+        if resp.status_code == 404:
+            raise ValueError(f"Website not found (404). Check the URL and try again.")
         resp.raise_for_status()
         html = resp.text
+    except ValueError:
+        raise
     except requests.RequestException as e:
         print(f"[scrape] ERROR: {e}")
-        sys.exit(1)
+        raise ValueError(f"Could not reach the website: {e}")
 
     slug = slugify(url)
     html_path = TMP / f"{slug}.html"

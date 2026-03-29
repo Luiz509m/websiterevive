@@ -354,7 +354,10 @@ def generate():
     try:
         print(f"\n[server] Generating for: {url}")
 
-        scraped   = scrape(url)
+        try:
+            scraped = scrape(url)
+        except ValueError as scrape_err:
+            return jsonify({"error": str(scrape_err)}), 422
         slug      = scraped["slug"]
         subpages  = scrape_subpages(url, scraped["html"], max_pages=4)
 
