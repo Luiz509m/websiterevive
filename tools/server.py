@@ -103,40 +103,17 @@ def _css_lum(hex_or_rgb: str) -> float:
     return -1
 
 def _fix_nav_contrast(html: str) -> str:
-    """
-    Detect nav/header background color from the generated CSS.
-    Inject a high-specificity rule forcing readable text color for nav links.
-    This is done server-side so it never loses to Claude's !important CSS.
-    """
-    import re as _r
-    # Extract all CSS from <style> blocks
-    css_text = ' '.join(_r.findall(r'<style[^>]*>(.*?)</style>', html, _r.DOTALL))
-
-    # Find nav/header background color (most specific rule wins — take last match)
-    nav_bg = None
-    for pat in [
-        r'(?:nav|header)[^{]*\{[^}]*background(?:-color)?\s*:\s*([^;}\n]+)',
-        r'\.nav[^{]*\{[^}]*background(?:-color)?\s*:\s*([^;}\n]+)',
-        r'\.navbar[^{]*\{[^}]*background(?:-color)?\s*:\s*([^;}\n]+)',
-    ]:
-        matches = _r.findall(pat, css_text, _r.IGNORECASE)
-        if matches:
-            nav_bg = matches[-1].strip()
-
-    if nav_bg is None:
-        return html  # can't determine — leave as-is
-
-    lum = _css_lum(nav_bg)
-    if lum < 0:
-        return html  # transparent or gradient — leave JS to handle it
-
-    # Determine correct text color and inject override
-    text_color = '#111111' if lum > 160 else '#ffffff'
+    """Force nav/header to always be dark with white text — no detection needed."""
     override = (
-        f'<style id="revive-nav-fix">'
-        f'nav a,nav a *,header a,header a *,.nav-link,.navbar a,'
-        f'nav li a,nav li a *,nav span,header span'
-        f'{{color:{text_color} !important;}}</style>'
+        '<style id="revive-nav-fix">'
+        'nav,header,.navbar,.nav-wrapper,.site-header{'
+        'background:#111111 !important;backdrop-filter:blur(12px) !important;'
+        'border-bottom:none !important;}'
+        'nav a,nav a *,header a,header a *,.nav-link,.navbar a,'
+        'nav li a,nav li a *,nav span,header span,nav button.cta,'
+        'header .logo,header .logo *,nav .logo,nav .logo *{'
+        'color:#ffffff !important;}'
+        '</style>'
     )
     return html.replace('</head>', override + '\n</head>', 1)
 
@@ -145,8 +122,14 @@ def _build_safety_css() -> str:
     # CSS: structural safety rules that don't depend on JS timing
     css = (
         '<style id="revive-safety">'
+        # Prevent horizontal overflow — text never cut off
+        'html,body{overflow-x:hidden !important;max-width:100vw !important;}'
+        'body *{box-sizing:border-box !important;max-width:100% !important;word-break:break-word !important;}'
         # Prevent sections (not nav/header) from stacking on top of each other
         'body>section,body>main,body>div:not(nav):not(header){position:relative !important;z-index:auto !important;}'
+        # Nav always dark background + white text — unconditional
+        'nav,header,.navbar,.nav-wrapper,.site-header{background:#111111 !important;}'
+        'nav a,nav a *,header a,header a *,nav li a,nav li a *,nav span,header span,.nav-link{color:#ffffff !important;}'
         # Nav spacing
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
         '</style>'

@@ -271,14 +271,17 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
         images_note = "Tech/software business — use a dark CSS gradient for hero, no real image."
     elif site_image_urls:
         images_note = (
-            "HERO IMAGE — use AT MOST ONE image from this list, only if it fits (space/product/food/architecture).\n"
-            "STRICT RULES (no exceptions):\n"
-            "  ✗ NEVER background-size:cover or background-image on hero — zooms and crops unpredictably\n"
-            "  ✗ NEVER use more than one image in the hero\n"
-            "  ✓ Place image as <img> in a 50/50 split layout: text left, image right\n"
-            "  ✓ <img style=\"width:100%;height:100%;object-fit:contain;max-height:600px;\">\n"
-            "  ✓ Shows the image exactly as-is — no cropping, no zooming\n"
-            "  ✓ If no suitable image exists: use a dark CSS gradient instead\n"
+            "HERO IMAGE — pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
+            "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
+            "HOW TO USE IT — full-cover background with readable text overlay:\n"
+            "  ✓ Apply it as CSS: background-image:url('...'); background-size:cover; background-position:center;\n"
+            "  ✓ Add a dark overlay div INSIDE the hero: position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;\n"
+            "  ✓ All hero content goes in a child div with position:relative;z-index:1;\n"
+            "  ✓ ALL text must be color:#ffffff because the overlay makes it dark\n"
+            "  ✓ This is the ONLY allowed usage — no <img> tag in the hero\n"
+            "  ✗ NEVER use an image in the hero without the dark overlay\n"
+            "  ✗ NEVER more than one image in the hero\n\n"
+            "If no suitable image: use a dark CSS gradient hero instead.\n\n"
             "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
         )
     else:
@@ -308,12 +311,12 @@ Phone:    {key_content.get('phone') or '—'}
 Services: {_s(services)}
 {colors_note}
 
-NAV: logo left, links right. Transparent on load → dark bg + blur on scroll (JS scroll listener).
+NAV: logo far left, links right. ALWAYS dark background: background:#111111; Never transparent.
 USE EXACTLY THESE LINKS:
   Home → #
 {nav_str}
-[CTA-BUTTON] = pill button, accent color bg, white text, border-radius:100px.
-ALL nav links: explicit color set. On transparent nav → white. On dark scrolled nav → white. Min 48px gap between logo and first link.
+[CTA-BUTTON] = pill button, accent color bg, color:#ffffff, border-radius:100px.
+ALL nav links and logo: color:#ffffff !important — nav is always #111111, text always white. Min 48px gap between logo and first link.
 
 ── HERO IMAGE DECISION ──────────────────────────────────────────────────
 {images_note}
@@ -321,27 +324,28 @@ ALL nav links: explicit color set. On transparent nav → white. On dark scrolle
 ── HERO DESIGN ──────────────────────────────────────────────────────────
 ✓ min-height:100svh, full viewport, immersive
 ✓ ALWAYS set an explicit background on #hero — never leave it unset
+✓ overflow:hidden on #hero — no content may be cut off on any screen size
+✓ All text: max-width:100%; word-break:break-word; no element wider than viewport
 
-CONTRAST LAW — this is the most important rule, no exceptions ever:
-  • Dark background (#000→#888) → ALL text must be light (#fff or rgba(255,255,255,0.85))
-  • Light background (#888→#fff) → ALL text must be dark (#111 or brand dark color)
-  • Every single element (h1,h2,p,span,a,button) must have an explicit color matching this law
-  • Set color on the section itself AND on every child element individually
+CONTRAST LAW — most important rule, no exceptions ever:
+  • Dark background (image overlay OR dark gradient) → ALL text color:#ffffff — set on EVERY element individually
+  • Light background → ALL text color:#111111 — set on EVERY element individually
+  • NEVER rely on color inheritance — set color explicitly on h1,h2,p,span,a,button each
 
 IF using a real image:
-  ✓ Split layout: text left 50%, <img> right 50%
-  ✓ Left side always dark: deep gradient or solid dark brand color
-  ✓ <img style="width:100%;height:100%;object-fit:contain;max-height:600px;">
-  ✗ Never background-image with a URL — always <img> tag
+  ✓ CSS background-image on #hero with background-size:cover;background-position:center
+  ✓ Dark overlay div (position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0)
+  ✓ Content div: position:relative;z-index:1
+  ✓ ALL text color:#ffffff (overlay makes bg dark)
+  ✗ No <img> tag in the hero
 
 IF no image (CSS-only):
-  ✓ Match reference design quality — dark gradient, strong typography
-  ✓ Optional: subtle CSS shape only if it clearly improves the design
+  ✓ Dark gradient hero — match reference design quality
   ✗ No random symbols, decorative dots, or ornamental characters
 
-✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95, explicit color
+✓ Headline: clamp(2.5rem,7vw,6rem), bold, line-height:0.95–1.1, explicit color
 ✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, explicit color
-✓ CTA: pill, accent color bg, explicit contrasting text color, padding:14px 40px
+✓ CTA: pill, accent color bg, color:#fff, padding:14px 40px
 ✓ Google Fonts: 2 fonts matching the tone
 
 Add <!-- HERO_END --> immediately after the closing </section> of the hero.
@@ -568,46 +572,39 @@ HERO BACKGROUND — this is a tech/software company:
     elif site_image_urls:
         images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
         images_block = f"""
-ORIGINAL SITE IMAGES — taken 1:1 from the real website. Use them exactly as-is:
+ORIGINAL SITE IMAGES:
 {images_list}
 
-GLOBAL IMAGE RULES (apply everywhere on the page, no exceptions):
-  ✗ NEVER use background-size:cover or background-size:contain on any image — zooms/crops unpredictably
-  ✗ NEVER use background-image with a URL for any visible image
-  ✓ ALWAYS use the <img> HTML tag for every image from this list
-  ✓ Every <img> must have: style="max-width:100%;height:auto;" — preserves aspect ratio, no zoom
-  ✓ Images must appear exactly as they are on the original site — no cropping, no stretching
+NON-HERO IMAGE RULES (gallery, about, features sections):
+  ✓ Always use <img> tags: style="max-width:100%;height:auto;display:block;"
+  ✓ Images show exactly as-is — no zoom, no crop, no stretching
+  ✗ NEVER background-size:cover or background-size:contain on non-hero images
 
-HERO BACKGROUND — strict rules:
+HERO BACKGROUND — pick ONE suitable image or use CSS gradient:
 
-STEP 1 — Check if ONE real image is suitable for the hero:
-Use it ONLY if ALL of these are true:
-  ✓ It shows a space/interior, product, food, landscape, or architecture (NOT people/faces)
-  ✓ The URL does NOT contain "thumb", "small", "icon", "logo", "avatar", "50x", "100x", "150x"
-  ✓ It clearly relates to the business
+STEP 1 — Is there a good hero image?
+Use it if: it shows a space/interior, food, product, landscape, architecture
+Skip if: URL contains thumb, small, icon, logo, avatar, 50x, 100x, 150x
 
-If using a hero image — STRICT RULES:
-  ✗ NEVER use it as a CSS background-image — use an <img> tag instead
-  ✗ NEVER use more than one image in the hero
-  ✓ ALWAYS use a SPLIT layout: text left 50%, <img> right 50%
-  ✓ On the <img>: style="width:100%;height:100%;object-fit:contain;max-height:600px;"
-  ✓ This shows the image exactly as-is without any cropping or zooming
+If using a hero image:
+  ✓ CSS on #hero: background-image:url('IMAGE_URL'); background-size:cover; background-position:center;
+  ✓ Dark overlay div INSIDE #hero: <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;"></div>
+  ✓ Content wrapper: position:relative;z-index:1;
+  ✓ ALL text: color:#ffffff (the dark overlay ensures readability)
+  ✗ NEVER use an <img> tag in the hero section itself
 
-STEP 2 — If no suitable image, use the REFERENCE DESIGNS (the screenshots) as style inspiration.
-  Build a CSS-only hero matching their quality, adapted to this business's industry and brand colours:
+STEP 2 — If no suitable image, CSS-only dark gradient:
+  - Restaurant/Food: deep burgundy → warm amber gradient
+  - Dental/Medical: deep navy → teal gradient
+  - Legal/Finance: dark navy/charcoal gradient, gold accent
+  - Beauty/Wellness: blush → mauve gradient
+  - Handwerk/Construction: dark slate gradient, diagonal accent lines
+  - Generic: dark brand-color gradient, geometric accent
+  Hero must look like it came from a top design agency — not a placeholder.
 
-  - Dental/Medical: clean gradient (white → light teal or deep navy), add a subtle cross or tooth SVG shape
-  - Restaurant/Food: warm gradient (deep burgundy → warm amber), add a subtle grain texture
-  - Legal/Finance: dark navy/charcoal gradient, gold accent line, serif feel
-  - Tech/Software: dark background, subtle grid or dot pattern, electric blue/purple accent
-  - Beauty/Wellness: soft gradient (blush → mauve), elegant thin lines
-  - Handwerk/Construction: dark slate gradient, subtle diagonal lines, strong contrast
-  - Generic: deep dark gradient with brand colour accent, geometric shape, NO stock clichés
-  The CSS hero must feel like a real agency built it — not a placeholder.
+Either way: hero min-height:100svh, overflow:hidden, ALL text color:#ffffff, immersive, professional.
 
-Either way: hero must be min-height:100vh, all text white, immersive, professional.
-
-GALLERY / ABOUT: use remaining images from the list with <img> tags (max-width:100%;height:auto)"""
+GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:auto)"""
 
     # ── Build nav topics (anchor links — single page) ────────────────────────
     pages_analyzed = analysis.get("pages_content", [])
@@ -787,24 +784,25 @@ Address:     {key_content.get('address') or '—'}
 {images_block}
 
 ── NAV ──────────────────────────────────────────────────────────────────
-Transparent on load → dark bg (rgba(10,10,20,0.95)) + backdrop-blur on scroll (JS scroll listener).
+ALWAYS dark background: background:#111111 — never transparent, never light.
 Logo far left, links right. Min 48px gap. Hamburger on mobile.
 
 USE EXACTLY THESE LINKS — no additions, no removals:
   Home → #
 {nav_topics_str}
 
-[CTA-BUTTON] = filled pill, accent color bg, white text, border-radius:100px.
-All nav links: always explicit color. Transparent state → color:#fff. Scrolled state → color:#fff.
-NEVER dark/black nav link text — nav background is always dark.
+[CTA-BUTTON] = filled pill, accent color bg, color:#ffffff, border-radius:100px.
+All nav links and logo text: color:#ffffff !important — always, without exception.
+NEVER use a light background for nav. NEVER use dark text in nav.
 
 ── HERO ──────────────────────────────────────────────────────────────────
-Full viewport height (min-height:100svh).
+Full viewport height (min-height:100svh). overflow:hidden on #hero.
+All hero text: max-width:100%; word-break:break-word — nothing may overflow the screen.
 
 CONTRAST LAW — most important rule, no exceptions ever:
-  • Dark background → ALL text: color:#fff (set on section AND on every h1,h2,p,span,a individually)
-  • Light background → ALL text: color:#111 (set on section AND on every h1,h2,p,span,a individually)
-  • NEVER set color on parent only and rely on inheritance — set it explicitly on every element
+  • Dark background (image+overlay OR dark gradient) → ALL text: color:#ffffff — set on EVERY element
+  • Light background → ALL text: color:#111111 — set on EVERY element
+  • NEVER rely on color inheritance — set color explicitly on every h1,h2,p,span,a,button
 
 BACKGROUND:
 {images_block}
