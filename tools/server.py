@@ -78,77 +78,77 @@ import re as _re
 import base64 as _b64
 
 def _build_safety_css() -> str:
+    # CSS: structural safety rules that don't depend on JS timing
     css = (
         '<style id="revive-safety">'
+        # Prevent sections from stacking on top of each other
+        'body>*,main>*,body>section,body>div{position:relative !important;z-index:auto !important;}'
+        # Nav spacing
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
-        # Prevent sections from overlapping each other
-        'section,main>div,[id]{position:relative;z-index:auto;}'
+        # Nav links always visible — default white, overridden by JS if nav is light
+        'nav a,header a,.nav-link{color:#fff !important;}'
         '</style>'
     )
-    js = (
-        '<script id="revive-hero-fix">'
-        # Helper: luminance from computed background (-1 = transparent)
-        'function _lum(el){'
-        'var m=(getComputedStyle(el).backgroundColor||"").match(/[\\d.]+/g);'
-        'if(!m||m.length<3)return -1;'
-        'var a=m[3]!==undefined?+m[3]:1;'
-        'if(a<0.05)return -1;'
-        'return 0.299*+m[0]+0.587*+m[1]+0.114*+m[2];'
-        '}'
-        # Helper: force color with !important via setProperty so it beats stylesheet !important
-        'function _col(el,col){'
-        'el.style.setProperty("color",col,"important");'
-        '}'
-        # Helper: set text color on el + all text descendants that have transparent bg
-        'function _setTextColor(el,col){'
-        '_col(el,col);'
-        'el.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,a,li,button,label").forEach(function(c){'
-        'if(_lum(c)===-1)_col(c,col);'
-        '});'
-        '}'
-        'document.addEventListener("DOMContentLoaded",function(){'
-        # ── Hero contrast fix ─────────────────────────────────────────────
-        'var h=document.getElementById("hero");'
-        'if(h){'
-        'var cs=getComputedStyle(h);'
-        'var hasBgImg=cs.backgroundImage&&cs.backgroundImage!=="none";'
-        'var lum=_lum(h);'
-        'if(hasBgImg){'
-        # Has bg image → add dark overlay + white text
-        'var ov=document.createElement("div");'
-        'ov.style.cssText="position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:0;pointer-events:none;";'
-        'h.style.setProperty("position","relative","important");'
-        'h.insertBefore(ov,h.firstChild);'
-        'h.querySelectorAll(":scope>*:not(#revive-overlay)").forEach(function(c){'
-        'if(!c.style.position){c.style.setProperty("position","relative","important");}'
-        'c.style.setProperty("z-index","1","important");'
-        '});'
-        '_setTextColor(h,"#fff");'
-        '}else if(lum>160){'
-        # Light solid bg → dark text
-        '_setTextColor(h,"#111");'
-        '}else if(lum===-1){'
-        # Transparent → force dark bg + white text
-        'h.style.setProperty("background","linear-gradient(135deg,#0d1117 0%,#1a2236 60%,#0d1117 100%)","important");'
-        '_setTextColor(h,"#fff");'
-        '}else{'
-        # Dark bg → white text
-        '_setTextColor(h,"#fff");'
-        '}'
-        '}'
-        # ── Nav contrast fix (initial + scroll) ───────────────────────────
-        'function fixNav(){'
-        'var nav=document.querySelector("nav,header");'
-        'if(!nav)return;'
-        'var lum=_lum(nav);'
-        'var col=lum>160?"#111":"#fff";'
-        'nav.querySelectorAll("a").forEach(function(a){_col(a,col);});'
-        '}'
-        'fixNav();'
-        'window.addEventListener("scroll",fixNav,{passive:true});'
-        '});'
-        '</script>'
-    )
+    # JS: runs AFTER full page load (window.onload) so computed styles are accurate
+    js = r"""<script id="revive-contrast-fix">
+(function(){
+  function lum(el){
+    var m=(getComputedStyle(el).backgroundColor||'').match(/[\d.]+/g);
+    if(!m||m.length<3)return -1;
+    var a=m[3]!==undefined?+m[3]:1;
+    if(a<0.05)return -1;
+    return 0.299*+m[0]+0.587*+m[1]+0.114*+m[2];
+  }
+  function col(el,c){el.style.setProperty('color',c,'important');}
+  function textColor(el,c){
+    col(el,c);
+    el.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span,a,li,button,label,small').forEach(function(t){
+      if(lum(t)===-1)col(t,c);
+    });
+  }
+  function fixSection(el){
+    var cs=getComputedStyle(el);
+    var hasBgImg=cs.backgroundImage&&cs.backgroundImage!=='none';
+    var l=lum(el);
+    if(hasBgImg){
+      // background image: overlay + white text
+      if(!el.querySelector('.rv-overlay')){
+        var ov=document.createElement('div');
+        ov.className='rv-overlay';
+        ov.style.cssText='position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:0;pointer-events:none;';
+        el.style.setProperty('position','relative','important');
+        el.insertBefore(ov,el.firstChild);
+        Array.from(el.children).forEach(function(c){
+          if(c!==ov){c.style.setProperty('position','relative','important');c.style.setProperty('z-index','1','important');}
+        });
+      }
+      textColor(el,'#fff');
+    } else if(l>160){
+      textColor(el,'#111');  // light bg → dark text
+    } else if(l===-1){
+      // transparent → force dark gradient + white text
+      el.style.setProperty('background','linear-gradient(135deg,#0d1117 0%,#1a2236 60%,#0d1117 100%)','important');
+      textColor(el,'#fff');
+    } else {
+      textColor(el,'#fff');  // dark bg → white text
+    }
+  }
+  function fixNav(){
+    var nav=document.querySelector('nav,header');
+    if(!nav)return;
+    var l=lum(nav);
+    var c=l>160?'#111':'#fff';
+    nav.querySelectorAll('a').forEach(function(a){col(a,c);});
+  }
+  // Run after full load so all CSS is applied and computed styles are accurate
+  window.addEventListener('load',function(){
+    var hero=document.getElementById('hero');
+    if(hero)fixSection(hero);
+    fixNav();
+    window.addEventListener('scroll',fixNav,{passive:true});
+  });
+})();
+</script>"""
     return css + js
 
 def parse_multifile_html(full_html: str) -> dict:

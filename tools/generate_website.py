@@ -306,43 +306,41 @@ Phone:    {key_content.get('phone') or '—'}
 Services: {_s(services)}
 {colors_note}
 
-NAV: logo left (business name), links right. Transparent → blur on scroll. Hamburger on mobile.
+NAV: logo left, links right. Transparent on load → dark bg + blur on scroll (JS scroll listener).
 USE EXACTLY THESE LINKS:
   Home → #
 {nav_str}
 [CTA-BUTTON] = pill button, accent color bg, white text, border-radius:100px.
-ALL nav link text: white/light — never dark. Min 48px gap between logo and first link.
+ALL nav links: explicit color set. On transparent nav → white. On dark scrolled nav → white. Min 48px gap between logo and first link.
 
 ── HERO IMAGE DECISION ──────────────────────────────────────────────────
 {images_note}
 
-── HERO DESIGN (strictly enforced) ─────────────────────────────────────
-✗ NEVER a white or light background — text becomes invisible
-✓ min-height:100svh, full viewport, immersive, jaw-dropping quality
+── HERO DESIGN ──────────────────────────────────────────────────────────
+✓ min-height:100svh, full viewport, immersive
+✓ ALWAYS set an explicit background on #hero — never leave it unset
 
-IF using a real image from the list above:
-  ✓ Use a SPLIT layout: text+CTA left 50%, <img> right 50%
+CONTRAST LAW — this is the most important rule, no exceptions ever:
+  • Dark background (#000→#888) → ALL text must be light (#fff or rgba(255,255,255,0.85))
+  • Light background (#888→#fff) → ALL text must be dark (#111 or brand dark color)
+  • Every single element (h1,h2,p,span,a,button) must have an explicit color matching this law
+  • Set color on the section itself AND on every child element individually
+
+IF using a real image:
+  ✓ Split layout: text left 50%, <img> right 50%
+  ✓ Left side always dark: deep gradient or solid dark brand color
   ✓ <img style="width:100%;height:100%;object-fit:contain;max-height:600px;">
-  ✓ Left side: dark background using brand color or deep gradient
-  ✓ No background-size:cover — never zoom or crop the image
-  ✗ Do NOT use it as CSS background-image
+  ✗ Never background-image with a URL — always <img> tag
 
-IF no suitable image (CSS-only hero):
-  ✓ Study the reference designs above and match their quality
-  ✓ Use a dark gradient, geometric shapes, or abstract CSS art
-  ✓ Pick the layout from the references that fits this industry best
-  ✓ Typography-led: oversized headline, strong hierarchy, accent color details
-  ✓ Optional: subtle CSS geometric shape or thin accent line only if it enhances the design
+IF no image (CSS-only):
+  ✓ Match reference design quality — dark gradient, strong typography
+  ✓ Optional: subtle CSS shape only if it clearly improves the design
+  ✗ No random symbols, decorative dots, or ornamental characters
 
-ALWAYS:
-✓ Set background explicitly on #hero — NEVER leave it unset/default
-✓ CONTRAST RULE (no exceptions): light background → dark text (#111 or brand dark color)
-✓ CONTRAST RULE (no exceptions): dark background → light text (#fff or rgba(255,255,255,0.85))
-✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95
-✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, matching contrast color
-✓ CTA: pill shape, accent color bg, contrasting text, padding:14px 40px, font-weight:600
-✓ Google Fonts: 2 fonts matching the tone (e.g. serif + sans for luxury, two sans for tech)
-✗ NO random decorative symbols, dots, or special characters that don't belong to the content
+✓ Headline: clamp(3rem,8vw,7rem), bold, line-height:0.95, explicit color
+✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, explicit color
+✓ CTA: pill, accent color bg, explicit contrasting text color, padding:14px 40px
+✓ Google Fonts: 2 fonts matching the tone
 
 Add <!-- HERO_END --> immediately after the closing </section> of the hero.
 
@@ -781,43 +779,31 @@ Address:     {key_content.get('address') or '—'}
 {images_block}
 
 ── NAV ──────────────────────────────────────────────────────────────────
-Transparent on load → solid + backdrop-blur on scroll (JS scroll listener).
-Layout: logo on far left, nav links in the center/right — use justify-content:space-between and a
-generous gap (min 48px) between the logo and the first nav link so they never feel cramped.
-Hamburger on mobile.
+Transparent on load → dark bg (rgba(10,10,20,0.95)) + backdrop-blur on scroll (JS scroll listener).
+Logo far left, links right. Min 48px gap. Hamburger on mobile.
 
 USE EXACTLY THESE LINKS — no additions, no removals:
   Home → #
 {nav_topics_str}
 
-[CTA-BUTTON] = filled pill button, accent color background, white text, border-radius:100px.
-All other links = plain text, color:#fff or light color, hover underline or opacity change.
-CRITICAL: ALL nav link text must be white or light — never dark/black text in the nav.
+[CTA-BUTTON] = filled pill, accent color bg, white text, border-radius:100px.
+All nav links: always explicit color. Transparent state → color:#fff. Scrolled state → color:#fff.
+NEVER dark/black nav link text — nav background is always dark.
 
 ── HERO ──────────────────────────────────────────────────────────────────
-Full viewport height (min-height:100svh). This is the most important part.
+Full viewport height (min-height:100svh).
 
-CRITICAL — BACKGROUND & CONTRAST RULES (read carefully, no exceptions):
-✗ NEVER use a white, cream, or light background for the hero — text will be invisible
-✓ The hero background MUST be dark: a dark photo with overlay, a dark gradient, or a deep solid color
-✓ If using a photo: ALWAYS add a CSS overlay: background: linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55))
-✓ If using a gradient: use dark tones — e.g. #0a0a0a → #1a1a2e, or deep brand color
-✓ ALL text in the hero (headline, subtext, button labels) must be explicitly color:#fff or color:rgba(255,255,255,0.X)
-✓ Add this as a CSS safety rule: #hero * {{ color: inherit; }} and set color:#fff on the hero section itself
+CONTRAST LAW — most important rule, no exceptions ever:
+  • Dark background → ALL text: color:#fff (set on section AND on every h1,h2,p,span,a individually)
+  • Light background → ALL text: color:#111 (set on section AND on every h1,h2,p,span,a individually)
+  • NEVER set color on parent only and rely on inheritance — set it explicitly on every element
 
-HEADLINE: Use the EXACT headline from the data above. Never write a generic one.
-• Size: clamp(3rem,8vw,7rem) — bold or black weight, line-height 0.95–1.1
-• If longer than 6 words, break with <br> at the most natural point
-• color: #fff — explicit, always
-• Subtext: clamp(1rem,2vw,1.25rem), max 2 lines, color:rgba(255,255,255,0.65), light weight
-
-LAYOUT — choose the one that fits this industry best:
-A) Full-bleed dark photo with overlay + centered text + CTA button
-B) Split 50/50: dark left side with text (color:#fff), image right
-C) Large headline overlapping a full-bleed dark photo (offset, not centered)
-
-BACKGROUND — follow these rules strictly:
+BACKGROUND:
 {images_block}
+
+HEADLINE: Exact text from data above. clamp(3rem,8vw,7rem), bold, line-height:0.95–1.1, explicit color.
+SUBTEXT: clamp(1rem,2vw,1.25rem), max 2 lines, explicit color matching contrast law.
+LAYOUT: Choose best for industry — centered, split 50/50, or offset headline over image.
 
 CTA BUTTON: pill shape, accent color background, color:#fff, padding:14px 40px, no box-shadow.
 
@@ -843,6 +829,8 @@ NEVER:
 ✗ Generic headings like "Our Services", "About Us", "Why Choose Us"
 ✗ All sections with identical padding and background
 ✗ Placeholder or invented text
+✗ position:absolute or position:fixed on section containers — causes overlapping
+✗ Elements that float outside their parent container
 
 ── FOOTER / KONTAKT ──────────────────────────────────────────────────────
 id="kontakt". Show all contact details (phone, email, address, hours).
