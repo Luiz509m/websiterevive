@@ -3,11 +3,13 @@
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "demo.mp4", "use": "@vercel/static" },
-    { "src": "favicon.svg", "use": "@vercel/static" }
+    { "src": "favicon.svg", "use": "@vercel/static" },
+    { "src": "dotted-map.svg", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/demo.mp4", "dest": "/demo.mp4" },
     { "src": "/favicon.svg", "dest": "/favicon.svg" },
+    { "src": "/dotted-map.svg", "dest": "/dotted-map.svg" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
