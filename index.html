@@ -3247,11 +3247,42 @@
   handleCheckoutReturn();
 </script>
 
-<script>
+<script type="module">
+  /* ── Load dotted-map lazily after page is idle (avoids blocking paint) ── */
+  requestIdleCallback(() => {
+    (async () => {
+      try {
+        const { default: DottedMap } = await import('https://esm.sh/dotted-map@2');
+        const map = new DottedMap({ height: 60, grid: 'diagonal' });
+        const svgStr = map.getSVG({
+          radius: 0.22,
+          color: '#3DFFD0',
+          shape: 'circle',
+          backgroundColor: 'transparent',
+        });
+        const parser = new DOMParser();
+        const doc    = parser.parseFromString(svgStr, 'image/svg+xml');
+        const svgEl  = doc.querySelector('svg');
+        if (!svgEl) return;
+        svgEl.removeAttribute('width');
+        svgEl.removeAttribute('height');
+        svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        svgEl.setAttribute('style', 'width:100%;height:100%;display:block;');
+        const container = document.getElementById('hero-map-dots');
+        if (container) {
+          container.style.backgroundImage = 'none';
+          container.innerHTML = svgEl.outerHTML;
+        }
+      } catch (err) {
+        console.info('[WebsiteRevive] Map CDN unavailable, using fallback.', err.message);
+      }
+    })();
+  }, { timeout: 3000 });
+
   // ── Keepalive: ping Render every 10 min to prevent cold starts ──────────
   (function keepAlive() {
     const ping = () => fetch(`${REVIVE_API_URL}/health`, { method: 'GET' }).catch(() => {});
-    setTimeout(ping, 5000);
+    setTimeout(ping, 5000); // delay first ping so it doesn't block page load
     setInterval(ping, 10 * 60 * 1000);
   })();
 </script>
