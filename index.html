@@ -3248,27 +3248,39 @@
 </script>
 
 <script type="module">
-  /* ── Load dotted-map 5s after load so page is fully interactive first ── */
-  setTimeout(async () => {
+  /* ── Dotted-map in Web Worker — zero main-thread blocking ── */
+  setTimeout(() => {
     try {
-      const { default: DottedMap } = await import('https://esm.sh/dotted-map@2');
-      await new Promise(r => setTimeout(r, 0)); // yield before heavy processing
-      const map    = new DottedMap({ height: 60, grid: 'diagonal' });
-      const svgStr = map.getSVG({ radius: 0.22, color: '#3DFFD0', shape: 'circle', backgroundColor: 'transparent' });
-      await new Promise(r => setTimeout(r, 0)); // yield before DOM update
-      // Use blob URL instead of innerHTML — avoids adding thousands of DOM nodes (no freeze)
-      const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-      const url  = URL.createObjectURL(blob);
-      const container = document.getElementById('hero-map-dots');
-      if (container) {
-        container.style.backgroundImage = `url("${url}")`;
-        container.style.backgroundSize  = 'cover';
-        container.style.backgroundRepeat = 'no-repeat';
-      }
-    } catch (err) {
-      console.info('[WebsiteRevive] Map CDN unavailable, using fallback.', err.message);
+      const workerSrc = `
+        self.onmessage = async () => {
+          try {
+            const { default: DottedMap } = await import('https://esm.sh/dotted-map@2');
+            const map = new DottedMap({ height: 60, grid: 'diagonal' });
+            const svg = map.getSVG({ radius:0.22, color:'#3DFFD0', shape:'circle', backgroundColor:'transparent' });
+            self.postMessage({ svg });
+          } catch(e) { self.postMessage({ error: e.message }); }
+        };
+      `;
+      const workerBlob = new Blob([workerSrc], { type: 'application/javascript' });
+      const workerUrl  = URL.createObjectURL(workerBlob);
+      const worker     = new Worker(workerUrl, { type: 'module' });
+      worker.onmessage = ({ data }) => {
+        URL.revokeObjectURL(workerUrl);
+        if (!data.svg) return;
+        const svgBlob = new Blob([data.svg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(svgBlob);
+        const container = document.getElementById('hero-map-dots');
+        if (container) {
+          container.style.backgroundImage  = `url("${url}")`;
+          container.style.backgroundSize   = 'cover';
+          container.style.backgroundRepeat = 'no-repeat';
+        }
+      };
+      worker.postMessage(null);
+    } catch(e) {
+      console.info('[WebsiteRevive] Worker unavailable, using CSS fallback.', e.message);
     }
-  }, 5000);
+  }, 2000);
 
   // ── Keepalive: ping Render every 10 min to prevent cold starts ──────────
   (function keepAlive() {
