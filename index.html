@@ -6,10 +6,7 @@
   <title>WebsiteRevive — Your website, revived.</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="description" content="Paste your URL. Get a fully optimized, faster, higher-converting website in minutes. AI-powered website regeneration.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"></noscript>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* ── RESET & BASE ── */
@@ -1505,6 +1502,7 @@
       mask-image:         radial-gradient(ellipse 85% 80% at 50% 50%, black 30%, transparent 100%);
     }
 
+    /* when dotted-map injects the SVG, make it fill the container */
     .hero-map-dots svg {
       width: 100%;
       height: 100%;
@@ -3247,6 +3245,37 @@
 </script>
 
 <script type="module">
+  /* ── Load dotted-map lazily after page is idle (avoids blocking paint) ── */
+  requestIdleCallback(() => {
+    (async () => {
+      try {
+        const { default: DottedMap } = await import('https://esm.sh/dotted-map@2');
+        const map = new DottedMap({ height: 60, grid: 'diagonal' });
+        const svgStr = map.getSVG({
+          radius: 0.22,
+          color: '#3DFFD0',
+          shape: 'circle',
+          backgroundColor: 'transparent',
+        });
+        const parser = new DOMParser();
+        const doc    = parser.parseFromString(svgStr, 'image/svg+xml');
+        const svgEl  = doc.querySelector('svg');
+        if (!svgEl) return;
+        svgEl.removeAttribute('width');
+        svgEl.removeAttribute('height');
+        svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        svgEl.setAttribute('style', 'width:100%;height:100%;display:block;');
+        const container = document.getElementById('hero-map-dots');
+        if (container) {
+          container.style.backgroundImage = 'none';
+          container.innerHTML = svgEl.outerHTML;
+        }
+      } catch (err) {
+        console.info('[WebsiteRevive] Map CDN unavailable, using fallback.', err.message);
+      }
+    })();
+  }, { timeout: 3000 });
+
   // ── Keepalive: ping Render every 10 min to prevent cold starts ──────────
   (function keepAlive() {
     const ping = () => fetch(`${REVIVE_API_URL}/health`, { method: 'GET' }).catch(() => {});
