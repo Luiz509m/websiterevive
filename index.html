@@ -1920,7 +1920,7 @@
       <!-- Testing offer — limited 2 weeks -->
       <div class="p-card" style="border-color:rgba(255,180,0,0.45);position:relative;overflow:hidden;">
         <div style="position:absolute;top:0;left:0;right:0;background:linear-gradient(90deg,#b45309,#d97706);padding:5px 12px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#fff;text-align:center;">
-          🧪 Beta Offer · <span id="testing-countdown">Limited time</span>
+          🧪 Beta Offer
         </div>
         <div style="margin-top:24px;">
           <div class="p-tier">Testing</div>
@@ -3181,20 +3181,6 @@
   }
 
 
-  // ── Testing offer countdown ──────────────────────────────────────────────────
-  (function() {
-    const expiry = new Date('2026-04-18T23:59:59');
-    const el = document.getElementById('testing-countdown');
-    if (!el) return;
-    function update() {
-      const diff = expiry - Date.now();
-      if (diff <= 0) { el.textContent = 'Expired'; return; }
-      const days = Math.floor(diff / 86400000);
-      el.textContent = days === 1 ? '1 day left' : `${days} days left`;
-    }
-    update();
-    setInterval(update, 60000);
-  })();
 
   // ── Buy tokens ───────────────────────────────────────────────────────────────
   async function handleBuyTokens(pkg) {
