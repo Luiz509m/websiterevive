@@ -263,6 +263,122 @@ def extract_image_urls(html: str, base_url: str, max_images: int = 12) -> list[s
     return result
 
 
+def validate_image_urls(urls: list[str], min_dim: int = 350, timeout: int = 4) -> list[str]:
+    """
+    Filter image URLs by actual downloaded dimensions.
+    Reads only the first 64 KB of each image (enough for PNG/JPEG header).
+    Runs all requests in parallel — total wait time = ~timeout seconds.
+    Images that can't be checked are kept (safe fallback).
+    """
+    import requests as _req
+    import io as _io
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
+    def _check(url):
+        try:
+            resp = _req.get(url, headers=HEADERS, timeout=timeout, stream=True)
+            if resp.status_code != 200:
+                return url, None, None
+            buf = b""
+            for chunk in resp.iter_content(8192):
+                buf += chunk
+                if len(buf) >= 65536:
+                    break
+            try:
+                from PIL import Image as _Img
+                img = _Img.open(_io.BytesIO(buf))
+                return url, img.width, img.height
+            except Exception:
+                return url, None, None
+        except Exception:
+            return url, None, None
+
+    scored = []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futures = {ex.submit(_check, u): u for u in urls}
+        for f in as_completed(futures):
+            url, w, h = f.result()
+            if w is None:
+                # Can't verify — keep it rather than losing all images
+                scored.append((url, 0))
+                print(f"[img-check] ? {url.split('/')[-1][:50]} — unverifiable, keeping")
+            elif w >= min_dim and h >= min_dim:
+                scored.append((url, w * h))
+                print(f"[img-check] ✓ {url.split('/')[-1][:50]} — {w}x{h}")
+            else:
+                print(f"[img-check] ✗ {url.split('/')[-1][:50]} — {w}x{h} (too small, removed)")
+
+    # Sort largest first — best images at the top of the list
+    scored.sort(key=lambda x: x[1], reverse=True)
+    result = [u for u, _ in scored]
+    print(f"[img-check] {len(result)}/{len(urls)} images passed dimension check")
+    return result
+
+
+def critic_pass(html: str, industry: str, business_name: str) -> str:
+    """
+    Second Claude call (Sonnet, fast+cheap) that reviews the generated HTML
+    and injects targeted CSS/JS fixes for real quality issues found.
+    Runs in the background thread — adds ~20s but user doesn't notice.
+    """
+    print("\n[critic] Running quality review pass...")
+
+    # Send first 60K chars — enough to see structure, nav, hero, first sections
+    html_preview = html[:60000] if len(html) > 60000 else html
+
+    prompt = f"""You are a senior web developer doing a quality review of a generated website.
+
+Business: {business_name}
+Industry: {industry}
+
+Review this HTML for real problems that hurt user experience or visual quality.
+Check specifically:
+1. Mobile: text overflowing, no hamburger menu JS, elements wider than viewport
+2. Hero: text invisible (bad contrast), overlay missing on bg image, CTA not clickable
+3. Sections: overlapping (wrong z-index/position), content cut off, broken grid layout
+4. Images: img tags without max-width:100%, images overflowing their container
+5. Nav: links invisible (white on white or dark on dark), logo too large on mobile
+6. Footer: contact info missing if it was in the business data
+
+HTML to review:
+```html
+{html_preview}
+```
+
+If you find real issues: return ONLY a <style> block with CSS fixes, and optionally a small <script> block.
+Keep fixes minimal and surgical — do not rewrite sections, only override what is broken.
+If no significant issues found: return exactly the text: <!-- NO_FIXES_NEEDED -->
+No explanation. No markdown fences. Just the fix or the comment."""
+
+    try:
+        response = CLIENT.messages.create(
+            model=MODEL_FAST,   # Sonnet — fast and cheap for review
+            max_tokens=3000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        fixes = response.content[0].text.strip()
+
+        if not fixes or "NO_FIXES_NEEDED" in fixes:
+            print("[critic] ✓ No issues found — HTML looks good")
+            return html
+
+        # Strip accidental markdown fences
+        if fixes.startswith("```"):
+            fixes = fixes.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
+        print(f"[critic] ✓ Applying fixes ({len(fixes)} chars)")
+        # Inject before </body> so fixes override everything above
+        if "</body>" in html:
+            return html.replace("</body>", fixes + "\n</body>", 1)
+        return html + fixes
+
+    except Exception as e:
+        print(f"[critic] Warning: critic pass failed ({e}) — using original HTML")
+        return html
+
+
 # ── Step 1b: Hero-only generation (cheap preview) ────────────────────────────
 
 def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None) -> str:
@@ -1222,6 +1338,10 @@ OUTPUT: One complete HTML file from <!DOCTYPE html> to </html>. No markdown fenc
         html = html.split("\n", 1)[1].rsplit("```", 1)[0].strip()
 
     print(f"[generate] ✓ Generated {len(html)} chars of HTML")
+
+    # ── Critic pass: review + fix quality issues ──────────────────────────────
+    html = critic_pass(html, industry, business_name)
+
     return html
 
 

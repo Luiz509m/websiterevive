@@ -65,7 +65,7 @@ from auth import (
 import db
 from generate_website import (
     analyze_website, generate_website, generate_hero_only, load_reference_images,
-    extract_image_urls, extract_text_content,
+    extract_image_urls, extract_text_content, validate_image_urls,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links
 
@@ -438,7 +438,7 @@ def generate():
         except ValueError as scrape_err:
             return jsonify({"error": str(scrape_err)}), 422
         slug      = scraped["slug"]
-        subpages  = scrape_subpages(url, scraped["html"], max_pages=4)
+        subpages  = scrape_subpages(url, scraped["html"], max_pages=6)
 
         # references loaded after analysis so we can pass industry
         references = None  # filled after analysis below
@@ -449,7 +449,11 @@ def generate():
             for img in extract_image_urls(sp["html"], sp["url"], max_images=6):
                 if img not in site_images:
                     site_images.append(img)
-        site_images = site_images[:15]
+        site_images = site_images[:20]  # collect more before filtering
+
+        # Validate image dimensions — remove tiny/broken images, sort largest first
+        site_images = validate_image_urls(site_images, min_dim=350)
+        site_images = site_images[:15]  # keep best 15 after filtering
 
         # Build structured pages list: homepage + each sub-page
         import re as _re
@@ -592,7 +596,7 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
             'color:rgba(150,150,150,0.7);font-family:sans-serif;letter-spacing:0.3px;'
             'border-top:1px solid rgba(150,150,150,0.15);margin-top:0;">'
             'Website made with '
-            '<a href="https://websiterevive.com" target="_blank" '
+            '<a href="https://webisterevive.xyz" target="_blank" '
             'style="color:inherit;text-decoration:underline;">WebsiteRevive</a>'
             '</div>'
         )
