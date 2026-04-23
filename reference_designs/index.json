@@ -21,21 +21,27 @@
     {"file": "19.png", "tags": ["tech", "saas", "fullcover", "generic"]},
     {"file": "20.png", "tags": ["finance", "tech", "dark", "dashboard"]},
     {"file": "21.png", "tags": ["tech", "saas", "dark", "security"]},
-    {"file": "22.png", "tags": ["finance", "fintech", "dark"]}
+    {"file": "22.png", "tags": ["finance", "fintech", "dark"]},
+    {"file": "23.png", "tags": ["food", "restaurant", "casual", "bold", "warm", "team"]},
+    {"file": "24.png", "tags": ["food", "restaurant", "pizza", "catering", "minimal", "light"]},
+    {"file": "25.png", "tags": ["food", "restaurant", "pizza", "menu", "typography"]},
+    {"file": "26.png", "tags": ["food", "restaurant", "luxury", "menu", "warm", "editorial"]},
+    {"file": "27.png", "tags": ["food", "bakery", "bread", "editorial", "bold", "minimal"]}
   ],
   "industry_map": {
-    "food":        ["15", "16", "02", "11"],
-    "restaurant":  ["15", "16", "02", "11"],
-    "cafe":        ["16", "15", "02", "11"],
-    "bakery":      ["16", "15", "02", "11"],
-    "catering":    ["15", "02", "16", "11"],
+    "food":        ["24", "26", "23", "27", "15", "16", "02", "11"],
+    "restaurant":  ["24", "26", "23", "15", "25", "27"],
+    "pizza":       ["24", "25", "23", "15", "26"],
+    "cafe":        ["27", "16", "24", "15", "26"],
+    "bakery":      ["27", "16", "24", "15", "26"],
+    "catering":    ["24", "23", "15", "26", "16"],
     "tech":        ["01", "03", "08", "17", "10", "19"],
     "saas":        ["03", "08", "17", "10", "01", "19"],
     "finance":     ["04", "05", "07", "18", "22", "20"],
     "legal":       ["18", "04", "09", "07"],
     "consulting":  ["18", "04", "08", "07"],
     "real_estate": ["09", "12", "13", "19"],
-    "luxury":      ["09", "12", "13", "16"],
+    "luxury":      ["09", "12", "13", "26"],
     "architecture":["12", "13", "09", "19"],
     "handwerk":    ["13", "12", "19", "09"],
     "health":      ["06", "02", "11", "16"],
@@ -44,6 +50,6 @@
     "dental":      ["08", "06", "07", "16"],
     "beauty":      ["06", "16", "12", "11"],
     "product":     ["02", "11", "06", "16"],
-    "generic":     ["03", "08", "19", "07", "16", "12"]
+    "generic":     ["03", "08", "19", "07", "16", "24"]
   }
 }
