@@ -535,6 +535,170 @@ Return ONLY valid JSON, no explanation."""
         return {"raw": raw, "business_name": business_name or "Business"}
 
 
+# ── Section design hints ─────────────────────────────────────────────────────
+
+def _section_design_hints(industry: str, nav_topics: list) -> str:
+    """
+    Returns design instructions specific to recognized section types.
+    Injected into the full-site generation prompt so Claude knows exactly
+    how to build a menu, team, gallery, services, or contact section.
+    """
+    ind = industry.lower()
+
+    is_food    = any(k in ind for k in ["restaurant","pizza","café","cafe","bäckerei","bakery",
+                                         "catering","kebab","burger","sushi","bistro","gastro",
+                                         "speise","pizzeria","trattoria","diner","küche","kitchen"])
+    is_medical = any(k in ind for k in ["zahnarzt","arzt","klinik","dental","medizin","praxis",
+                                         "therapie","physio","optiker","apotheke","gesundheit",
+                                         "orthopäd","chirurg","psych"])
+    is_handwerk= any(k in ind for k in ["handwerk","bau","maler","elektriker","sanitär","garten",
+                                         "reinigung","schreiner","dachdecker","zimmermann",
+                                         "installateur","maurer","schlosser","umzug"])
+    is_beauty  = any(k in ind for k in ["beauty","kosmetik","friseur","nail","massage","spa",
+                                         "wellness","coiffeur","tatoo","piercing","lash","brow"])
+    is_legal   = any(k in ind for k in ["anwalt","rechtsanwalt","kanzlei","notar","steuer",
+                                         "buchhalter","treuhand","finanzen","beratung"])
+
+    hints = []
+
+    for topic in nav_topics:
+        label = topic["label"].lower()
+        slug  = topic["href"].lstrip("#")
+
+        # ── MENU / SPEISEKARTE ────────────────────────────────────────────────
+        if any(k in label for k in ["menu","speisekarte","karte","gerichte","speisen"]):
+            hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — MENU DESIGN:
+  Layout: 2-column grid (desktop), 1 column (mobile). Dark or warm parchment background.
+  Group dishes by category (e.g. Vorspeisen / Hauptgerichte / Desserts / Getränke).
+  Each dish row:
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div>
+        <span style="font-weight:700;font-size:1.05rem;">Dish Name</span>
+        <p style="font-size:0.875rem;color:rgba(255,255,255,0.55);margin:2px 0 0;">Short description</p>
+      </div>
+      <span style="font-weight:600;color:var(--clr-primary);white-space:nowrap;">CHF XX.–</span>
+    </div>
+  Category header: uppercase letter-spacing label with a short divider line.
+  Only use actual dish names and prices from the scraped content — NEVER invent items.""")
+
+        # ── LEISTUNGEN / BEHANDLUNGEN / SERVICES ─────────────────────────────
+        elif any(k in label for k in ["leistungen","behandlungen","services","angebote","therapien","eingriffe"]):
+            if is_medical:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — MEDICAL SERVICES DESIGN:
+  Layout: 2-column card grid. Each card:
+    • Service/treatment name — bold, 1.1rem
+    • Short description (1-2 sentences from scraped content)
+    • Price if available — accent color
+    • Icon: use a simple inline SVG (tooth, heart, eye, etc.) or a number circle
+  Card style: white bg, subtle shadow, 1px border, border-radius:12px, padding:24px.
+  Section ends with a CTA button: "Termin vereinbaren" → booking URL or tel link.
+  NEVER use generic icons — numbers (01, 02…) are better than random icons.""")
+            elif is_beauty:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — BEAUTY SERVICES DESIGN:
+  Layout: elegant 3-column card grid.
+  Each card: service name + duration + price. Soft, warm styling.
+  One "HIGHLIGHT" card with slightly larger styling and accent border.
+  Bottom CTA: "Jetzt buchen" → booking URL.""")
+            else:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — SERVICES DESIGN:
+  Layout: 2-3 column card grid ONLY if 3+ services exist, otherwise 2-column split with text.
+  Each service: name (bold) + 2-3 sentence description from scraped content.
+  One card can have a dark/accent background as visual highlight.
+  Use numbers (01 / 02 / 03) instead of generic icons.
+  Include actual prices if scraped.""")
+
+        # ── TEAM / ÜBER UNS (people-focused) ─────────────────────────────────
+        elif any(k in label for k in ["team","mitarbeiter","ärzte","doktoren","staff","personal","therapeuten"]):
+            if is_medical:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — MEDICAL TEAM DESIGN:
+  Layout: 3-column grid (desktop), 1 column (mobile).
+  Each team member card:
+    • Photo: circular or rounded-square (200x200px, object-fit:cover). If no photo: initials avatar with accent bg.
+    • Name: bold, 1.15rem
+    • Title/Specialty: accent color, smaller
+    • 1-2 sentence bio from scraped content — only real people, never invented
+    • Credentials or years of experience if mentioned
+  Card: white bg, subtle shadow, padding:28px, text-align:center.""")
+            else:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — TEAM DESIGN:
+  Layout: 3-column grid (desktop), 1 column (mobile).
+  Each card: photo or initials avatar + Name (bold) + Role + 1 short sentence.
+  Clean, professional. Only real team members from scraped content — never invent people.""")
+
+        # ── GALERIE / PROJEKTE / PORTFOLIO ────────────────────────────────────
+        elif any(k in label for k in ["galerie","gallery","projekte","portfolio","arbeiten","referenzen","fotos","bilder"]):
+            if is_handwerk:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — PROJECT GALLERY DESIGN:
+  Layout: CSS masonry grid, 3 columns desktop, gap:12px.
+  Each image: width:100%; border-radius:8px; aspect-ratio auto.
+  On hover: subtle dark overlay with project type text (transform + opacity transition).
+  If before/after content exists: side-by-side comparison cards with a divider.
+  Let the work images dominate — minimal text, no cards around images.""")
+            else:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — GALLERY DESIGN:
+  Layout: 3-column grid, gap:16px. Images: width:100%; height:260px; object-fit:cover; border-radius:10px.
+  Hover: scale(1.03) with transition:transform 0.3s.
+  Minimal framing — images are the hero. No captions needed unless content provides them.""")
+
+        # ── PREISE / PRICING ──────────────────────────────────────────────────
+        elif any(k in label for k in ["preise","pricing","tarife","pakete","kosten"]):
+            hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — PRICING DESIGN:
+  Layout: 3-column pricing cards (or 2 if only 2 packages).
+  Each card: package name + price (large, bold) + feature list with ✓ checkmarks + CTA button.
+  One card is "featured": accent border, slightly larger, "Empfohlen" badge.
+  Only use actual prices from scraped content. If no prices: omit this layout, use a simple list.""")
+
+        # ── ÜBER UNS / ABOUT (non-people) ────────────────────────────────────
+        elif any(k in label for k in ["über uns","about","geschichte","unternehmen","wir sind","our story"]):
+            if is_food:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — ABOUT/STORY DESIGN:
+  Layout: 2-column split — large atmospheric image left, story text right. Warm, personal tone.
+  Include founding year or story highlight as a large typographic number.
+  Text: verbatim from scraped content. Warm background (cream or dark).
+  One highlighted quote or key fact in larger font.""")
+            elif is_legal:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — ABOUT DESIGN:
+  Layout: full-width editorial. Lead with a strong statement sentence in large type.
+  Followed by 2-column text split. Dark, authoritative tone.
+  Key numbers (years of experience, cases won, clients) as large typographic stats.""")
+            else:
+                hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — ABOUT DESIGN:
+  Layout: 2-column — image or stat block left, story text right.
+  Include a key number (founding year, years of experience) as a large typographic element.
+  Text verbatim from scraped content.""")
+
+        # ── BEWERTUNGEN / TESTIMONIALS ────────────────────────────────────────
+        elif any(k in label for k in ["bewertungen","reviews","kundenstimmen","testimonials","meinungen","feedback"]):
+            hints.append(f"""
+SECTION "{topic['label']}" (id="{slug}") — TESTIMONIALS DESIGN:
+  Layout: 3-column card grid (or 1 large quote if only 1 review).
+  Each card: ★★★★★ stars (accent color) + quote text in italics + author name + role/location.
+  Large opening quotation mark (") as decorative element behind the text.
+  ONLY use actual reviews from scraped content — NEVER invent testimonials.""")
+
+    if not hints:
+        return ""
+
+    return (
+        "\n── SECTION-SPECIFIC DESIGN RULES ───────────────────────────────────────\n"
+        "Apply the following layout rules to matching sections exactly as specified:\n"
+        + "\n".join(hints)
+        + "\n"
+    )
+
+
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
 def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None) -> str:
@@ -901,7 +1065,7 @@ Each section's id attribute MUST exactly match the href from the nav (e.g. href=
 
 CONTENT — use the scraped text below verbatim, do not invent or paraphrase:
 {section_content_blocks}
-
+{_section_design_hints(industry, nav_topics)}
 LAYOUT — vary each section's design. Never repeat the same layout twice:
 ✓ Full-width editorial text with a large pull quote or number
 ✓ 2-column split: image left + text right (or reversed)
@@ -930,7 +1094,16 @@ Copyright line. Dark background preferred.
 
 ── TECHNICAL ─────────────────────────────────────────────────────────────
 • Single HTML file, all CSS and JS inline
-• Google Fonts: 2 fonts that match the tone (e.g. serif + sans for luxury, two sans for tech)
+• Google Fonts: pick the proven pair for the industry below — do not deviate:
+    Restaurant/Food    → "Playfair Display" (headings) + "Lato" (body)
+    Café/Bakery        → "Cormorant Garamond" (headings) + "Nunito" (body)
+    Medical/Dental     → "DM Serif Display" (headings) + "DM Sans" (body)
+    Beauty/Wellness    → "Cormorant Garamond" (headings) + "Montserrat" (body)
+    Handwerk/Trade     → "Oswald" (headings) + "Open Sans" (body)
+    Legal/Finance      → "Libre Baskerville" (headings) + "Source Sans 3" (body)
+    Tech/SaaS          → "Inter" (headings + body, different weights)
+    Luxury/Hotel       → "Cormorant Garamond" (headings) + "Jost" (body)
+    Generic/Other      → "Syne" (headings) + "Inter" (body)
 • CSS custom properties on :root for all brand colors
 • Mobile-first:
   - Nav: hamburger (☰) on mobile, JS toggles .open class
