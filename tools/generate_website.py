@@ -317,6 +317,39 @@ def validate_image_urls(urls: list[str], min_dim: int = 350, timeout: int = 4) -
     return result
 
 
+def download_site_images_for_claude(urls: list[str], max_images: int = 6, timeout: int = 6) -> list[dict]:
+    """
+    Download site images and encode as base64 so Claude can SEE them and pick the best one.
+    Compresses each to max 800px / 70% JPEG quality to stay token-efficient.
+    Returns list of {url, data, media_type}.
+    """
+    import requests as _req, io as _io
+
+    result = []
+    for url in urls:
+        if len(result) >= max_images:
+            break
+        try:
+            resp = _req.get(url, timeout=timeout, headers={"User-Agent": "Mozilla/5.0"})
+            if resp.status_code != 200:
+                continue
+            from PIL import Image as _Img
+            img = _Img.open(_io.BytesIO(resp.content)).convert("RGB")
+            if img.width < 350 or img.height < 350:
+                continue
+            img.thumbnail((800, 800), _Img.LANCZOS)
+            buf = _io.BytesIO()
+            img.save(buf, format="JPEG", quality=70)
+            data = base64.standard_b64encode(buf.getvalue()).decode()
+            result.append({"url": url, "data": data, "media_type": "image/jpeg"})
+            print(f"[img-dl] ✓ {url.split('/')[-1][:40]} → {len(buf.getvalue())//1024}KB")
+        except Exception as e:
+            print(f"[img-dl] ✗ {url.split('/')[-1][:40]} — {e}")
+
+    print(f"[img-dl] Downloaded {len(result)} images for Claude visual selection")
+    return result
+
+
 def critic_pass(html: str, industry: str, business_name: str) -> str:
     """
     Second Claude call (Sonnet, fast+cheap) that reviews the generated HTML
@@ -381,7 +414,7 @@ No explanation. No markdown fences. Just the fix or the comment."""
 
 # ── Step 1b: Hero-only generation (cheap preview) ────────────────────────────
 
-def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None) -> str:
+def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None, site_images_data: list[dict] = None) -> str:
     """Generate ONLY nav + hero. Fast and cheap — used before token unlock."""
     print("\n[hero] Generating hero preview...")
 
@@ -435,73 +468,89 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
         f"  {'[CTA-BUTTON] ' if t['cta'] else ''}{t['label']} → {t['href']}"
         for t in nav_topics
     )
-    colors_note = f"Use these exact brand colors: {', '.join(brand_colors[:4])}" if brand_colors else "Derive colors from industry/tone."
-
     tech_kw = ["saas","software","erp","crm","app","platform","cloud","api","tech","digital","it ","ai ","data","informatik","entwicklung"]
-    food_kw = ["restaurant","pizza","lieferung","delivery","essen","food","café","cafe","bäckerei","bakery","catering","kebab","burger","sushi","bistro","gastro","küche","kitchen","bar ","wirt","gasthaus","speise"]
+    food_kw = ["restaurant","pizza","lieferung","delivery","essen","food","café","cafe","bäckerei","bakery","catering","kebab","burger","sushi","bistro","gastro","küche","kitchen","bar ","wirt","gasthaus","speise","pizzeria","trattoria"]
     is_tech = any(k in industry.lower() for k in tech_kw)
     is_food = any(k in industry.lower() for k in food_kw)
 
+    # ── Colors: for food, never carry over cold corporate colors ─────────────
+    def _is_cold_color(hex_c: str) -> bool:
+        """Returns True if color is blue/purple/grey (corporate, not food-friendly)."""
+        import re as _r
+        m = _r.search(r'#([0-9a-fA-F]{6})', hex_c)
+        if not m: return False
+        r, g, b = int(m.group(1)[0:2],16), int(m.group(1)[2:4],16), int(m.group(1)[4:6],16)
+        # Blue-dominant or purple-dominant
+        return (b > r + 30 and b > g + 15) or (b > 120 and r > 80 and g < r - 20)
+
+    if is_food:
+        warm_colors = [c for c in brand_colors if not _is_cold_color(c)]
+        if warm_colors:
+            colors_note = (
+                f"Brand colors (warm ones only — cold blues/purples filtered out): {', '.join(warm_colors[:3])}\n"
+                "FOOD COLOR RULE: Use warm, appetizing tones. Avoid corporate blue/purple/grey.\n"
+                "Good food palettes: deep red #8B1A1A, burgundy #6B2D2D, warm amber #E8A020, cream #F5EFE0, dark charcoal #1A1009."
+            )
+        else:
+            colors_note = (
+                "No warm brand colors found — derive a food-appropriate palette:\n"
+                "Use deep warm reds, burgundy, amber, or cream/dark-charcoal. NO blue, purple, or grey."
+            )
+    elif brand_colors:
+        colors_note = f"Use these exact brand colors: {', '.join(brand_colors[:4])}"
+    else:
+        colors_note = "Derive colors from industry/tone."
+
+    # ── Images: if actual image data provided, Claude sees them visually ─────
     import random as _rnd
+    has_visual_images = bool(site_images_data)
+
     if is_tech:
         images_note = "Tech/software business — use a dark CSS gradient for hero, no real image."
-    elif site_image_urls:
-        # Food always gets fullcover — a split layout looks wrong for restaurants/pizza
+    elif has_visual_images or site_image_urls:
         _layout = "fullcover" if is_food else _rnd.choice(["fullcover", "split-right", "split-left"])
-        _food_hint = (
-            "PRIORITY: pick a food/dish image (pizza, pasta, burger, food platter) over interior shots.\n"
-            if is_food else ""
-        )
-        _img_quality_rules = (
-            "IMAGE QUALITY CHECK — before using any image, judge it strictly:\n"
-            "  ✓ USE if: clearly shows food, product, interior, people, landscape — high resolution, well-lit, professional\n"
-            "  ✗ SKIP if: blurry, pixelated, logo, icon, banner text overlay, screenshot, tiny (thumb/small/icon in URL)\n"
-            "  ✗ SKIP if URL contains: thumb, small, icon, logo, avatar, banner, 50x, 100x, 150x, sprite, pixel\n"
-            "  ✗ SKIP if the image looks generic, low quality, or does not match the business\n"
-            "  → If no image passes this check: use a CSS gradient hero instead. Do NOT use a bad image.\n\n"
-        )
+        _food_hint = "PRIORITY: Use the most appetizing food/dish image for the hero — pizza, pasta, dish close-up.\n" if is_food else ""
+
         if _layout == "fullcover":
             images_note = (
                 "HERO IMAGE LAYOUT: FULL-COVER BACKGROUND\n"
                 + _food_hint
-                + _img_quality_rules
-                + "Pick ONE image that passes the quality check above.\n\n"
-                "  ✓ CSS on #hero: background-image:url('...'); background-size:cover; background-position:center;\n"
-                "  ✓ Dark overlay div inside #hero: position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:0;\n"
-                "  ✓ All content in a child div: position:relative;z-index:1; text-align:center;\n"
+                + ("Visually pick the best image from the customer site images shown above in this conversation.\n"
+                   if has_visual_images else
+                   "Pick ONE image from the list below — visually best, food/product/interior, no logos/icons.\n")
+                + "  ✓ CSS on #hero: background-image:url('EXACT_URL'); background-size:cover; background-position:center;\n"
+                "  ✓ Dark overlay: position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:0;\n"
+                "  ✓ Content wrapper: position:relative;z-index:1; text-align:center;\n"
                 "  ✓ ALL text color:#ffffff\n"
-                "  ✗ No <img> tag inside the hero\n"
-                "  ✗ NEVER zoom, stretch or crop any image — hero background-size:cover is the only exception\n"
-                "If no suitable image: use a dark CSS gradient instead.\n\n"
-                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:8])
+                "  ✗ No <img> tag in the hero\n"
+                "If no suitable image: CSS warm dark gradient instead.\n"
+                + ("" if has_visual_images else "\nAvailable images:\n" + "\n".join(f"- {u}" for u in (site_image_urls or [])[:8]))
             )
         elif _layout == "split-right":
             images_note = (
                 "HERO IMAGE LAYOUT: SPLIT — text left 55%, image right 45%\n"
                 + _food_hint
-                + _img_quality_rules
-                + "Pick ONE image that passes the quality check above.\n\n"
-                "  ✓ Left side: dark background (dark gradient or solid dark brand color), text + CTA\n"
-                "  ✓ Right side: <img src='...' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>\n"
-                "  ✓ Left text: color:#ffffff (dark left side)\n"
-                "  ✗ No background-image on the hero container itself\n"
-                "  ✗ NEVER zoom or stretch the image — use height:auto, not object-fit:cover\n"
-                "If no suitable image: use a dark CSS gradient instead.\n\n"
-                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+                + ("Visually pick the best image from the customer site images shown above.\n"
+                   if has_visual_images else
+                   "Pick ONE from the list below.\n")
+                + "  ✓ Left: dark background, headline + subtext + CTA, color:#ffffff\n"
+                "  ✓ Right: <img src='EXACT_URL' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>\n"
+                "  ✗ NEVER object-fit:cover on the img tag\n"
+                "If no suitable image: CSS gradient.\n"
+                + ("" if has_visual_images else "\nAvailable images:\n" + "\n".join(f"- {u}" for u in (site_image_urls or [])[:6]))
             )
-        else:  # split-left
+        else:
             images_note = (
                 "HERO IMAGE LAYOUT: SPLIT — image left 45%, text right 55%\n"
                 + _food_hint
-                + _img_quality_rules
-                + "Pick ONE image that passes the quality check above.\n\n"
-                "  ✓ Left side: <img src='...' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>\n"
-                "  ✓ Right side: dark background (dark gradient or solid dark brand color), text + CTA\n"
-                "  ✓ Right text: color:#ffffff (dark right side)\n"
-                "  ✗ No background-image on the hero container itself\n"
-                "  ✗ NEVER zoom or stretch the image — use height:auto, not object-fit:cover\n"
-                "If no suitable image: use a dark CSS gradient instead.\n\n"
-                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+                + ("Visually pick the best image from the customer site images shown above.\n"
+                   if has_visual_images else
+                   "Pick ONE from the list below.\n")
+                + "  ✓ Left: <img src='EXACT_URL' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>\n"
+                "  ✓ Right: dark background, headline + subtext + CTA, color:#ffffff\n"
+                "  ✗ NEVER object-fit:cover on the img tag\n"
+                "If no suitable image: CSS gradient.\n"
+                + ("" if has_visual_images else "\nAvailable images:\n" + "\n".join(f"- {u}" for u in (site_image_urls or [])[:6]))
             )
     else:
         images_note = "No site images — use a dark gradient hero."
@@ -509,12 +558,21 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     msg_content = []
     if reference_images:
         msg_content.append({"type": "text", "text": (
-            f"You have {len(reference_images)} reference hero designs below. "
-            "Study them carefully — their layout, typography scale, spacing, depth, and visual polish. "
-            "If no real image is available for the hero, build a CSS-only hero that matches this quality level exactly."
+            f"REFERENCE DESIGNS ({len(reference_images)} examples) — study their layout, typography, spacing, and visual depth. Match this quality level."
         )})
         for ref in reference_images:
             msg_content.append({"type": "image", "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}})
+
+    # Show Claude the actual site images so he can visually pick the best one
+    if site_images_data:
+        msg_content.append({"type": "text", "text": (
+            f"\nCUSTOMER SITE IMAGES ({len(site_images_data)} actual images from their website) — "
+            "visually evaluate each one. For the hero, pick the most stunning and relevant image. "
+            "Use the exact URL labeled above each image."
+        )})
+        for img_d in site_images_data:
+            msg_content.append({"type": "text", "text": f"URL: {img_d['url']}"})
+            msg_content.append({"type": "image", "source": {"type": "base64", "media_type": img_d["media_type"], "data": img_d["data"]}})
 
     msg_content.append({"type": "text", "text": f"""You are an elite web designer. Generate a complete HTML page with ONLY a nav bar and hero section — this must look like it came from a top design studio.
 
@@ -873,7 +931,7 @@ SECTION "{topic['label']}" (id="{slug}") — TESTIMONIALS DESIGN:
 
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
-def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None) -> str:
+def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None, site_images_data: list[dict] = None) -> str:
     """Send analysis + reference images to Claude. Returns generated HTML."""
     print("\n[generate] Sending to Claude for website generation...")
 
@@ -912,25 +970,7 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     if not brand_colors:
         brand_colors = analysis.get("current_colors", [])
 
-    # Build message content with reference images
-    content = []
-
-    if reference_images:
-        content.append({
-            "type": "text",
-            "text": f"Here are {len(reference_images)} reference websites for design inspiration. Study their layout, typography, spacing, and visual style:"
-        })
-        for ref in reference_images:
-            content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": ref["media_type"],
-                    "data": ref["data"]
-                }
-            })
-
-    # Detect tech/SaaS industries where a designed hero looks better than a real image
+    # Detect industry types
     tech_keywords = ["saas", "software", "erp", "crm", "app", "platform", "cloud",
                      "api", "tech", "digital", "it ", "iot", "ai ", "data", "code",
                      "developer", "entwicklung", "informatik"]
@@ -940,6 +980,31 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
                      "gasthaus", "speise", "trattoria", "pizzeria", "ristorante", "diner"]
     is_tech = any(kw in industry.lower() for kw in tech_keywords)
     is_food = any(kw in industry.lower() for kw in food_keywords)
+
+    # Build message content with reference images
+    content = []
+
+    if reference_images:
+        content.append({
+            "type": "text",
+            "text": f"REFERENCE DESIGNS ({len(reference_images)} examples) — study their layout, typography, spacing, and visual depth. Match this quality level."
+        })
+        for ref in reference_images:
+            content.append({
+                "type": "image",
+                "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}
+            })
+
+    # Show Claude the actual site images so he can visually select the best ones
+    if site_images_data:
+        content.append({"type": "text", "text": (
+            f"\nCUSTOMER SITE IMAGES ({len(site_images_data)} actual images from their website) — "
+            "visually evaluate each one. Use the best food/product/interior images in hero and sections. "
+            "Each image is labeled with its exact URL — use that URL in your HTML."
+        )})
+        for img_d in site_images_data:
+            content.append({"type": "text", "text": f"URL: {img_d['url']}"})
+            content.append({"type": "image", "source": {"type": "base64", "media_type": img_d["media_type"], "data": img_d["data"]}})
 
     # Build images section for prompt
     images_block = ""
@@ -1160,15 +1225,36 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
             "  • NEVER use href=\"#\" for any real link\n"
         )
 
-    # ── Precompute colors block ────────────────────────────────────────────────
-    if brand_colors:
+    # ── Colors: for food, filter out cold corporate colors ────────────────────
+    def _is_cold(hex_c: str) -> bool:
+        import re as _r
+        m = _r.search(r'#([0-9a-fA-F]{6})', hex_c)
+        if not m: return False
+        rv, g, b = int(m.group(1)[0:2],16), int(m.group(1)[2:4],16), int(m.group(1)[4:6],16)
+        return (b > rv + 30 and b > g + 15) or (b > 120 and rv > 80 and g < rv - 20)
+
+    if is_food:
+        warm = [c for c in brand_colors if not _is_cold(c)]
+        if warm:
+            colors_block = (
+                "BRAND COLORS (warm tones from original site — cold blues/purples removed):\n"
+                + "\n".join(f"  {c}" for c in warm[:3])
+                + "\nFOOD COLOR RULE: Use warm, appetizing tones. Set as CSS custom properties.\n"
+                "Good additions: deep red #8B1A1A, warm amber #E8A020, cream #F5EFE0, dark charcoal #1A1009.\n"
+                "NEVER use blue, purple, or grey as primary colors for a food business."
+            )
+        else:
+            colors_block = (
+                "No warm brand colors found — build a warm food-appropriate palette:\n"
+                "Use deep reds, burgundy, warm amber, cream/ivory, or dark charcoal.\n"
+                "NEVER use blue, purple, or grey as primary colors for a food business."
+            )
+    elif brand_colors:
         colors_block = (
             "BRAND COLORS — extracted from the original site. Use these EXACTLY.\n"
-            "Do NOT replace them with different colors. Set them as CSS custom properties on :root:\n"
+            "Set as CSS custom properties on :root:\n"
             + "\n".join(f"  {c}" for c in brand_colors)
-            + "\nApply the most prominent color as --clr-primary (buttons, links, accents, borders).\n"
-            "Use the others as --clr-secondary, --clr-accent etc.\n"
-            "The background should match the site's overall feel (light if site is light, dark if dark)."
+            + "\nApply the most prominent as --clr-primary (buttons, links, accents)."
         )
     else:
         colors_block = "Colors: derive a cohesive palette from the industry and tone — no generic blues or greys."

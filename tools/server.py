@@ -66,6 +66,7 @@ import db
 from generate_website import (
     analyze_website, generate_website, generate_hero_only, load_reference_images,
     extract_image_urls, extract_text_content, validate_image_urls,
+    download_site_images_for_claude,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links
 
@@ -500,8 +501,11 @@ def generate():
         _industry = analysis.get("industry", "")
         references = load_reference_images(n=4, industry=_industry)
 
+        # Download actual site images so Claude can SEE and visually select them
+        site_images_data = download_site_images_for_claude(site_images, max_images=6)
+
         # Step 1: Generate hero only (cheap — full site generated later on unlock)
-        hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"])
+        hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"], site_images_data=site_images_data)
 
         # Apply safety CSS to hero preview
         safety_css = _build_safety_css()
@@ -563,9 +567,13 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
 
         _industry2 = analysis.get("industry", "")
         references = load_reference_images(n=4, industry=_industry2)
+
+        # Re-download site images so Claude can visually select in full generation
+        site_images_data2 = download_site_images_for_claude(site_images, max_images=6)
+
         full_html  = generate_website(
             analysis, references, site_images, full_text, pages, important_links,
-            raw_html=raw_html
+            raw_html=raw_html, site_images_data=site_images_data2
         )
 
         # ── Reuse the existing hero so it matches the preview exactly ──────────
