@@ -265,25 +265,34 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     )
     colors_note = f"Use these exact brand colors: {', '.join(brand_colors[:4])}" if brand_colors else "Derive colors from industry/tone."
 
-    tech_kw = ["saas","software","erp","crm","app","platform","cloud","api","tech","digital","it ","ai ","data"]
+    tech_kw = ["saas","software","erp","crm","app","platform","cloud","api","tech","digital","it ","ai ","data","informatik","entwicklung"]
+    food_kw = ["restaurant","pizza","lieferung","delivery","essen","food","café","cafe","bäckerei","bakery","catering","kebab","burger","sushi","bistro","gastro","küche","kitchen","bar ","wirt","gasthaus","speise"]
     is_tech = any(k in industry.lower() for k in tech_kw)
+    is_food = any(k in industry.lower() for k in food_kw)
+
     import random as _rnd
     if is_tech:
         images_note = "Tech/software business — use a dark CSS gradient for hero, no real image."
     elif site_image_urls:
-        _layout = _rnd.choice(["fullcover", "split-right", "split-left"])
+        # Food always gets fullcover — a split layout looks wrong for restaurants/pizza
+        _layout = "fullcover" if is_food else _rnd.choice(["fullcover", "split-right", "split-left"])
+        _food_hint = (
+            "PRIORITY: pick a food/dish image (pizza, pasta, burger, food platter) over interior shots.\n"
+            if is_food else ""
+        )
         if _layout == "fullcover":
             images_note = (
                 "HERO IMAGE LAYOUT: FULL-COVER BACKGROUND\n"
-                "Pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
+                + _food_hint +
+                "Pick ONE image from this list if it shows food, a space, interior, product, or landscape.\n"
                 "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
                 "  ✓ CSS on #hero: background-image:url('...'); background-size:cover; background-position:center;\n"
-                "  ✓ Dark overlay div inside #hero: position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;\n"
-                "  ✓ All content in a child div: position:relative;z-index:1;\n"
+                "  ✓ Dark overlay div inside #hero: position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:0;\n"
+                "  ✓ All content in a child div: position:relative;z-index:1; text-align:center;\n"
                 "  ✓ ALL text color:#ffffff\n"
                 "  ✗ No <img> tag inside the hero\n"
                 "If no suitable image: use a dark CSS gradient instead.\n\n"
-                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
+                "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:8])
             )
         elif _layout == "split-right":
             images_note = (
@@ -576,7 +585,12 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     tech_keywords = ["saas", "software", "erp", "crm", "app", "platform", "cloud",
                      "api", "tech", "digital", "it ", "iot", "ai ", "data", "code",
                      "developer", "entwicklung", "informatik"]
+    food_keywords = ["restaurant", "pizza", "lieferung", "delivery", "essen", "food",
+                     "café", "cafe", "bäckerei", "bakery", "catering", "kebab", "burger",
+                     "sushi", "bistro", "gastro", "küche", "kitchen", "bar ", "wirt",
+                     "gasthaus", "speise", "trattoria", "pizzeria", "ristorante", "diner"]
     is_tech = any(kw in industry.lower() for kw in tech_keywords)
+    is_food = any(kw in industry.lower() for kw in food_keywords)
 
     # Build images section for prompt
     images_block = ""
@@ -596,7 +610,8 @@ HERO BACKGROUND — this is a tech/software company:
             )
     elif site_image_urls:
         import random as _rnd2
-        _layout2 = _rnd2.choice(["fullcover", "split-right", "split-left"])
+        _layout2 = "fullcover" if is_food else _rnd2.choice(["fullcover", "split-right", "split-left"])
+        _food_hint2 = "PRIORITY: pick a food/dish image (pizza, pasta, burger, food platter, dishes) over interior or logo shots.\n" if is_food else ""
         images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
         if _layout2 == "fullcover":
             _hero_layout_rule = """HERO IMAGE LAYOUT: FULL-COVER BACKGROUND
@@ -622,7 +637,7 @@ If a suitable image exists (space/interior/food/product/landscape, URL has no th
   ✗ No background-image on the hero container"""
         images_block = f"""
 ORIGINAL SITE IMAGES:
-{images_list}
+{_food_hint2}{images_list}
 
 NON-HERO IMAGE RULES (gallery, about, features sections):
   ✓ Always use <img> tags: style="max-width:100%;height:auto;display:block;"
