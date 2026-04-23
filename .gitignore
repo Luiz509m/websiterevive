@@ -15,6 +15,7 @@ credentials.json
 
 # Reference designs (large image files — store separately if needed)
 reference_designs/
+!reference_designs/index.json
 
 # Claude Code
 .claude/

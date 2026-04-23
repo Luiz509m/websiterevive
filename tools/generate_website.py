@@ -112,16 +112,72 @@ def compress_image(img_path: Path, max_bytes: int = 4_500_000) -> tuple[bytes, s
         return raw, media_type
 
 
-def load_reference_images(n: int = 3) -> list[dict]:
-    """Pick n random reference design screenshots, compress if needed, encode as base64."""
-    images = list(REFERENCE_DIR.glob("*.png")) + list(REFERENCE_DIR.glob("*.jpg"))
-    # Filter out large images to avoid API payload limits
-    images = [img for img in images if img.stat().st_size < 800_000]
-    if not images:
-        return []
-    chosen = random.sample(images, min(n, len(images)))
+def load_reference_images(n: int = 4, industry: str = "") -> list[dict]:
+    """
+    Pick n reference design screenshots matched to the industry.
+    Uses reference_designs/index.json to select industry-appropriate designs.
+    Falls back to generic designs if not enough industry matches exist.
+    """
+    index_path = REFERENCE_DIR / "index.json"
+    chosen_names = []
+
+    if index_path.exists() and industry:
+        try:
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            industry_map = index.get("industry_map", {})
+
+            # Find best matching industry key
+            ind_lower = industry.lower()
+            matched_key = None
+            priority = [
+                "food", "restaurant", "cafe", "bakery", "catering",
+                "tech", "saas", "finance", "legal", "consulting",
+                "real_estate", "luxury", "architecture", "handwerk",
+                "health", "wellness", "medical", "dental", "beauty", "product",
+            ]
+            for key in priority:
+                if key in ind_lower:
+                    matched_key = key
+                    break
+
+            if matched_key and matched_key in industry_map:
+                ordered = industry_map[matched_key]         # priority-ordered file stems
+                generic  = industry_map.get("generic", [])
+
+                # Build candidate list: industry-specific first, then generic fill
+                candidates = []
+                seen = set()
+                for stem in ordered + generic:
+                    if stem not in seen:
+                        seen.add(stem)
+                        candidates.append(stem)
+
+                chosen_names = candidates[:n]
+                print(f"[refs] Industry '{matched_key}' → using designs: {chosen_names}")
+        except Exception as e:
+            print(f"[refs] index.json error ({e}) — falling back to random")
+
+    # Build Path objects from chosen stems
+    chosen_paths = []
+    if chosen_names:
+        for stem in chosen_names:
+            p = REFERENCE_DIR / f"{stem}.png"
+            if not p.exists():
+                p = REFERENCE_DIR / f"{stem}.jpg"
+            if p.exists():
+                chosen_paths.append(p)
+
+    # Fallback: random selection from all available images
+    if len(chosen_paths) < n:
+        all_images = [
+            img for img in (list(REFERENCE_DIR.glob("*.png")) + list(REFERENCE_DIR.glob("*.jpg")))
+            if img.stat().st_size < 800_000 and img not in chosen_paths
+        ]
+        random.shuffle(all_images)
+        chosen_paths += all_images[: n - len(chosen_paths)]
+
     result = []
-    for img_path in chosen:
+    for img_path in chosen_paths:
         raw, media_type = compress_image(img_path)
         if raw is None:
             print(f"[refs] Skipping {img_path.name} (too large, install Pillow to compress)")

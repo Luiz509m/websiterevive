@@ -440,7 +440,8 @@ def generate():
         slug      = scraped["slug"]
         subpages  = scrape_subpages(url, scraped["html"], max_pages=4)
 
-        references  = load_reference_images(n=3)
+        # references loaded after analysis so we can pass industry
+        references = None  # filled after analysis below
 
         # Collect images from homepage + all sub-pages
         site_images = extract_image_urls(scraped["html"], url)
@@ -490,6 +491,10 @@ def generate():
             analysis_path.write_text(
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )
+
+        # Now that we have industry from analysis, load matched reference designs
+        _industry = analysis.get("industry", "")
+        references = load_reference_images(n=4, industry=_industry)
 
         # Step 1: Generate hero only (cheap — full site generated later on unlock)
         hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"])
@@ -552,7 +557,8 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
                 db.update_full_html(generation_id, "##ERROR##:Analysis expired — please paste the URL again to regenerate")
                 return
 
-        references = load_reference_images(n=3)
+        _industry2 = analysis.get("industry", "")
+        references = load_reference_images(n=4, industry=_industry2)
         full_html  = generate_website(
             analysis, references, site_images, full_text, pages, important_links,
             raw_html=raw_html
