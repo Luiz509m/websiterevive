@@ -280,41 +280,54 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
             "PRIORITY: pick a food/dish image (pizza, pasta, burger, food platter) over interior shots.\n"
             if is_food else ""
         )
+        _img_quality_rules = (
+            "IMAGE QUALITY CHECK — before using any image, judge it strictly:\n"
+            "  ✓ USE if: clearly shows food, product, interior, people, landscape — high resolution, well-lit, professional\n"
+            "  ✗ SKIP if: blurry, pixelated, logo, icon, banner text overlay, screenshot, tiny (thumb/small/icon in URL)\n"
+            "  ✗ SKIP if URL contains: thumb, small, icon, logo, avatar, banner, 50x, 100x, 150x, sprite, pixel\n"
+            "  ✗ SKIP if the image looks generic, low quality, or does not match the business\n"
+            "  → If no image passes this check: use a CSS gradient hero instead. Do NOT use a bad image.\n\n"
+        )
         if _layout == "fullcover":
             images_note = (
                 "HERO IMAGE LAYOUT: FULL-COVER BACKGROUND\n"
-                + _food_hint +
-                "Pick ONE image from this list if it shows food, a space, interior, product, or landscape.\n"
-                "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
+                + _food_hint
+                + _img_quality_rules
+                + "Pick ONE image that passes the quality check above.\n\n"
                 "  ✓ CSS on #hero: background-image:url('...'); background-size:cover; background-position:center;\n"
                 "  ✓ Dark overlay div inside #hero: position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:0;\n"
                 "  ✓ All content in a child div: position:relative;z-index:1; text-align:center;\n"
                 "  ✓ ALL text color:#ffffff\n"
                 "  ✗ No <img> tag inside the hero\n"
+                "  ✗ NEVER zoom, stretch or crop any image — hero background-size:cover is the only exception\n"
                 "If no suitable image: use a dark CSS gradient instead.\n\n"
                 "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:8])
             )
         elif _layout == "split-right":
             images_note = (
                 "HERO IMAGE LAYOUT: SPLIT — text left 55%, image right 45%\n"
-                "Pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
-                "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
+                + _food_hint
+                + _img_quality_rules
+                + "Pick ONE image that passes the quality check above.\n\n"
                 "  ✓ Left side: dark background (dark gradient or solid dark brand color), text + CTA\n"
-                "  ✓ Right side: <img src='...' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>\n"
+                "  ✓ Right side: <img src='...' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>\n"
                 "  ✓ Left text: color:#ffffff (dark left side)\n"
                 "  ✗ No background-image on the hero container itself\n"
+                "  ✗ NEVER zoom or stretch the image — use height:auto, not object-fit:cover\n"
                 "If no suitable image: use a dark CSS gradient instead.\n\n"
                 "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
             )
         else:  # split-left
             images_note = (
                 "HERO IMAGE LAYOUT: SPLIT — image left 45%, text right 55%\n"
-                "Pick ONE image from this list if it shows a space, interior, food, product, or landscape.\n"
-                "Skip it if the URL contains: thumb, small, icon, logo, avatar, 50x, 100x, 150x\n\n"
-                "  ✓ Left side: <img src='...' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>\n"
+                + _food_hint
+                + _img_quality_rules
+                + "Pick ONE image that passes the quality check above.\n\n"
+                "  ✓ Left side: <img src='...' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>\n"
                 "  ✓ Right side: dark background (dark gradient or solid dark brand color), text + CTA\n"
                 "  ✓ Right text: color:#ffffff (dark right side)\n"
                 "  ✗ No background-image on the hero container itself\n"
+                "  ✗ NEVER zoom or stretch the image — use height:auto, not object-fit:cover\n"
                 "If no suitable image: use a dark CSS gradient instead.\n\n"
                 "Available images:\n" + "\n".join(f"- {u}" for u in site_image_urls[:6])
             )
@@ -613,36 +626,50 @@ HERO BACKGROUND — this is a tech/software company:
         _layout2 = "fullcover" if is_food else _rnd2.choice(["fullcover", "split-right", "split-left"])
         _food_hint2 = "PRIORITY: pick a food/dish image (pizza, pasta, burger, food platter, dishes) over interior or logo shots.\n" if is_food else ""
         images_list  = "\n".join(f"- {u}" for u in site_image_urls[:10])
+        _img_quality_rules2 = """IMAGE QUALITY CHECK — before using any image, judge it strictly:
+  ✓ USE if: clearly shows food, product, people, interior, landscape — high resolution, well-lit, professional
+  ✗ SKIP if: blurry, pixelated, logo, icon, banner text overlay, screenshot, or tiny
+  ✗ SKIP if URL contains: thumb, small, icon, logo, avatar, banner, 50x, 100x, 150x, sprite, pixel
+  ✗ SKIP if the image looks generic, low-quality, or does not match the business
+  → If no image passes this check: use a CSS gradient hero. Do NOT use a bad image."""
+
         if _layout2 == "fullcover":
-            _hero_layout_rule = """HERO IMAGE LAYOUT: FULL-COVER BACKGROUND
-If a suitable image exists (space/interior/food/product/landscape, URL has no thumb/small/icon/logo/avatar):
+            _hero_layout_rule = f"""HERO IMAGE LAYOUT: FULL-COVER BACKGROUND
+{_img_quality_rules2}
+Pick ONE image that passes the quality check.
   ✓ CSS on #hero: background-image:url('URL'); background-size:cover; background-position:center;
   ✓ Dark overlay div inside #hero: <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0;"></div>
   ✓ Content wrapper: position:relative;z-index:1; text-align:center;
   ✓ ALL text: color:#ffffff
-  ✗ No <img> tag inside the hero"""
+  ✗ No <img> tag inside the hero
+  ✗ background-size:cover is only allowed on the hero background — NEVER on any other element"""
         elif _layout2 == "split-right":
-            _hero_layout_rule = """HERO IMAGE LAYOUT: SPLIT — text left 55%, image right 45%
-If a suitable image exists (space/interior/food/product/landscape, URL has no thumb/small/icon/logo/avatar):
+            _hero_layout_rule = f"""HERO IMAGE LAYOUT: SPLIT — text left 55%, image right 45%
+{_img_quality_rules2}
+Pick ONE image that passes the quality check.
   ✓ Left side: dark background (dark gradient or solid dark brand color), headline + subtext + CTA
-  ✓ Right side: <img src='URL' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>
+  ✓ Right side: <img src='URL' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>
   ✓ Left text: color:#ffffff
-  ✗ No background-image on the hero container"""
+  ✗ No background-image on the hero container
+  ✗ NEVER use object-fit:cover or zoom on the image — use height:auto"""
         else:
-            _hero_layout_rule = """HERO IMAGE LAYOUT: SPLIT — image left 45%, text right 55%
-If a suitable image exists (space/interior/food/product/landscape, URL has no thumb/small/icon/logo/avatar):
-  ✓ Left side: <img src='URL' style='width:100%;height:100%;object-fit:cover;border-radius:12px;'>
+            _hero_layout_rule = f"""HERO IMAGE LAYOUT: SPLIT — image left 45%, text right 55%
+{_img_quality_rules2}
+Pick ONE image that passes the quality check.
+  ✓ Left side: <img src='URL' style='width:100%;height:auto;max-width:100%;border-radius:12px;display:block;'>
   ✓ Right side: dark background (dark gradient or solid dark brand color), headline + subtext + CTA
   ✓ Right text: color:#ffffff
-  ✗ No background-image on the hero container"""
+  ✗ No background-image on the hero container
+  ✗ NEVER use object-fit:cover or zoom on the image — use height:auto"""
         images_block = f"""
 ORIGINAL SITE IMAGES:
 {_food_hint2}{images_list}
 
-NON-HERO IMAGE RULES (gallery, about, features sections):
-  ✓ Always use <img> tags: style="max-width:100%;height:auto;display:block;"
-  ✓ Images show exactly as-is — no zoom, no crop, no stretching
-  ✗ NEVER background-size:cover or background-size:contain on non-hero images
+IMAGE RULES (all sections):
+  ✓ Always use <img> tags with: style="max-width:100%;height:auto;display:block;"
+  ✓ Images show exactly as-is — never zoomed, never cropped, never stretched
+  ✗ NEVER use object-fit:cover, object-fit:fill, background-size:cover on non-hero images
+  ✗ NEVER scale up or zoom an image to fill a container
 
 {_hero_layout_rule}
 
@@ -657,7 +684,7 @@ If no suitable image — CSS-only dark gradient:
 
 Either way: hero min-height:100svh, overflow:hidden, ALL text color:#ffffff.
 
-GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:auto)"""
+GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:auto;display:block;)"""
 
     # ── Build nav topics (anchor links — single page) ────────────────────────
     pages_analyzed = analysis.get("pages_content", [])
