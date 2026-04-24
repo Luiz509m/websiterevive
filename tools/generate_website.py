@@ -29,8 +29,10 @@ TMP = Path(__file__).parent.parent / ".tmp"
 TMP.mkdir(exist_ok=True)
 
 CLIENT = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-MODEL_FAST = "claude-sonnet-4-6"   # analysis + hero (cheap, fast)
-MODEL_FULL = "claude-opus-4-6"     # full website generation (best quality)
+MODEL_FAST  = "claude-sonnet-4-6"
+_use_opus   = os.environ.get("USE_OPUS", "false").lower() == "true"
+MODEL_FULL  = "claude-opus-4-6" if _use_opus else "claude-sonnet-4-6"
+TEST_MODE   = os.environ.get("TEST_MODE", "true").lower() == "true"   # true = fewer images, skip critic
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -662,9 +664,9 @@ def analyze_website(url: str, html: str, business_name: str, full_text: str = ""
     pages_context = ""
     if pages:
         for pg in pages:
-            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:5000]}"
+            pages_context += f"\n\n=== PAGE: {pg['label'].upper()} ===\n{pg['text'][:10000]}"
     elif full_text:
-        pages_context = f"\n\nFull site text:\n{full_text[:20000]}"
+        pages_context = f"\n\nFull site text:\n{full_text[:40000]}"
 
     prompt = f"""You are a professional website content analyst. Thoroughly read and extract ALL important information from this website.
 
@@ -708,11 +710,11 @@ Extract and return a JSON object with ALL of the following:
     {{
       "label": "page label exactly as given above",
       "id": "url-friendly id (lowercase, hyphens)",
-      "key_paragraphs": ["5-8 important text paragraphs from this page, copied VERBATIM — do not shorten or paraphrase"],
+      "key_paragraphs": ["ALL important text paragraphs from this page, copied VERBATIM — do not shorten, merge, or paraphrase. Include every sentence that contains meaningful content."],
       "services_or_items": [
         {{"name": "item/service name", "description": "full exact description from page", "price": "price if shown or null"}}
       ],
-      "specific_facts": ["every specific fact, number, statistic, or claim found on this page — only what is explicitly written"]
+      "specific_facts": ["EVERY specific fact, number, statistic, opening hour, address, name, or claim found on this page — only what is explicitly written, nothing invented"]
     }}
   ],
   "weaknesses": ["3-5 design or content weaknesses of the original site"],
@@ -720,10 +722,11 @@ Extract and return a JSON object with ALL of the following:
 }}
 
 CRITICAL RULES:
-- pages_content must include an entry for EVERY page listed above
-- key_paragraphs must be copied VERBATIM — never shorten, paraphrase, or summarize
-- specific_facts: ONLY include numbers/claims that are LITERALLY written on the page — never round up or invent (e.g. if page says "4 languages" write "4 languages", never "7+" or "many")
-- If information is not on the page, use null or empty list — never guess
+- pages_content must include an entry for EVERY page listed above — no page may be omitted
+- key_paragraphs: copy ALL meaningful text VERBATIM — more is better. Do not shorten, paraphrase, or merge sentences. If a page has 20 paragraphs, include all 20.
+- services_or_items: include every product, service, menu item, or offering mentioned — with full description and price
+- specific_facts: ONLY include numbers/claims LITERALLY written on the page — never invent. Include opening hours, prices, addresses, phone numbers, years, certifications, team member names, review counts — everything explicitly stated.
+- If information is not on the page, use null or empty list — never guess or fill in
 
 Return ONLY valid JSON, no explanation."""
 
@@ -731,7 +734,7 @@ Return ONLY valid JSON, no explanation."""
         try:
             response = CLIENT.messages.create(
                 model=MODEL_FAST,
-                max_tokens=8000,
+                max_tokens=16000,
                 messages=[{"role": "user", "content": prompt}]
             )
             break
@@ -1183,14 +1186,14 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
                     content_parts.append(f"  • {f}" if isinstance(f, str) else f"  • {f.get('name', str(f))}")
                 break
 
-        raw_text = "\n\n".join(content_parts)[:4000]
+        raw_text = "\n\n".join(content_parts)[:8000]
         if len(raw_text) < 400:
-            raw_text += "\n\n" + pages_by_label.get(label_lower, "")[:2000]
+            raw_text += "\n\n" + pages_by_label.get(label_lower, "")[:4000]
 
         section_content_blocks += f"""
-━━ SECTION id="{slug}" — "{label}" ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━ SECTION id="{slug}" — "{label}" — USE ALL OF THIS CONTENT ━━━━━━━━━━━━━━
 {raw_text.strip() or f'Write content about {label} using the business data above.'}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+━━ END SECTION "{label}" ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 
     # ── Build important links block ────────────────────────────────────────────
     links_block = ""
@@ -1263,6 +1266,9 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
     content.append({
         "type": "text",
         "text": f"""You are an elite web designer. Study the reference screenshots above carefully — your output must match their quality: typographic scale, whitespace, visual depth, section variety, and overall polish. Build something that looks like it came from a top design studio.
+
+CONTENT COMPLETENESS LAW — the most important rule:
+Every section must contain ALL the real content from the original website. Never omit services, products, team members, prices, menu items, opening hours, descriptions, or any other information provided in the SECTION CONTENT blocks below. If a service has a description, include it. If a menu has 20 dishes, list all 20. If there are 5 team members, show all 5. Do not summarize, thin out, or replace real content with placeholder text.
 
 ── BUSINESS DATA (never invent — only use what is listed here) ──────────
 {links_block}
@@ -1425,8 +1431,11 @@ OUTPUT: One complete HTML file from <!DOCTYPE html> to </html>. No markdown fenc
 
     print(f"[generate] ✓ Generated {len(html)} chars of HTML")
 
-    # ── Critic pass: review + fix quality issues ──────────────────────────────
-    html = critic_pass(html, industry, business_name)
+    # ── Critic pass: review + fix quality issues (skipped in TEST_MODE) ─────────
+    if not TEST_MODE:
+        html = critic_pass(html, industry, business_name)
+    else:
+        print("[generate] TEST_MODE: skipping critic pass")
 
     return html
 

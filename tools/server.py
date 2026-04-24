@@ -66,11 +66,16 @@ import db
 from generate_website import (
     analyze_website, generate_website, generate_hero_only, load_reference_images,
     extract_image_urls, extract_text_content, validate_image_urls,
-    download_site_images_for_claude,
+    download_site_images_for_claude, TEST_MODE,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+
+# In TEST_MODE: fewer images sent to Claude → lower token cost
+_N_REF_IMAGES  = 2 if TEST_MODE else 4   # reference design screenshots
+_N_SITE_IMAGES = 3 if TEST_MODE else 6   # customer site images
+print(f"[server] TEST_MODE={'ON' if TEST_MODE else 'OFF'} | ref_images={_N_REF_IMAGES} | site_images={_N_SITE_IMAGES}")
 
 TMP = ROOT / ".tmp"
 TMP.mkdir(exist_ok=True)
@@ -439,7 +444,7 @@ def generate():
         except ValueError as scrape_err:
             return jsonify({"error": str(scrape_err)}), 422
         slug      = scraped["slug"]
-        subpages  = scrape_subpages(url, scraped["html"], max_pages=6)
+        subpages  = scrape_subpages(url, scraped["html"], max_pages=10)
 
         # references loaded after analysis so we can pass industry
         references = None  # filled after analysis below
@@ -461,11 +466,11 @@ def generate():
         def _make_id(label: str) -> str:
             return _re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
 
-        homepage_text = extract_text_content(scraped["html"], max_chars=4000)
+        homepage_text = extract_text_content(scraped["html"], max_chars=12000)
         pages = [{"label": "Homepage", "id": "home", "text": homepage_text}]
         full_text_parts = [homepage_text]
         for sp in subpages:
-            sp_text = extract_text_content(sp["html"], max_chars=3500)
+            sp_text = extract_text_content(sp["html"], max_chars=10000)
             label   = sp["label"]
             pages.append({"label": label, "id": _make_id(label), "text": sp_text})
             full_text_parts.append(f"--- PAGE: {label.upper()} ---\n{sp_text}")
@@ -499,10 +504,10 @@ def generate():
 
         # Now that we have industry from analysis, load matched reference designs
         _industry = analysis.get("industry", "")
-        references = load_reference_images(n=4, industry=_industry)
+        references = load_reference_images(n=_N_REF_IMAGES, industry=_industry)
 
         # Download actual site images so Claude can SEE and visually select them
-        site_images_data = download_site_images_for_claude(site_images, max_images=6)
+        site_images_data = download_site_images_for_claude(site_images, max_images=_N_SITE_IMAGES)
 
         # Step 1: Generate hero only (cheap — full site generated later on unlock)
         hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"], site_images_data=site_images_data)
@@ -569,7 +574,7 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
         references = load_reference_images(n=4, industry=_industry2)
 
         # Re-download site images so Claude can visually select in full generation
-        site_images_data2 = download_site_images_for_claude(site_images, max_images=6)
+        site_images_data2 = download_site_images_for_claude(site_images, max_images=_N_SITE_IMAGES)
 
         full_html  = generate_website(
             analysis, references, site_images, full_text, pages, important_links,
