@@ -223,6 +223,116 @@
       z-index: 1;
     }
 
+    /* MODE TOGGLE */
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+      margin: 0 auto 16px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 4px;
+      max-width: 300px;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 8px 14px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .mode-btn.active {
+      background: var(--surface3);
+      color: var(--mint);
+      border-color: var(--border-mid);
+    }
+
+    /* SCRATCH FORM */
+    .scratch-form {
+      max-width: 580px;
+      margin: 0 auto 18px;
+    }
+    .scratch-textarea {
+      width: 100%;
+      min-height: 110px;
+      background: var(--surface);
+      border: 1.5px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      resize: vertical;
+      outline: none;
+      letter-spacing: 0.2px;
+      line-height: 1.65;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .scratch-textarea:focus {
+      border-color: var(--mint);
+      box-shadow: 0 0 0 3px rgba(61,255,208,0.1);
+    }
+    .scratch-textarea::placeholder { color: var(--muted); }
+    .color-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    .color-pick {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 8px 12px;
+      flex: 1;
+    }
+    .color-pick label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+    .color-pick input[type="color"] {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: none;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .btn-create {
+      width: 100%;
+      margin-top: 10px;
+      padding: 13px 28px;
+      background: var(--mint);
+      color: var(--black);
+      border: none;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: opacity 0.2s, box-shadow 0.2s;
+    }
+    .btn-create:hover {
+      opacity: 0.88;
+      box-shadow: 0 4px 24px rgba(61,255,208,0.3);
+    }
+
     /* URL INPUT */
     .url-form {
       position: relative;
@@ -1706,6 +1816,13 @@
       Paste your URL. Get a faster, smarter, higher-converting website — no agency, no developer, no waiting.
     </p>
 
+    <!-- Mode toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-url" onclick="switchMode('url')">URL optimieren</button>
+      <button class="mode-btn" id="mode-scratch" onclick="switchMode('scratch')">Neu erstellen</button>
+    </div>
+
+    <!-- URL optimizer form (existing, untouched) -->
     <form id="hero-input" class="url-form revive-form" onsubmit="handleRevive(event);">
       <div class="url-input-wrap">
         <span class="url-prefix">https://</span>
@@ -1718,6 +1835,26 @@
         <button class="btn-revive" type="submit">Revive Website →</button>
       </div>
     </form>
+
+    <!-- Create from scratch form (hidden by default) -->
+    <div id="scratch-form-wrap" class="scratch-form" style="display:none;">
+      <textarea
+        id="scratch-prompt"
+        class="scratch-textarea"
+        placeholder="Beschreibe dein Business: Name, Branche, Dienstleistungen, Zielgruppe, Standort, Tonalität...&#10;&#10;Beispiel: Wir sind Zahnarzt Müller in Zürich. Unsere Leistungen sind Implantate, Bleaching und Zahnreinigung. Wir sind modern, freundlich und für die ganze Familie."
+      ></textarea>
+      <div class="color-row">
+        <div class="color-pick">
+          <label>Primärfarbe</label>
+          <input type="color" id="color1" value="#3DFFD0">
+        </div>
+        <div class="color-pick">
+          <label>Sekundärfarbe</label>
+          <input type="color" id="color2" value="#0D1A16">
+        </div>
+      </div>
+      <button class="btn-create" onclick="handleCreate(event)">Website erstellen →</button>
+    </div>
 
     <p class="hero-note" id="hero-note-default">
       See your hero section free — unlock the full website for 1 token
@@ -2733,6 +2870,69 @@
   function setStatusColor(form, color) {
     const wrap = getOrCreateStatus(form);
     wrap.querySelector('.revive-status-text').style.color = color;
+  }
+
+  // ── Mode toggle ──────────────────────────────────────────────────────────────
+  function switchMode(mode) {
+    const isUrl = mode === 'url';
+    document.getElementById('hero-input').style.display      = isUrl ? '' : 'none';
+    document.getElementById('scratch-form-wrap').style.display = isUrl ? 'none' : '';
+    document.getElementById('mode-url').classList.toggle('active', isUrl);
+    document.getElementById('mode-scratch').classList.toggle('active', !isUrl);
+  }
+
+  // ── Create from scratch ───────────────────────────────────────────────────
+  async function handleCreate(e) {
+    e.preventDefault();
+    const prompt = (document.getElementById('scratch-prompt').value || '').trim();
+    const color1 = document.getElementById('color1').value;
+    const color2 = document.getElementById('color2').value;
+
+    if (!prompt) { alert('Bitte beschreibe dein Business.'); return; }
+
+    const btn = e.currentTarget;
+    btn.disabled    = true;
+    btn.textContent = 'Generiere…';
+
+    // Reuse the same result section as URL mode
+    const fakeForm = document.getElementById('hero-input');
+    setStatus(fakeForm, 'Analysiere Beschreibung…', 15);
+
+    const steps = [
+      { text: 'Erstelle Design-Konzept…',    pct: 35, after: 4000  },
+      { text: 'Generiere Hero-Sektion…',     pct: 60, after: 12000 },
+      { text: 'Finalisiere Design…',          pct: 85, after: 22000 },
+    ];
+    const timers = steps.map(s => setTimeout(() => setStatus(fakeForm, s.text, s.pct), s.after));
+
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/generate-new`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ prompt, color1, color2 }),
+      });
+      const data = await res.json();
+      timers.forEach(t => clearTimeout(t));
+      if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+
+      currentGenerationId = data.generation_id;
+
+      const blob   = new Blob([data.hero_html], { type: 'text/html' });
+      const iframe = document.getElementById('hero-iframe');
+      iframe.src   = URL.createObjectURL(blob);
+
+      document.getElementById('result-section').style.display = 'block';
+      document.getElementById('hero-note-default').style.display = 'none';
+      setStatus(fakeForm, `${data.business_name || 'Deine Website'} ist bereit — jetzt freischalten`, 100);
+
+      btn.disabled    = false;
+      btn.textContent = 'Nochmal erstellen →';
+    } catch (err) {
+      timers.forEach(t => clearTimeout(t));
+      setStatusColor(fakeForm, 'var(--red)');
+      setStatus(fakeForm, `Fehler: ${err.message}`);
+      btn.disabled    = false;
+      btn.textContent = 'Website erstellen →';
+    }
   }
 
   async function handleRevive(e) {

@@ -64,11 +64,11 @@ from auth import (
 )
 import db
 from generate_website import (
-    analyze_website, generate_website, generate_hero_only, load_reference_images,
-    extract_image_urls, extract_text_content, validate_image_urls,
-    download_site_images_for_claude, TEST_MODE,
+    analyze_website, analyze_from_prompt, generate_website, generate_hero_only,
+    load_reference_images, extract_image_urls, extract_text_content,
+    validate_image_urls, download_site_images_for_claude, TEST_MODE,
 )
-from scrape_site import scrape, scrape_subpages, extract_important_links
+from scrape_site import scrape, scrape_subpages, extract_important_links, slugify
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
@@ -536,6 +536,64 @@ def generate():
         generation = db.save_generation(user_id, url, slug, hero_html, "##PENDING##:" + pending_context)
 
         print(f"[server] Done — generation {generation['id']}")
+        return jsonify({
+            "generation_id": generation["id"],
+            "hero_html":     hero_html,
+            "business_name": analysis.get("business_name", ""),
+        })
+
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"error": str(exc)}), 500
+
+
+# ── Generate from scratch (no URL) ───────────────────────────────────────────
+
+@app.route("/generate-new", methods=["POST"])
+def generate_new():
+    data   = request.get_json(silent=True) or {}
+    prompt = (data.get("prompt") or "").strip()
+    color1 = (data.get("color1") or "").strip()
+    color2 = (data.get("color2") or "").strip()
+
+    if not prompt:
+        return jsonify({"error": "No description provided"}), 400
+
+    user_id = get_current_user_id()
+
+    try:
+        print(f"\n[server] Generating from prompt: {prompt[:80]}...")
+
+        analysis = analyze_from_prompt(prompt, color1, color2)
+
+        slug       = slugify(f"new_{analysis.get('business_name', 'site')}")
+        _industry  = analysis.get("industry", "")
+        references = load_reference_images(n=_N_REF_IMAGES, industry=_industry)
+
+        # No site images for scratch generation
+        hero_html_full = generate_hero_only(analysis, references, site_images_data=[])
+
+        safety_css = _build_safety_css()
+        hero_html_full = hero_html_full.replace('</head>', safety_css + '\n</head>', 1)
+        hero_html_full = _fix_nav_contrast(hero_html_full)
+        hero_html = extract_hero_html(hero_html_full)
+
+        pending_context = json.dumps({
+            "url":            "",
+            "slug":           slug,
+            "site_images":    [],
+            "important_links":[],
+            "pages":          [],
+            "full_text":      prompt,
+            "analysis":       analysis,
+            "raw_html":       "",
+            "hero_html_full": hero_html_full,
+            "from_scratch":   True,
+        }, ensure_ascii=False)
+
+        generation = db.save_generation(user_id, prompt[:200], slug, hero_html, "##PENDING##:" + pending_context)
+
+        print(f"[server] From-scratch done — generation {generation['id']}")
         return jsonify({
             "generation_id": generation["id"],
             "hero_html":     hero_html,

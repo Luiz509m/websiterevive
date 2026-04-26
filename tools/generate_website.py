@@ -654,6 +654,63 @@ OUTPUT: Complete HTML <!DOCTYPE html> to </html>. Nothing below the hero. No mar
     return html
 
 
+# ── Step 1b: Analyze from prompt (no URL / no scraping) ──────────────────────
+
+def analyze_from_prompt(prompt: str, color1: str = "", color2: str = "") -> dict:
+    """Parse a free-text business description into a structured analysis dict."""
+    colors = [c for c in [color1, color2] if c and c not in ("#000000", "#ffffff", "#000", "#fff", "")]
+    colors_note = f"Colors provided by user: {', '.join(colors)}" if colors else "No colors provided — derive from industry."
+
+    response = CLIENT.messages.create(
+        model=MODEL_FAST,
+        max_tokens=2000,
+        messages=[{"role": "user", "content": f"""Extract business information from this description and return a structured JSON object.
+
+Business description:
+{prompt}
+
+{colors_note}
+
+Return JSON:
+{{
+  "business_name": "exact name from description, or 'Ihr Unternehmen' if not given",
+  "industry": "specific industry/niche (e.g. Zahnarzt, Bäckerei, IT-Beratung)",
+  "tagline": "catchy tagline if mentioned, else null",
+  "main_services": ["all services/products/offerings mentioned"],
+  "target_audience": "who they serve",
+  "tone": "brand tone (professional, friendly, luxury, clinical, etc.)",
+  "current_colors": {json.dumps(colors)},
+  "key_content": {{
+    "hero_headline": "compelling headline based on the business — specific, not generic",
+    "hero_subtext": "supporting sentence that explains the value",
+    "cta_text": "appropriate CTA button text (Kontakt, Termin buchen, etc.)",
+    "about_summary": "2-3 sentences about the business from the description",
+    "unique_selling_points": ["3-5 USPs derived from the description"],
+    "phone": null,
+    "email": null,
+    "address": null,
+    "opening_hours": [],
+    "prices": []
+  }},
+  "pages_content": [],
+  "weaknesses": [],
+  "improvement_focus": "create a stunning first impression"
+}}
+
+Return ONLY valid JSON, no explanation."""}]
+    )
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    import re as _re
+    match = _re.search(r'\{[\s\S]*\}', raw)
+    if match:
+        raw = match.group(0)
+    analysis = json.loads(raw)
+    print(f"[analyze-prompt] ✓ {analysis.get('business_name')} | {analysis.get('industry')}")
+    return analysis
+
+
 # ── Step 1: Analyze ───────────────────────────────────────────────────────────
 
 def analyze_website(url: str, html: str, business_name: str, full_text: str = "", pages: list = None) -> dict:
