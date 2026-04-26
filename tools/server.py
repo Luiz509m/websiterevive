@@ -67,6 +67,7 @@ from generate_website import (
     analyze_website, analyze_from_prompt, generate_website, generate_hero_only,
     load_reference_images, extract_image_urls, extract_text_content,
     validate_image_urls, download_site_images_for_claude, TEST_MODE,
+    fetch_pexels_images, _industry_to_pexels_query,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links, slugify
 
@@ -570,8 +571,17 @@ def generate_new():
         _industry  = analysis.get("industry", "")
         references = load_reference_images(n=_N_REF_IMAGES, industry=_industry)
 
-        # No site images for scratch generation
-        hero_html_full = generate_hero_only(analysis, references, site_images_data=[])
+        # Fetch stock images from Pexels based on detected industry
+        pexels_query  = _industry_to_pexels_query(_industry, analysis.get("business_name", ""))
+        stock_urls    = fetch_pexels_images(pexels_query, n=6)
+        site_images   = stock_urls
+        site_imgs_data = download_site_images_for_claude(stock_urls, max_images=_N_SITE_IMAGES)
+
+        hero_html_full = generate_hero_only(
+            analysis, references,
+            site_image_urls=site_images,
+            site_images_data=site_imgs_data,
+        )
 
         safety_css = _build_safety_css()
         hero_html_full = hero_html_full.replace('</head>', safety_css + '\n</head>', 1)
@@ -581,7 +591,7 @@ def generate_new():
         pending_context = json.dumps({
             "url":            "",
             "slug":           slug,
-            "site_images":    [],
+            "site_images":    site_images,
             "important_links":[],
             "pages":          [],
             "full_text":      prompt,

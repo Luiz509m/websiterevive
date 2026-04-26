@@ -654,6 +654,70 @@ OUTPUT: Complete HTML <!DOCTYPE html> to </html>. Nothing below the hero. No mar
     return html
 
 
+# ── Pexels stock image search ────────────────────────────────────────────────
+
+def fetch_pexels_images(query: str, n: int = 5) -> list[str]:
+    """Search Pexels for relevant stock photos. Returns list of image URLs."""
+    import requests as _req
+    key = os.environ.get("PEXELS_API_KEY", "")
+    if not key:
+        print("[pexels] No API key — skipping stock images")
+        return []
+    try:
+        resp = _req.get(
+            "https://api.pexels.com/v1/search",
+            headers={"Authorization": key},
+            params={"query": query, "per_page": n, "orientation": "landscape"},
+            timeout=8,
+        )
+        if not resp.ok:
+            print(f"[pexels] API error {resp.status_code}")
+            return []
+        photos = resp.json().get("photos", [])
+        urls = [p["src"]["large2x"] for p in photos]
+        print(f"[pexels] ✓ Found {len(urls)} images for '{query}'")
+        return urls
+    except Exception as e:
+        print(f"[pexels] Error: {e}")
+        return []
+
+
+def _industry_to_pexels_query(industry: str, business_name: str = "") -> str:
+    """Map industry to a good Pexels search query."""
+    ind = industry.lower()
+    if any(k in ind for k in ["bäckerei", "bakery", "brot", "konditorei"]):
+        return "artisan bakery bread"
+    if any(k in ind for k in ["restaurant", "bistro", "trattoria", "ristorante"]):
+        return "restaurant food dining"
+    if any(k in ind for k in ["pizza", "pizzeria"]):
+        return "pizza restaurant italian"
+    if any(k in ind for k in ["café", "cafe", "kaffee"]):
+        return "coffee cafe cozy"
+    if any(k in ind for k in ["zahnarzt", "dental", "zahn"]):
+        return "dental clinic modern"
+    if any(k in ind for k in ["arzt", "klinik", "medizin", "praxis", "health"]):
+        return "modern medical clinic"
+    if any(k in ind for k in ["beauty", "kosmetik", "spa", "wellness", "massage"]):
+        return "luxury spa wellness"
+    if any(k in ind for k in ["friseur", "coiffeur", "hair"]):
+        return "hair salon modern"
+    if any(k in ind for k in ["handwerk", "bau", "maler", "schreiner"]):
+        return "craftsman workshop"
+    if any(k in ind for k in ["immobilien", "real estate", "wohnung"]):
+        return "modern apartment architecture"
+    if any(k in ind for k in ["fitness", "gym", "sport", "training"]):
+        return "gym fitness training"
+    if any(k in ind for k in ["hotel", "unterkunft", "lodge"]):
+        return "luxury hotel interior"
+    if any(k in ind for k in ["anwalt", "kanzlei", "rechtsanwalt", "notar"]):
+        return "law office professional"
+    if any(k in ind for k in ["it", "tech", "software", "saas", "digital"]):
+        return "modern tech office"
+    # Generic fallback: use business name keywords
+    words = [w for w in business_name.lower().split() if len(w) > 3]
+    return f"{' '.join(words[:2])} professional" if words else "professional business"
+
+
 # ── Step 1b: Analyze from prompt (no URL / no scraping) ──────────────────────
 
 def analyze_from_prompt(prompt: str, color1: str = "", color2: str = "") -> dict:
