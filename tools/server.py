@@ -67,7 +67,7 @@ from generate_website import (
     analyze_website, analyze_from_prompt, generate_website, generate_hero_only,
     load_reference_images, extract_image_urls, extract_text_content,
     validate_image_urls, download_site_images_for_claude, TEST_MODE,
-    fetch_pexels_images, _industry_to_pexels_query,
+    fetch_pexels_images, _industry_to_pexels_query, extract_logo_url,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links, slugify
 
@@ -510,8 +510,12 @@ def generate():
         # Download actual site images so Claude can SEE and visually select them
         site_images_data = download_site_images_for_claude(site_images, max_images=_N_SITE_IMAGES)
 
+        # Extract logo from original site
+        logo_url = extract_logo_url(scraped["html"], url)
+        print(f"[server] Logo URL: {logo_url or 'not found'}")
+
         # Step 1: Generate hero only (cheap — full site generated later on unlock)
-        hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"], site_images_data=site_images_data)
+        hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"], site_images_data=site_images_data, logo_url=logo_url)
 
         # Apply safety CSS to hero preview
         safety_css = _build_safety_css()

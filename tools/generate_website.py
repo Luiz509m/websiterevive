@@ -191,6 +191,34 @@ def load_reference_images(n: int = 4, industry: str = "") -> list[dict]:
     return result
 
 
+def extract_logo_url(html: str, base_url: str = "") -> str | None:
+    """Find the most likely logo image URL from a page's HTML."""
+    import re
+    from urllib.parse import urljoin
+
+    # 1. <img> tags with logo in class, id, alt, or src
+    for m in re.finditer(r'<img[^>]+>', html, re.IGNORECASE):
+        tag = m.group(0)
+        attrs = tag.lower()
+        src_m = re.search(r'src=["\']([^"\']+)["\']', tag, re.IGNORECASE)
+        if not src_m:
+            continue
+        src = src_m.group(1).strip()
+        if any(k in attrs for k in ('logo', 'brand', 'site-logo', 'site_logo')):
+            if not any(x in src.lower() for x in ('sprite', 'pixel', 'tracking', '1x1')):
+                return urljoin(base_url, src) if base_url else src
+
+    # 2. <img> inside <header> or <nav>
+    header_m = re.search(r'<(?:header|nav)[^>]*>(.*?)</(?:header|nav)>', html, re.DOTALL | re.IGNORECASE)
+    if header_m:
+        for m in re.finditer(r'<img[^>]+src=["\']([^"\']+)["\'][^>]*>', header_m.group(1), re.IGNORECASE):
+            src = m.group(1).strip()
+            if not any(x in src.lower() for x in ('sprite', 'pixel', 'tracking', '1x1', 'icon')):
+                return urljoin(base_url, src) if base_url else src
+
+    return None
+
+
 def truncate_html(html: str, max_chars: int = 40000) -> str:
     """Truncate HTML to stay within token limits."""
     if len(html) <= max_chars:
@@ -416,7 +444,7 @@ No explanation. No markdown fences. Just the fix or the comment."""
 
 # ── Step 1b: Hero-only generation (cheap preview) ────────────────────────────
 
-def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None, site_images_data: list[dict] = None) -> str:
+def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None, site_images_data: list[dict] = None, logo_url: str = None) -> str:
     """Generate ONLY nav + hero. Fast and cheap — used before token unlock."""
     print("\n[hero] Generating hero preview...")
 
@@ -457,6 +485,19 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
         seen.add(label.lower())
     if not any(t["label"].lower() in ["kontakt", "contact"] for t in nav_topics):
         nav_topics.append({"label": "Kontakt", "href": "#kontakt", "cta": False})
+    # Fallback: if analysis failed to provide pages/services, use industry-based defaults
+    if len(nav_topics) < 2:
+        lang = "de" if any(k in industry.lower() for k in ["café","bäckerei","zahnarzt","gastronomie","restaurant","bistro","praxis"]) else "en"
+        defaults = {
+            "de": ["Über uns", "Leistungen", "Galerie", "Kontakt"],
+            "en": ["About", "Services", "Gallery", "Contact"],
+        }[lang]
+        seen_labels = {t["label"].lower() for t in nav_topics}
+        for d in defaults:
+            if d.lower() not in seen_labels and len(nav_topics) < 5:
+                nav_topics.append({"label": d, "href": f"#{_slugify(d)}", "cta": False})
+                seen_labels.add(d.lower())
+
     nav_topics = nav_topics[:6]
     cta_kw = ["reservier", "buchen", "book", "termin", "anfrage", "kontakt", "contact"]
     marked = False
@@ -590,12 +631,13 @@ Phone:    {key_content.get('phone') or '—'}
 Services: {_s(services)}
 {colors_note}
 
-NAV: logo far left, links right. ALWAYS dark background: background:#111111; Never transparent.
+NAV: logo/brand far left, links right. ALWAYS dark background: background:#111111; Never transparent.
+LOGO (top-left): {"Use this logo image: <img src=\"" + logo_url + "\" alt=\"" + business_name + "\" style=\"height:36px;width:auto;object-fit:contain;\"> — place it as the first element in the nav, far left." if logo_url else "No logo image available — use the business name \"" + business_name + "\" as styled text (font-weight:700, color:#ffffff, font-size:1.1rem)."}
 USE EXACTLY THESE LINKS:
   Home → #
 {nav_str}
 [CTA-BUTTON] = pill button, accent color bg, color:#ffffff, border-radius:100px.
-ALL nav links and logo: color:#ffffff !important — nav is always #111111, text always white. Min 48px gap between logo and first link.
+ALL nav links: color:#ffffff !important — nav is always #111111, text always white. Min 48px gap between logo/name and first link.
 
 ── HERO IMAGE DECISION ──────────────────────────────────────────────────
 {images_note}
