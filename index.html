@@ -1910,6 +1910,28 @@
         </p>
       </div>
 
+      <!-- Hosting offer (shown after unlock) -->
+      <div id="hosting-bar" style="display:none;margin-top:1.2rem;background:var(--surface2);border:1px solid var(--border-mid);border-radius:10px;padding:16px 20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <p style="font-size:13px;font-weight:600;color:var(--text);margin:0 0 4px;">Jetzt live schalten</p>
+            <p style="font-size:12px;color:var(--muted);margin:0;">Wir hosten deine Website auf einer professionellen Subdomain.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;background:var(--surface3);border:1px solid var(--border-mid);border-radius:6px;overflow:hidden;font-size:12px;">
+              <input id="hosting-subdomain" type="text" placeholder="dein-business"
+                style="background:transparent;border:none;outline:none;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;width:140px;" />
+              <span style="color:var(--muted);padding-right:10px;white-space:nowrap;">.webisterevive.xyz</span>
+            </div>
+            <button onclick="handleHostingCheckout()"
+              style="background:var(--mint);color:var(--black);border:none;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;padding:9px 20px;border-radius:6px;cursor:pointer;white-space:nowrap;">
+              Live schalten — CHF 19/Monat
+            </button>
+          </div>
+        </div>
+        <p id="hosting-status" style="display:none;font-size:12px;margin:10px 0 0;color:var(--mint);"></p>
+      </div>
+
       <!-- Full-site iframe (shown after unlock, used by editor) -->
       <div id="fullsite-wrap" style="display:none;margin-top:1rem;">
         <!-- Page tabs -->
@@ -2997,6 +3019,62 @@
     }
   }
 
+  // ── Hosting ──────────────────────────────────────────────────────────────────
+  async function handleHostingCheckout() {
+    const subdomain = (document.getElementById('hosting-subdomain').value || '').trim();
+    if (!subdomain) { alert('Bitte eine Subdomain eingeben.'); return; }
+    if (!currentGenerationId) { alert('Kein Website-Entwurf vorhanden.'); return; }
+
+    const statusEl = document.getElementById('hosting-status');
+    statusEl.style.display = 'block';
+    statusEl.style.color   = 'var(--mint)';
+    statusEl.textContent   = 'Weiterleitung zur Zahlung…';
+
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/hosting/checkout`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ generation_id: currentGenerationId, subdomain }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Fehler beim Checkout');
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = `Fehler: ${err.message}`;
+    }
+  }
+
+  // Handle hosting redirect back from Stripe
+  async function checkHostingReturn() {
+    const params      = new URLSearchParams(window.location.search);
+    const sessionId   = params.get('hosting_session');
+    const subdomain   = params.get('subdomain');
+    const generationId = params.get('generation_id');
+    if (!sessionId) return;
+
+    // Clean URL
+    window.history.replaceState({}, '', '/');
+
+    const statusEl = document.getElementById('hosting-status');
+    document.getElementById('hosting-bar').style.display = 'block';
+    statusEl.style.display  = 'block';
+    statusEl.style.color    = 'var(--mint)';
+    statusEl.textContent    = 'Zahlung bestätigt — deploye Website…';
+
+    try {
+      const res  = await fetch(`${REVIVE_API_URL}/hosting/verify`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ session_id: sessionId, subdomain, generation_id: generationId }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Deploy fehlgeschlagen');
+      statusEl.innerHTML = `✓ Deine Website ist live: <a href="${data.url}" target="_blank" style="color:var(--mint);">${data.url}</a>`;
+    } catch (err) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = `Fehler: ${err.message}`;
+    }
+  }
+
   // ── Unlock ───────────────────────────────────────────────────────────────────
   let unlockedHtml = '';
   let zipPages     = {};   // { filename: htmlString }
@@ -3066,6 +3144,14 @@
     document.getElementById('fullsite-wrap').style.display = 'block';
     document.getElementById('editor-toolbar').style.display = 'flex';
     document.getElementById('unlock-status').style.display = 'none';
+
+    // Show hosting bar with pre-filled subdomain from slug
+    const hostingBar = document.getElementById('hosting-bar');
+    hostingBar.style.display = 'block';
+    const subInput = document.getElementById('hosting-subdomain');
+    if (!subInput.value && unlockedSlug) {
+      subInput.value = unlockedSlug.replace(/[_\.]/g, '-').replace(/-+/g, '-').slice(0, 40).replace(/-$/, '');
+    }
 
     const user = getUser();
     if (user) { user.tokens = Math.max(0, user.tokens - 1); setUser(user); updateNavAuth(); }
@@ -3435,6 +3521,7 @@
   // ── Init ──────────────────────────────────────────────────────────────────────
   updateNavAuth();
   handleCheckoutReturn();
+  checkHostingReturn();
 </script>
 
 <script>

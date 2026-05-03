@@ -85,6 +85,35 @@ def update_full_html(generation_id: str, full_html: str) -> None:
     get_client().table("generations").update({"full_html": full_html}).eq("id", generation_id).execute()
 
 
+# ── Hosted Sites ──────────────────────────────────────────────────────────────
+
+def subdomain_exists(subdomain: str) -> bool:
+    res = get_client().table("hosted_sites").select("id").eq("subdomain", subdomain).execute()
+    return bool(res.data)
+
+
+def create_hosted_site(user_id: str, generation_id: str, subdomain: str, netlify_site_id: str, stripe_session_id: str) -> dict:
+    res = get_client().table("hosted_sites").insert({
+        "user_id":           user_id,
+        "generation_id":     generation_id,
+        "subdomain":         subdomain,
+        "netlify_site_id":   netlify_site_id,
+        "stripe_session_id": stripe_session_id,
+        "status":            "active",
+    }).execute()
+    return res.data[0]
+
+
+def get_hosted_site_by_generation(generation_id: str) -> dict | None:
+    res = get_client().table("hosted_sites").select("*").eq("generation_id", generation_id).execute()
+    return res.data[0] if res.data else None
+
+
+def hosted_site_session_exists(stripe_session_id: str) -> bool:
+    res = get_client().table("hosted_sites").select("id").eq("stripe_session_id", stripe_session_id).execute()
+    return bool(res.data)
+
+
 # ── Purchases ─────────────────────────────────────────────────────────────────
 
 def record_purchase(user_id: str, tokens_bought: int, amount_chf: float, stripe_session_id: str) -> dict:

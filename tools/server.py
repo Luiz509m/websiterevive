@@ -844,6 +844,157 @@ def checkout_verify(user_id):
     return jsonify({"tokens_added": tokens_bought, "new_balance": user["tokens"]})
 
 
+# ── Hosting helpers ──────────────────────────────────────────────────────────
+
+def _slugify_subdomain(text: str) -> str:
+    import re
+    s = text.lower().strip()
+    s = re.sub(r'[^a-z0-9\s-]', '', s)
+    s = re.sub(r'[\s_]+', '-', s)
+    s = re.sub(r'-+', '-', s).strip('-')
+    return s[:40]
+
+
+def _netlify_deploy_with_domain(generation_id: str, subdomain: str) -> str:
+    """Deploy to Netlify and set custom domain. Returns Netlify site ID."""
+    import time
+    netlify_token = os.environ.get("NETLIFY_TOKEN", "")
+    if not netlify_token:
+        raise ValueError("NETLIFY_TOKEN not configured")
+
+    generation = db.get_generation(generation_id)
+    if not generation or not generation.get("full_html"):
+        raise ValueError("Generation not found or not unlocked")
+
+    headers_auth = {"Authorization": f"Bearer {netlify_token}"}
+    custom_domain = f"{subdomain}.webisterevive.xyz"
+
+    # Create site with custom domain
+    site_res = requests.post(
+        "https://api.netlify.com/api/v1/sites",
+        headers={**headers_auth, "Content-Type": "application/json"},
+        json={"custom_domain": custom_domain},
+        timeout=30,
+    )
+    if not site_res.ok:
+        raise ValueError(f"Netlify site creation failed: {site_res.status_code}")
+    site_data = site_res.json()
+    site_id   = site_data["id"]
+    print(f"[hosting] Site created: {site_id} → {custom_domain}")
+
+    # Build and upload zip
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("index.html", generation["full_html"])
+    buf.seek(0)
+    deploy_res = requests.post(
+        f"https://api.netlify.com/api/v1/sites/{site_id}/deploys",
+        headers={**headers_auth, "Content-Type": "application/zip"},
+        data=buf.read(),
+        timeout=60,
+    )
+    if not deploy_res.ok:
+        raise ValueError(f"Netlify deploy failed: {deploy_res.status_code}")
+
+    deploy_id = deploy_res.json().get("id")
+    for _ in range(8):
+        time.sleep(3)
+        state_res = requests.get(f"https://api.netlify.com/api/v1/deploys/{deploy_id}", headers=headers_auth, timeout=10)
+        if state_res.ok:
+            state = state_res.json().get("state", "")
+            print(f"[hosting] Deploy state: {state}")
+            if state in ("ready", "current"):
+                break
+            if state == "error":
+                raise ValueError(f"Deploy failed: {state_res.json().get('error_message', 'unknown')}")
+
+    print(f"[hosting] Live at https://{custom_domain}")
+    return site_id
+
+
+# ── Hosting checkout ──────────────────────────────────────────────────────────
+
+@app.route("/hosting/checkout", methods=["POST"])
+@require_auth
+def hosting_checkout(user_id):
+    data          = request.get_json(silent=True) or {}
+    generation_id = (data.get("generation_id") or "").strip()
+    subdomain_raw = (data.get("subdomain") or "").strip()
+
+    if not generation_id:
+        return jsonify({"error": "generation_id is required"}), 400
+
+    generation = db.get_generation(generation_id)
+    if not generation:
+        return jsonify({"error": "Generation not found"}), 404
+    if not generation.get("unlocked"):
+        return jsonify({"error": "Unlock this website first"}), 403
+
+    subdomain = _slugify_subdomain(subdomain_raw)
+    if not subdomain:
+        return jsonify({"error": "Invalid subdomain"}), 400
+    if db.subdomain_exists(subdomain):
+        return jsonify({"error": "This subdomain is already taken"}), 409
+
+    price_id = os.environ.get("STRIPE_HOSTING_PRICE_ID", "")
+    if not price_id:
+        return jsonify({"error": "Hosting not configured"}), 503
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=f"https://webisterevive.xyz/?hosting_session={{CHECKOUT_SESSION_ID}}&subdomain={subdomain}&generation_id={generation_id}",
+            cancel_url="https://webisterevive.xyz/",
+            metadata={"generation_id": generation_id, "subdomain": subdomain, "user_id": user_id},
+            client_reference_id=user_id,
+        )
+        return jsonify({"checkout_url": session.url})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"error": str(exc)}), 500
+
+
+# ── Hosting verify (after Stripe success) ────────────────────────────────────
+
+@app.route("/hosting/verify", methods=["POST"])
+@require_auth
+def hosting_verify(user_id):
+    data       = request.get_json(silent=True) or {}
+    session_id    = (data.get("session_id") or "").strip()
+    subdomain     = (data.get("subdomain") or "").strip()
+    generation_id = (data.get("generation_id") or "").strip()
+
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+
+    if db.hosted_site_session_exists(session_id):
+        hosted = db.get_hosted_site_by_generation(generation_id)
+        return jsonify({"url": f"https://{hosted['subdomain']}.webisterevive.xyz", "already_done": True})
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        if session.payment_status not in ("paid", "no_payment_required"):
+            return jsonify({"error": "Payment not completed"}), 402
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    # Use metadata as source of truth
+    subdomain     = subdomain or _slugify_subdomain(session.metadata.get("subdomain", ""))
+    generation_id = generation_id or session.metadata.get("generation_id", "")
+
+    if not subdomain or not generation_id:
+        return jsonify({"error": "Missing subdomain or generation_id"}), 400
+
+    try:
+        site_id = _netlify_deploy_with_domain(generation_id, subdomain)
+        db.create_hosted_site(user_id, generation_id, subdomain, site_id, session_id)
+        return jsonify({"url": f"https://{subdomain}.webisterevive.xyz"})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"error": str(exc)}), 500
+
+
 # ── Deploy to Netlify ────────────────────────────────────────────────────────
 
 @app.route("/deploy", methods=["POST"])
