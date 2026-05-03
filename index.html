@@ -2901,9 +2901,10 @@
     setStatus(fakeForm, 'Analysiere Beschreibung…', 15);
 
     const steps = [
-      { text: 'Erstelle Design-Konzept…',    pct: 35, after: 4000  },
-      { text: 'Generiere Hero-Sektion…',     pct: 60, after: 12000 },
-      { text: 'Finalisiere Design…',          pct: 85, after: 22000 },
+      { text: 'Erstelle Design-Konzept…',    pct: 30, after: 8000  },
+      { text: 'Generiere Hero-Sektion…',     pct: 55, after: 25000 },
+      { text: 'Finalisiere Design…',          pct: 78, after: 50000 },
+      { text: 'Fast fertig…',                pct: 90, after: 70000 },
     ];
     const timers = steps.map(s => setTimeout(() => setStatus(fakeForm, s.text, s.pct), s.after));
 
@@ -2951,14 +2952,15 @@
     btn.textContent = 'Reviving…';
     setStatusColor(form, 'var(--mint)');
 
-    // Progress animation: ~50s total
+    // Progress animation: ~90s total
     const steps = [
-      { text: 'Scraping your website…',        pct: 10, after: 0    },
-      { text: 'Reading sub-pages…',             pct: 25, after: 5000 },
-      { text: 'Analysing brand & content…',     pct: 45, after: 12000 },
-      { text: 'Generating your new design…',    pct: 65, after: 22000 },
-      { text: 'Writing sections & styling…',    pct: 82, after: 35000 },
-      { text: 'Almost done…',                   pct: 93, after: 48000 },
+      { text: 'Scraping your website…',        pct:  8, after: 0     },
+      { text: 'Reading sub-pages…',             pct: 18, after: 8000  },
+      { text: 'Analysing brand & content…',     pct: 35, after: 22000 },
+      { text: 'Generating your new design…',    pct: 55, after: 38000 },
+      { text: 'Writing sections & styling…',    pct: 72, after: 55000 },
+      { text: 'Almost done…',                   pct: 85, after: 72000 },
+      { text: 'Finalising your website…',       pct: 93, after: 88000 },
     ];
     setStatus(form, steps[0].text, steps[0].pct);
     const timers = steps.slice(1).map(s => setTimeout(() => setStatus(form, s.text, s.pct), s.after));
