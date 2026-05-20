@@ -83,7 +83,7 @@ TMP.mkdir(exist_ok=True)
 
 # ── Token packages ────────────────────────────────────────────────────────────
 PACKAGES = {
-    "test": {"tokens": 1,  "amount_chf": 19.90, "price_id": os.environ.get("STRIPE_PRICE_TEST")},  # beta offer, expires 2026-04-10
+    "test": {"tokens": 1,  "amount_chf": 19.90, "price_id": os.environ.get("STRIPE_PRICE_TEST")},
     "1":    {"tokens": 1,  "amount_chf": 29.00, "price_id": os.environ.get("STRIPE_PRICE_1")},
     "5":    {"tokens": 5,  "amount_chf": 49.00, "price_id": os.environ.get("STRIPE_PRICE_5")},
 }
