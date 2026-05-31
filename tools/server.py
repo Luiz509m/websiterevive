@@ -406,7 +406,7 @@ def me(user_id):
     user = db.get_user_by_id(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
-    return jsonify({"id": user["id"], "email": user["email"], "tokens": user["tokens"]})
+    return jsonify({"id": user["id"], "email": user["email"], "tokens": user["tokens"], "refund_used": user.get("refund_used", False)})
 
 
 # ── Generation ────────────────────────────────────────────────────────────────
@@ -747,6 +747,31 @@ def unlock(user_id):
     print(f"[unlock] Background job started for {generation_id}")
 
     return jsonify({"status": "generating", "job_id": generation_id})
+
+
+@app.route("/refund", methods=["POST"])
+@require_auth
+def refund(user_id):
+    user = db.get_user_by_id(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    if user.get("refund_used"):
+        return jsonify({"error": "You have already used your one-time refund"}), 409
+
+    data          = request.get_json(silent=True) or {}
+    generation_id = (data.get("generation_id") or "").strip()
+    if generation_id:
+        generation = db.get_generation(generation_id)
+        if not generation or generation.get("user_id") != user_id:
+            return jsonify({"error": "Generation not found"}), 404
+        if not generation.get("unlocked"):
+            return jsonify({"error": "This generation was never unlocked"}), 400
+
+    db.add_tokens(user_id, 1)
+    db.mark_refund_used(user_id)
+    user = db.get_user_by_id(user_id)
+    print(f"[refund] Token refunded for user {user_id}")
+    return jsonify({"message": "Token refunded", "new_balance": user["tokens"]})
 
 
 @app.route("/status/<generation_id>", methods=["GET"])

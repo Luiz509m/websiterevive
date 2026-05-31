@@ -36,8 +36,12 @@ def get_user_by_email(email: str) -> dict | None:
 
 
 def get_user_by_id(user_id: str) -> dict | None:
-    res = get_client().table("users").select("id, email, tokens, created_at").eq("id", user_id).execute()
+    res = get_client().table("users").select("id, email, tokens, refund_used, created_at").eq("id", user_id).execute()
     return res.data[0] if res.data else None
+
+
+def mark_refund_used(user_id: str) -> None:
+    get_client().table("users").update({"refund_used": True}).eq("id", user_id).execute()
 
 
 def deduct_token(user_id: str) -> bool:

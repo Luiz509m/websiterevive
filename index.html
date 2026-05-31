@@ -1932,6 +1932,14 @@
         <p id="hosting-status" style="display:none;font-size:12px;margin:10px 0 0;color:var(--mint);"></p>
       </div>
 
+      <!-- Refund bar (shown after unlock, once per account) -->
+      <div id="refund-bar" style="display:none;margin-top:0.6rem;text-align:right;">
+        <button id="refund-btn" onclick="handleRefund()"
+          style="background:transparent;border:none;font-size:11px;color:var(--muted);cursor:pointer;letter-spacing:0.3px;text-decoration:underline;padding:4px 0;">
+          Not satisfied? Get your token back
+        </button>
+      </div>
+
       <!-- Full-site iframe (shown after unlock, used by editor) -->
       <div id="fullsite-wrap" style="display:none;margin-top:1rem;">
         <!-- Page tabs -->
@@ -3199,6 +3207,44 @@
 
     const user = getUser();
     if (user) { user.tokens = Math.max(0, user.tokens - 1); setUser(user); updateNavAuth(); }
+
+    // Show refund button if user hasn't used their one-time refund
+    try {
+      const me = await fetch(`${REVIVE_API_URL}/auth/me`, { headers: authHeaders() });
+      if (me.ok) {
+        const meData = await me.json();
+        if (!meData.refund_used) {
+          document.getElementById('refund-bar').style.display = 'block';
+        }
+      }
+    } catch(e) {}
+  }
+
+  async function handleRefund() {
+    if (!confirm('Are you sure? This will refund 1 token to your account. You can only do this once.')) return;
+    const btn = document.getElementById('refund-btn');
+    btn.textContent = 'Processing…';
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${REVIVE_API_URL}/refund`, {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generation_id: currentGenerationId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        btn.textContent = data.error || 'Refund failed';
+        btn.disabled = false;
+        return;
+      }
+      const user = getUser();
+      if (user) { user.tokens = data.new_balance; setUser(user); updateNavAuth(); }
+      document.getElementById('refund-bar').style.display = 'none';
+      alert('Token refunded! You can now generate a new website.');
+    } catch(e) {
+      btn.textContent = 'Error — try again';
+      btn.disabled = false;
+    }
   }
 
   function startPolling(jobId) {
