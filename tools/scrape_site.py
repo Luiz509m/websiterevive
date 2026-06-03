@@ -266,8 +266,19 @@ def scrape_subpages(base_url: str, homepage_html: str, max_pages: int = 4) -> li
     return result
 
 
+def _is_js_rendered(html: str) -> bool:
+    """Return True if the page is likely JS-rendered (sparse body text)."""
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return len(text) < 1200
+
+
 def scrape(url: str) -> dict:
-    """Fetch HTML from a URL. Returns dict with html, url, slug."""
+    """
+    Fetch HTML from a URL. Falls back to Playwright for JS-rendered sites.
+    Also takes an above-the-fold screenshot for Claude's visual context.
+    Returns dict with html, url, slug, screenshot_path.
+    """
     print(f"[scrape] Fetching {url}")
     headers = {
         "User-Agent": (
@@ -291,11 +302,28 @@ def scrape(url: str) -> dict:
         raise ValueError(f"Could not reach the website: {e}")
 
     slug = slugify(url)
+    screenshot_path = None
+
+    # JS-rendered site detection — if sparse, try Playwright for real HTML + screenshot
+    if _is_js_rendered(html):
+        print(f"[scrape] Page appears JS-rendered ({len(html)} chars raw) — trying Playwright")
+        pw_result = scrape_with_playwright(url, slug)
+        if pw_result:
+            html = pw_result["html"]
+            screenshot_path = pw_result["screenshot_path"]
+            print(f"[scrape] Playwright HTML: {len(html):,} chars")
+        else:
+            # Playwright not available or failed — still try a screenshot separately
+            screenshot_path = screenshot(url, slug)
+    else:
+        # Normal page — just take a screenshot for visual context
+        screenshot_path = screenshot(url, slug)
+
     html_path = TMP / f"{slug}.html"
     html_path.write_text(html, encoding="utf-8")
     print(f"[scrape] Saved HTML → {html_path} ({len(html)} chars)")
 
-    return {"url": url, "slug": slug, "html": html, "html_path": str(html_path)}
+    return {"url": url, "slug": slug, "html": html, "html_path": str(html_path), "screenshot_path": screenshot_path}
 
 
 def extract_important_links(html: str, base_url: str) -> list[dict]:
@@ -368,7 +396,11 @@ def extract_important_links(html: str, base_url: str) -> list[dict]:
 
 
 def screenshot(url: str, slug: str) -> str | None:
-    """Take a full-page screenshot with Playwright. Returns path or None."""
+    """
+    Take an above-the-fold viewport screenshot with Playwright.
+    Also returns the rendered HTML if the original scrape was JS-sparse.
+    Returns path or None on failure.
+    """
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -378,14 +410,46 @@ def screenshot(url: str, slug: str) -> str | None:
 
     screenshot_path = TMP / f"{slug}.png"
     print(f"[screenshot] Taking screenshot of {url}")
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": 1440, "height": 900})
-        page.goto(url, wait_until="networkidle", timeout=30000)
-        page.screenshot(path=str(screenshot_path), full_page=True)
-        browser.close()
-    print(f"[screenshot] Saved → {screenshot_path}")
-    return str(screenshot_path)
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+            page = browser.new_page(viewport={"width": 1280, "height": 800})
+            page.goto(url, wait_until="networkidle", timeout=30000)
+            # Above-the-fold only — fast, token-efficient, captures brand identity
+            page.screenshot(path=str(screenshot_path), full_page=False, clip={"x": 0, "y": 0, "width": 1280, "height": 800})
+            browser.close()
+        print(f"[screenshot] Saved → {screenshot_path}")
+        return str(screenshot_path)
+    except Exception as e:
+        print(f"[screenshot] Failed: {e}")
+        return None
+
+
+def scrape_with_playwright(url: str, slug: str) -> dict | None:
+    """
+    Render a JS-heavy page with Playwright and return its HTML + a screenshot.
+    Used as fallback when requests returns a sparse page.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return None
+
+    screenshot_path = TMP / f"{slug}.png"
+    print(f"[playwright] Rendering JS page: {url}")
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+            page = browser.new_page(viewport={"width": 1280, "height": 800})
+            page.goto(url, wait_until="networkidle", timeout=30000)
+            html = page.content()
+            page.screenshot(path=str(screenshot_path), full_page=False, clip={"x": 0, "y": 0, "width": 1280, "height": 800})
+            browser.close()
+        print(f"[playwright] Got {len(html):,} chars of rendered HTML")
+        return {"html": html, "screenshot_path": str(screenshot_path)}
+    except Exception as e:
+        print(f"[playwright] Failed: {e}")
+        return None
 
 
 if __name__ == "__main__":

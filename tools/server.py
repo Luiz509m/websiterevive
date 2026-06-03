@@ -71,6 +71,26 @@ from generate_website import (
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links, slugify
 
+def _load_screenshot(path: str | None) -> dict | None:
+    """Load a screenshot PNG from disk and return a base64-encoded vision dict."""
+    if not path:
+        return None
+    try:
+        from PIL import Image as _Img
+        import io as _io
+        img = _Img.open(path).convert("RGB")
+        # Cap at 1280px wide to keep token cost reasonable
+        if img.width > 1280:
+            img.thumbnail((1280, 800), _Img.LANCZOS)
+        buf = _io.BytesIO()
+        img.save(buf, format="JPEG", quality=80)
+        data = base64.standard_b64encode(buf.getvalue()).decode()
+        print(f"[screenshot] Encoded for Claude: {len(buf.getvalue())//1024}KB")
+        return {"data": data, "media_type": "image/jpeg"}
+    except Exception as e:
+        print(f"[screenshot] Could not load screenshot: {e}")
+        return None
+
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
 # In TEST_MODE: fewer images sent to Claude → lower token cost
@@ -497,8 +517,11 @@ def generate():
             if not analysis.get("pages_content"):
                 print("[analyze] Cached analysis missing pages_content — re-analyzing")
                 analysis_path.unlink()
+        # Load screenshot for Claude's visual context
+        screenshot_data = _load_screenshot(scraped.get("screenshot_path"))
+
         if not analysis_path.exists():
-            analysis = analyze_website(url, scraped["html"], "", full_text, pages)
+            analysis = analyze_website(url, scraped["html"], "", full_text, pages, screenshot_data=screenshot_data)
             analysis_path.write_text(
                 json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
             )
@@ -515,7 +538,7 @@ def generate():
         print(f"[server] Logo URL: {logo_url or 'not found'}")
 
         # Step 1: Generate hero only (cheap — full site generated later on unlock)
-        hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"], site_images_data=site_images_data, logo_url=logo_url)
+        hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"], site_images_data=site_images_data, logo_url=logo_url, screenshot_data=screenshot_data)
 
         # Apply safety CSS to hero preview
         safety_css = _build_safety_css()
@@ -536,6 +559,7 @@ def generate():
             "analysis":        analysis,
             "raw_html":        scraped["html"][:200_000],  # cap at 200KB to stay within DB limits
             "hero_html_full":  hero_html_full,             # complete hero with <head> CSS/fonts
+            "screenshot_data": screenshot_data,            # original site screenshot for full generation
         }, ensure_ascii=False)
 
         generation = db.save_generation(user_id, url, slug, hero_html, "##PENDING##:" + pending_context)
@@ -648,9 +672,12 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
         # Re-download site images so Claude can visually select in full generation
         site_images_data2 = download_site_images_for_claude(site_images, max_images=_N_SITE_IMAGES)
 
+        # Restore screenshot from context (stored as base64 dict)
+        screenshot_data2 = ctx.get("screenshot_data")
+
         full_html  = generate_website(
             analysis, references, site_images, full_text, pages, important_links,
-            raw_html=raw_html, site_images_data=site_images_data2
+            raw_html=raw_html, site_images_data=site_images_data2, screenshot_data=screenshot_data2
         )
 
         # ── Reuse the existing hero so it matches the preview exactly ──────────

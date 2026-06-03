@@ -9,3 +9,4 @@ bcrypt
 PyJWT
 supabase
 stripe
+playwright

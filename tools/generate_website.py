@@ -31,7 +31,7 @@ TMP.mkdir(exist_ok=True)
 CLIENT = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 MODEL_FAST  = "claude-sonnet-4-6"
 _use_opus   = os.environ.get("USE_OPUS", "false").lower() == "true"
-MODEL_FULL  = "claude-opus-4-6" if _use_opus else "claude-sonnet-4-6"
+MODEL_FULL  = "claude-opus-4-7" if _use_opus else "claude-sonnet-4-6"
 TEST_MODE   = os.environ.get("TEST_MODE", "true").lower() == "true"   # true = fewer images, skip critic
 
 
@@ -444,7 +444,7 @@ No explanation. No markdown fences. Just the fix or the comment."""
 
 # ── Step 1b: Hero-only generation (cheap preview) ────────────────────────────
 
-def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None, site_images_data: list[dict] = None, logo_url: str = None) -> str:
+def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, raw_html: str = None, site_images_data: list[dict] = None, logo_url: str = None, screenshot_data: dict = None) -> str:
     """Generate ONLY nav + hero. Fast and cheap — used before token unlock."""
     print("\n[hero] Generating hero preview...")
 
@@ -605,6 +605,11 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
         )})
         for ref in reference_images:
             msg_content.append({"type": "image", "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}})
+
+    # Original site screenshot — gives Claude the brand identity at a glance
+    if screenshot_data:
+        msg_content.append({"type": "text", "text": "ORIGINAL SITE SCREENSHOT (above the fold) — carry over the brand DNA: colors, logo placement, typography style, and overall feel. Modernize and elevate, but keep it recognizably theirs."})
+        msg_content.append({"type": "image", "source": {"type": "base64", "media_type": screenshot_data["media_type"], "data": screenshot_data["data"]}})
 
     # Show Claude the actual site images so he can visually pick the best one
     if site_images_data:
@@ -819,7 +824,7 @@ Return ONLY valid JSON, no explanation."""}]
 
 # ── Step 1: Analyze ───────────────────────────────────────────────────────────
 
-def analyze_website(url: str, html: str, business_name: str, full_text: str = "", pages: list = None) -> dict:
+def analyze_website(url: str, html: str, business_name: str, full_text: str = "", pages: list = None, screenshot_data: dict = None) -> dict:
     """Send HTML + all scraped pages to Claude for deep analysis. Returns structured brand/content data."""
     print("\n[analyze] Sending to Claude for analysis...")
 
@@ -893,12 +898,19 @@ CRITICAL RULES:
 
 Return ONLY valid JSON, no explanation."""
 
+    # Build message — prepend screenshot if available so Claude sees the original site visually
+    analyze_content = []
+    if screenshot_data:
+        analyze_content.append({"type": "text", "text": "ORIGINAL WEBSITE SCREENSHOT (above the fold) — study the visual identity, color palette, typography, logo, and layout style. Use this to faithfully carry over the brand DNA into the new design."})
+        analyze_content.append({"type": "image", "source": {"type": "base64", "media_type": screenshot_data["media_type"], "data": screenshot_data["data"]}})
+    analyze_content.append({"type": "text", "text": prompt})
+
     for attempt in range(3):
         try:
             response = CLIENT.messages.create(
                 model=MODEL_FAST,
                 max_tokens=16000,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": analyze_content}]
             )
             break
         except anthropic.APIStatusError as e:
@@ -1097,7 +1109,7 @@ SECTION "{topic['label']}" (id="{slug}") — TESTIMONIALS DESIGN:
 
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
-def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None, site_images_data: list[dict] = None) -> str:
+def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None, site_images_data: list[dict] = None, screenshot_data: dict = None) -> str:
     """Send analysis + reference images to Claude. Returns generated HTML."""
     print("\n[generate] Sending to Claude for website generation...")
 
@@ -1160,6 +1172,11 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
                 "type": "image",
                 "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}
             })
+
+    # Original site screenshot — brand identity anchor
+    if screenshot_data:
+        content.append({"type": "text", "text": "ORIGINAL SITE SCREENSHOT (above the fold) — use this to extract the brand DNA: exact colors, logo style, typography character, and layout personality. Modernize and elevate the design while keeping it recognizably theirs."})
+        content.append({"type": "image", "source": {"type": "base64", "media_type": screenshot_data["media_type"], "data": screenshot_data["data"]}})
 
     # Show Claude the actual site images so he can visually select the best ones
     if site_images_data:
