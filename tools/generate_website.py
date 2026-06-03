@@ -1107,6 +1107,85 @@ SECTION "{topic['label']}" (id="{slug}") — TESTIMONIALS DESIGN:
     )
 
 
+# ── Contact form post-processor ──────────────────────────────────────────────
+
+def _ensure_contact_form(html: str, access_key: str, business_name: str) -> str:
+    """
+    Guarantee a working Web3Forms contact form exists in the generated HTML.
+    1. If the correct access_key is already present → do nothing.
+    2. If a web3forms form exists with a wrong key → fix the key.
+    3. If no web3forms form exists → inject one before </footer> or </body>.
+    """
+    import re as _re
+
+    if not access_key:
+        print("[form] WEB3FORMS_KEY not set — skipping form post-processor")
+        return html
+
+    # Case 1: correct key already there
+    if f'value="{access_key}"' in html and "web3forms.com" in html:
+        print("[form] ✓ Contact form already correct")
+        return html
+
+    # Case 2: web3forms present but wrong/placeholder key — fix it
+    if "web3forms.com" in html:
+        html = _re.sub(
+            r'(<input[^>]+name=["\']access_key["\'][^>]+value=["\'])[^"\']*(["\'])',
+            rf'\g<1>{access_key}\g<2>',
+            html
+        )
+        print("[form] ✓ Fixed Web3Forms access key")
+        return html
+
+    # Case 3: no form at all — build and inject one
+    safe_name = business_name.replace('"', '').replace("'", "")
+    form_html = f"""
+<div id="contact-form-wrap" style="margin-top:32px;">
+  <h3 style="margin-bottom:16px;font-size:1.2rem;font-weight:700;color:#fff;">Kontakt aufnehmen</h3>
+  <form action="https://api.web3forms.com/submit" method="POST" id="contact-form" style="display:flex;flex-direction:column;gap:12px;">
+    <input type="hidden" name="access_key" value="{access_key}">
+    <input type="hidden" name="subject" value="Neue Kontaktanfrage — {safe_name}">
+    <input type="hidden" name="redirect" value="false">
+    <input type="text" name="name" placeholder="Ihr Name" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">
+    <input type="email" name="email" placeholder="Ihre E-Mail" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">
+    <input type="tel" name="phone" placeholder="Telefon (optional)" style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">
+    <textarea name="message" placeholder="Ihre Nachricht" rows="4" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;resize:vertical;width:100%;"></textarea>
+    <button type="submit" style="padding:13px 28px;background:var(--clr-primary,#2d6be4);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;align-self:flex-start;">Nachricht senden</button>
+    <p id="form-result" style="font-size:13px;margin:0;min-height:20px;color:#fff;"></p>
+  </form>
+  <script>
+  (function(){{
+    var f=document.getElementById('contact-form');
+    if(!f)return;
+    f.addEventListener('submit',function(e){{
+      e.preventDefault();
+      var btn=f.querySelector('button[type="submit"]');
+      var res=document.getElementById('form-result');
+      btn.disabled=true;btn.textContent='Wird gesendet…';
+      fetch('https://api.web3forms.com/submit',{{method:'POST',body:new FormData(f)}})
+        .then(function(r){{return r.json();}})
+        .then(function(d){{
+          if(d.success){{res.style.color='#4ade80';res.textContent='✓ Nachricht gesendet! Wir melden uns bald.';f.reset();}}
+          else{{res.style.color='#f87171';res.textContent='Fehler beim Senden. Bitte versuchen Sie es erneut.';}}
+          btn.disabled=false;btn.textContent='Nachricht senden';
+        }})
+        .catch(function(){{res.style.color='#f87171';res.textContent='Netzwerkfehler. Bitte erneut versuchen.';btn.disabled=false;btn.textContent='Nachricht senden';}});
+    }});
+  }})();
+  </script>
+</div>"""
+
+    # Inject before </footer> if it exists, otherwise before </body>
+    if "</footer>" in html:
+        html = html.replace("</footer>", form_html + "\n</footer>", 1)
+        print("[form] ✓ Injected contact form before </footer>")
+    else:
+        html = html.replace("</body>", form_html + "\n</body>", 1)
+        print("[form] ✓ Injected contact form before </body>")
+
+    return html
+
+
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
 def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None, site_images_data: list[dict] = None, screenshot_data: dict = None) -> str:
@@ -1134,14 +1213,15 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
             for item in lst
         )
 
-    business_name = analysis.get("business_name", "Business")
-    industry      = analysis.get("industry", "")
-    tone          = analysis.get("tone", "professional")
-    tagline       = analysis.get("tagline", "")
-    services      = analysis.get("main_services", [])
-    audience      = analysis.get("target_audience", "")
-    key_content   = analysis.get("key_content", {})
-    features      = key_content.get("features", key_content.get("unique_selling_points", []))
+    business_name   = analysis.get("business_name", "Business")
+    industry        = analysis.get("industry", "")
+    tone            = analysis.get("tone", "professional")
+    tagline         = analysis.get("tagline", "")
+    services        = analysis.get("main_services", [])
+    audience        = analysis.get("target_audience", "")
+    key_content     = analysis.get("key_content", {})
+    features        = key_content.get("features", key_content.get("unique_selling_points", []))
+    web3forms_key   = os.environ.get("WEB3FORMS_KEY", "")
 
     # Deterministic color extraction beats Claude's analysis (more reliable)
     brand_colors = extract_brand_colors(raw_html) if raw_html else []
@@ -1527,9 +1607,44 @@ NEVER:
 ✗ Elements that float outside their parent container
 
 ── FOOTER / KONTAKT ──────────────────────────────────────────────────────
-id="kontakt". Show all contact details (phone, email, address, hours).
-Include all nav links. Social media icons (SVG inline) if found in links.
-Copyright line. Dark background preferred.
+id="kontakt". Dark background. Two-column layout: left = contact details, right = contact form.
+Left column: business name, address, phone (as <a href="tel:...">, email (as <a href="mailto:...">), opening hours.
+Social media icons (inline SVG) if found in links. All nav links. Copyright line.
+
+RIGHT COLUMN — WORKING CONTACT FORM (mandatory, always include):
+Use EXACTLY this form structure — do not change the action URL or hidden fields:
+<form action="https://api.web3forms.com/submit" method="POST" id="contact-form" style="display:flex;flex-direction:column;gap:12px;">
+  <input type="hidden" name="access_key" value="{web3forms_key}">
+  <input type="hidden" name="subject" value="Neue Kontaktanfrage — BUSINESS_NAME">
+  <input type="hidden" name="redirect" value="false">
+  <input type="text" name="name" placeholder="Ihr Name" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;">
+  <input type="email" name="email" placeholder="Ihre E-Mail" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;">
+  <input type="tel" name="phone" placeholder="Telefon (optional)" style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;">
+  <textarea name="message" placeholder="Ihre Nachricht" rows="4" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;resize:vertical;"></textarea>
+  <button type="submit" style="padding:13px 28px;background:var(--clr-primary,#2d6be4);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Nachricht senden</button>
+  <p id="form-result" style="font-size:13px;margin:0;min-height:20px;"></p>
+</form>
+<script>
+(function(){{
+  var f=document.getElementById('contact-form');
+  if(!f)return;
+  f.addEventListener('submit',function(e){{
+    e.preventDefault();
+    var btn=f.querySelector('button[type="submit"]');
+    var res=document.getElementById('form-result');
+    btn.disabled=true; btn.textContent='Wird gesendet…';
+    fetch('https://api.web3forms.com/submit',{{method:'POST',body:new FormData(f)}})
+      .then(function(r){{return r.json();}})
+      .then(function(d){{
+        if(d.success){{res.style.color='#4ade80';res.textContent='✓ Nachricht gesendet! Wir melden uns bald.';f.reset();}}
+        else{{res.style.color='#f87171';res.textContent='Fehler beim Senden. Bitte versuchen Sie es erneut.';}}
+        btn.disabled=false; btn.textContent='Nachricht senden';
+      }})
+      .catch(function(){{res.style.color='#f87171';res.textContent='Netzwerkfehler. Bitte versuchen Sie es erneut.';btn.disabled=false;btn.textContent='Nachricht senden';}});
+  }});
+}})();
+</script>
+Replace BUSINESS_NAME in the subject with the actual business name.
 
 ── COPY RULES ────────────────────────────────────────────────────────────
 • Use EXACT scraped text — never shorten, paraphrase, or rewrite
@@ -1610,6 +1725,11 @@ OUTPUT: One complete HTML file from <!DOCTYPE html> to </html>. No markdown fenc
         html = html.split("\n", 1)[1].rsplit("```", 1)[0].strip()
 
     print(f"[generate] ✓ Generated {len(html)} chars of HTML")
+
+    # ── Contact form post-processor ──────────────────────────────────────────
+    # Ensure the Web3Forms contact form is present and has the correct access key.
+    # Claude sometimes deviates from the template — this fixes it deterministically.
+    html = _ensure_contact_form(html, web3forms_key, business_name)
 
     # ── Critic pass: review + fix quality issues (skipped in TEST_MODE) ─────────
     if not TEST_MODE:
