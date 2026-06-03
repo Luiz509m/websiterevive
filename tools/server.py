@@ -557,18 +557,27 @@ def generate():
             "pages":           pages,
             "full_text":       full_text,
             "analysis":        analysis,
-            "raw_html":        scraped["html"][:200_000],  # cap at 200KB to stay within DB limits
-            "hero_html_full":  hero_html_full,             # complete hero with <head> CSS/fonts
-            "screenshot_data": screenshot_data,            # original site screenshot for full generation
+            "raw_html":        scraped["html"][:200_000],
+            "hero_html_full":  hero_html_full,
+            "screenshot_data": screenshot_data,
         }, ensure_ascii=False)
 
         generation = db.save_generation(user_id, url, slug, hero_html, "##PENDING##:" + pending_context)
+
+        # Determine form type for UI prompt
+        _ind = analysis.get("industry", "").lower()
+        _has_booking = any(l.get("category") == "booking" for l in important_links)
+        _res_kw = ["restaurant","pizzeria","trattoria","bistro","café","cafe",
+                   "bäckerei","bakery","catering","gastro","hotel","bar ","diner","sushi","burger"]
+        _is_res = any(k in _ind for k in _res_kw) and not _has_booking
 
         print(f"[server] Done — generation {generation['id']}")
         return jsonify({
             "generation_id": generation["id"],
             "hero_html":     hero_html,
             "business_name": analysis.get("business_name", ""),
+            "has_form":      True,
+            "form_type":     "reservation" if _is_res else "contact",
         })
 
     except Exception as exc:
@@ -650,12 +659,13 @@ import threading as _threading
 def _build_full_site(generation_id: str, ctx: dict) -> None:
     """Background thread: generate full site HTML and save to DB."""
     try:
-        slug            = ctx["slug"]
-        site_images     = ctx.get("site_images", [])
-        important_links = ctx.get("important_links", [])
-        pages           = ctx.get("pages", [])
-        full_text       = ctx.get("full_text", "")
-        raw_html        = ctx.get("raw_html") or None
+        slug               = ctx["slug"]
+        site_images        = ctx.get("site_images", [])
+        important_links    = ctx.get("important_links", [])
+        pages              = ctx.get("pages", [])
+        full_text          = ctx.get("full_text", "")
+        raw_html           = ctx.get("raw_html") or None
+        notification_email = ctx.get("notification_email", "")
 
         analysis = ctx.get("analysis")
         if not analysis:
@@ -677,7 +687,8 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
 
         full_html  = generate_website(
             analysis, references, site_images, full_text, pages, important_links,
-            raw_html=raw_html, site_images_data=site_images_data2, screenshot_data=screenshot_data2
+            raw_html=raw_html, site_images_data=site_images_data2,
+            screenshot_data=screenshot_data2, notification_email=notification_email,
         )
 
         # ── Reuse the existing hero so it matches the preview exactly ──────────
@@ -734,8 +745,9 @@ def _package_result(generation: dict, full_html: str) -> dict:
 @app.route("/unlock", methods=["POST"])
 @require_auth
 def unlock(user_id):
-    data          = request.get_json(silent=True) or {}
-    generation_id = (data.get("generation_id") or "").strip()
+    data               = request.get_json(silent=True) or {}
+    generation_id      = (data.get("generation_id") or "").strip()
+    notification_email = (data.get("notification_email") or "").strip()
 
     if not generation_id:
         return jsonify({"error": "generation_id is required"}), 400
@@ -765,6 +777,11 @@ def unlock(user_id):
     db.mark_unlocked(generation_id)
 
     ctx = json.loads(full_html[len("##PENDING##:"):])
+
+    # Inject notification_email from unlock request into context (set after hero was shown)
+    if notification_email:
+        ctx["notification_email"] = notification_email
+        print(f"[unlock] Form submissions → {notification_email}")
 
     # Mark as generating with Unix timestamp so /status can detect stuck jobs
     import time as _time

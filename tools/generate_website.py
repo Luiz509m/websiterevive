@@ -1109,7 +1109,7 @@ SECTION "{topic['label']}" (id="{slug}") — TESTIMONIALS DESIGN:
 
 # ── Contact form post-processor ──────────────────────────────────────────────
 
-def _ensure_contact_form(html: str, access_key: str, business_name: str) -> str:
+def _ensure_contact_form(html: str, access_key: str, business_name: str, to_email: str = "", is_reservation: bool = False) -> str:
     """
     Guarantee a working Web3Forms contact form exists in the generated HTML.
     1. If the correct access_key is already present → do nothing.
@@ -1122,35 +1122,67 @@ def _ensure_contact_form(html: str, access_key: str, business_name: str) -> str:
         print("[form] WEB3FORMS_KEY not set — skipping form post-processor")
         return html
 
-    # Case 1: correct key already there
+    to_field = f'<input type="hidden" name="to" value="{to_email}">' if to_email else ""
+
+    # Case 1: correct key already there — just ensure `to` field is present if needed
     if f'value="{access_key}"' in html and "web3forms.com" in html:
-        print("[form] ✓ Contact form already correct")
+        if to_email and 'name="to"' not in html:
+            html = html.replace(
+                f'value="{access_key}">',
+                f'value="{access_key}">\n  {to_field}',
+                1,
+            )
+            print(f"[form] ✓ Injected to-email: {to_email}")
+        else:
+            print("[form] ✓ Contact form already correct")
         return html
 
-    # Case 2: web3forms present but wrong/placeholder key — fix it
+    # Case 2: web3forms present but wrong/placeholder key — fix key and inject to field
     if "web3forms.com" in html:
         html = _re.sub(
             r'(<input[^>]+name=["\']access_key["\'][^>]+value=["\'])[^"\']*(["\'])',
             rf'\g<1>{access_key}\g<2>',
-            html
+            html,
         )
+        if to_email and 'name="to"' not in html:
+            html = html.replace(
+                f'value="{access_key}">',
+                f'value="{access_key}">\n  {to_field}',
+                1,
+            )
         print("[form] ✓ Fixed Web3Forms access key")
         return html
 
     # Case 3: no form at all — build and inject one
-    safe_name = business_name.replace('"', '').replace("'", "")
+    safe_name   = business_name.replace('"', '').replace("'", "")
+    form_title  = "Tisch reservieren" if is_reservation else "Kontakt aufnehmen"
+    form_subject = f"Neue Tischreservierung — {safe_name}" if is_reservation else f"Neue Kontaktanfrage — {safe_name}"
+    btn_label   = "Reservierung anfragen" if is_reservation else "Nachricht senden"
+
+    extra_fields = """
+    <input type="date" name="date" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <input type="time" name="time" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;">
+      <select name="guests" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(30,40,35,1);color:#fff;font-size:14px;outline:none;">
+        <option value="" disabled selected>Personen</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option>
+        <option>5</option><option>6</option><option>7</option><option>8+</option>
+      </select>
+    </div>""" if is_reservation else ""
+
     form_html = f"""
 <div id="contact-form-wrap" style="margin-top:32px;">
-  <h3 style="margin-bottom:16px;font-size:1.2rem;font-weight:700;color:#fff;">Kontakt aufnehmen</h3>
+  <h3 style="margin-bottom:16px;font-size:1.2rem;font-weight:700;color:#fff;">{form_title}</h3>
   <form action="https://api.web3forms.com/submit" method="POST" id="contact-form" style="display:flex;flex-direction:column;gap:12px;">
     <input type="hidden" name="access_key" value="{access_key}">
-    <input type="hidden" name="subject" value="Neue Kontaktanfrage — {safe_name}">
+    <input type="hidden" name="subject" value="{form_subject}">
     <input type="hidden" name="redirect" value="false">
+    {to_field}
     <input type="text" name="name" placeholder="Ihr Name" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">
     <input type="email" name="email" placeholder="Ihre E-Mail" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">
-    <input type="tel" name="phone" placeholder="Telefon (optional)" style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">
-    <textarea name="message" placeholder="Ihre Nachricht" rows="4" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;resize:vertical;width:100%;"></textarea>
-    <button type="submit" style="padding:13px 28px;background:var(--clr-primary,#2d6be4);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;align-self:flex-start;">Nachricht senden</button>
+    <input type="tel" name="phone" placeholder="Telefon (optional)" style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;width:100%;">{extra_fields}
+    <textarea name="message" placeholder="{'Besondere Wünsche oder Anmerkungen' if is_reservation else 'Ihre Nachricht'}" rows="3" style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;resize:vertical;width:100%;"></textarea>
+    <button type="submit" style="padding:13px 28px;background:var(--clr-primary,#2d6be4);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;align-self:flex-start;">{btn_label}</button>
     <p id="form-result" style="font-size:13px;margin:0;min-height:20px;color:#fff;"></p>
   </form>
   <script>
@@ -1188,7 +1220,7 @@ def _ensure_contact_form(html: str, access_key: str, business_name: str) -> str:
 
 # ── Step 2: Generate ──────────────────────────────────────────────────────────
 
-def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None, site_images_data: list[dict] = None, screenshot_data: dict = None) -> str:
+def generate_website(analysis: dict, reference_images: list[dict], site_image_urls: list[str] = None, full_text: str = None, pages: list[dict] = None, important_links: list[dict] = None, raw_html: str = None, site_images_data: list[dict] = None, screenshot_data: dict = None, notification_email: str = "") -> str:
     """Send analysis + reference images to Claude. Returns generated HTML."""
     print("\n[generate] Sending to Claude for website generation...")
 
@@ -1222,6 +1254,8 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     key_content     = analysis.get("key_content", {})
     features        = key_content.get("features", key_content.get("unique_selling_points", []))
     web3forms_key   = os.environ.get("WEB3FORMS_KEY", "")
+    # notification_email overrides the Web3Forms account default destination
+    form_to_email   = notification_email.strip() if notification_email else ""
 
     # Deterministic color extraction beats Claude's analysis (more reliable)
     brand_colors = extract_brand_colors(raw_html) if raw_html else []
@@ -1612,11 +1646,13 @@ Left column: business name, address, phone (as <a href="tel:...">, email (as <a 
 Social media icons (inline SVG) if found in links. All nav links. Copyright line.
 
 RIGHT COLUMN — WORKING CONTACT FORM (mandatory, always include):
+{'RESERVATION FORM — this is a food/hospitality business with no external booking URL. Use date, time, and guest count fields instead of a generic message form.' if is_food and not any(l.get('category') == 'booking' for l in (important_links or [])) else 'CONTACT FORM — use the standard contact fields below.'}
 Use EXACTLY this form structure — do not change the action URL or hidden fields:
 <form action="https://api.web3forms.com/submit" method="POST" id="contact-form" style="display:flex;flex-direction:column;gap:12px;">
   <input type="hidden" name="access_key" value="{web3forms_key}">
   <input type="hidden" name="subject" value="Neue Kontaktanfrage — BUSINESS_NAME">
   <input type="hidden" name="redirect" value="false">
+  {'<input type="hidden" name="to" value="' + form_to_email + '">' if form_to_email else ''}
   <input type="text" name="name" placeholder="Ihr Name" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;">
   <input type="email" name="email" placeholder="Ihre E-Mail" required style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;">
   <input type="tel" name="phone" placeholder="Telefon (optional)" style="padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;outline:none;">
@@ -1729,7 +1765,10 @@ OUTPUT: One complete HTML file from <!DOCTYPE html> to </html>. No markdown fenc
     # ── Contact form post-processor ──────────────────────────────────────────
     # Ensure the Web3Forms contact form is present and has the correct access key.
     # Claude sometimes deviates from the template — this fixes it deterministically.
-    html = _ensure_contact_form(html, web3forms_key, business_name)
+    _reservation_kw = ["restaurant","pizzeria","trattoria","bistro","café","cafe","bäckerei",
+                        "bakery","catering","gastro","hotel","bar ","diner","sushi","burger"]
+    _is_reservation = any(k in industry.lower() for k in _reservation_kw)
+    html = _ensure_contact_form(html, web3forms_key, business_name, to_email=form_to_email, is_reservation=_is_reservation)
 
     # ── Critic pass: review + fix quality issues (skipped in TEST_MODE) ─────────
     if not TEST_MODE:
