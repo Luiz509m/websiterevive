@@ -3,7 +3,7 @@ services:
     name: websiterevive-api
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt && playwright install chromium --with-deps
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 600
     envVars:
       - key: ANTHROPIC_API_KEY
