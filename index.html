@@ -1858,7 +1858,7 @@
     </div>
 
     <p class="hero-note" id="hero-note-default">
-      See your hero section free — unlock the full website for 1 token
+      Generate your full website for free — pay only to download or host it
     </p>
     <div style="margin-top:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;">
       <a href="#pricing" style="display:inline-block;font-size:13px;color:var(--mint);text-decoration:none;border:1px solid rgba(61,255,208,0.35);border-radius:6px;padding:7px 18px;font-family:'DM Mono',monospace;letter-spacing:0.4px;transition:background .2s,border-color .2s;" onmouseover="this.style.background='rgba(61,255,208,0.08)';this.style.borderColor='rgba(61,255,208,0.6)'" onmouseout="this.style.background='transparent';this.style.borderColor='rgba(61,255,208,0.35)'">Buy Tokens →</a>
@@ -1893,18 +1893,35 @@
         </div>
       </div>
 
-      <!-- Unlock bar -->
-      <div id="unlock-bar" style="margin-top:1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <p style="font-size:13px;color:var(--muted-light);margin:0;">Hero preview — unlock to edit &amp; download the full website</p>
-          <a href="#pricing" style="font-size:12px;color:var(--mint);text-decoration:none;border:1px solid rgba(61,255,208,0.3);border-radius:4px;padding:3px 10px;white-space:nowrap;transition:background .2s;" onmouseover="this.style.background='rgba(61,255,208,0.08)'" onmouseout="this.style.background='transparent'">Buy Tokens →</a>
+      <!-- Generation progress bar (shown while full site generates automatically) -->
+      <div id="gen-progress-bar" style="display:none;margin-top:1.2rem;background:var(--surface2);border:1px solid var(--border-mid);border-radius:10px;padding:14px 18px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span id="gen-spinner" style="font-size:18px;animation:spin 2s linear infinite;display:inline-block;">⚙️</span>
+          <div style="flex:1;">
+            <p id="gen-progress-text" style="font-size:13px;font-weight:600;color:var(--mint);margin:0 0 6px;">Generating full website…</p>
+            <div style="background:var(--surface3);border-radius:4px;height:4px;overflow:hidden;">
+              <div id="gen-progress-fill" style="background:var(--mint);height:100%;width:5%;transition:width 8s ease;border-radius:4px;"></div>
+            </div>
+          </div>
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap;">~3 min</span>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
-          <button onclick="handleUnlock()" id="unlock-btn"
-            style="background:var(--mint);color:var(--black);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:0.5px;padding:10px 22px;border:none;border-radius:6px;cursor:pointer;">
-            Unlock Full Website — 1 Token
-          </button>
-          <span style="font-size:11px;color:var(--muted);letter-spacing:0.3px;">⏱ Full site generates in ~3 min</span>
+        <style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+      </div>
+
+      <!-- Download bar (shown when full site is ready) -->
+      <div id="unlock-bar" style="display:none;margin-top:1.2rem;background:var(--surface2);border:1px solid var(--border-strong);border-radius:10px;padding:14px 18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <p style="font-size:13px;font-weight:600;color:var(--text);margin:0 0 3px;">✅ Full website ready</p>
+            <p style="font-size:12px;color:var(--muted);margin:0;">Download or host your new website — 1 token</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <a href="#pricing" style="font-size:12px;color:var(--mint);text-decoration:none;border:1px solid rgba(61,255,208,0.3);border-radius:4px;padding:5px 12px;white-space:nowrap;transition:background .2s;" onmouseover="this.style.background='rgba(61,255,208,0.08)'" onmouseout="this.style.background='transparent'">Buy Tokens →</a>
+            <button onclick="handleUnlock()" id="unlock-btn"
+              style="background:var(--mint);color:var(--black);font-family:'DM Mono',monospace;font-size:13px;font-weight:600;letter-spacing:0.5px;padding:10px 24px;border:none;border-radius:6px;cursor:pointer;">
+              Download ZIP — 1 Token
+            </button>
+          </div>
         </div>
       </div>
       <p id="unlock-status" style="display:none;font-size:13px;color:var(--mint);margin-top:0.8rem;"></p>
@@ -2920,8 +2937,12 @@
       updateNavAuth();
       closeAuthModal();
 
-      // If there's a pending unlock, continue
-      if (currentGenerationId) handleUnlock();
+      // If there's a pending download, re-show the unlock bar (user can click Download)
+      if (currentGenerationId && document.getElementById('unlock-bar').style.display !== 'none') {
+        // already showing — nothing to do
+      } else if (currentGenerationId && document.getElementById('gen-progress-bar').style.display === 'none') {
+        document.getElementById('unlock-bar').style.display = 'block';
+      }
 
     } catch (err) {
       errEl.textContent   = err.message;
@@ -3020,6 +3041,12 @@
       document.getElementById('hero-note-default').style.display = 'none';
       setStatus(fakeForm, `${data.business_name || 'Deine Website'} ist bereit — jetzt freischalten`, 100);
 
+      // For generate-new, generation starts after unlock (legacy ##PENDING## flow) — show unlock bar
+      document.getElementById('gen-progress-bar').style.display = 'none';
+      const unlockBar = document.getElementById('unlock-bar');
+      unlockBar.style.display = 'block';
+      document.getElementById('unlock-btn').textContent = 'Freischalten — 1 Token';
+
       btn.disabled    = false;
       btn.textContent = 'Nochmal erstellen →';
     } catch (err) {
@@ -3076,7 +3103,7 @@
 
       document.getElementById('result-section').style.display = 'block';
       document.getElementById('hero-note-default').style.display = 'none';
-      setStatus(form, `${data.business_name || 'Your site'} is ready — unlock to edit & download`, 100);
+      setStatus(form, `${data.business_name || 'Your site'} — generating full website in background…`, 100);
 
       // Show form destination bar if the site will have a form
       const formBar = document.getElementById('form-destination-bar');
@@ -3094,6 +3121,10 @@
       } else {
         formBar.style.display = 'none';
       }
+
+      // Show progress bar and start auto-polling — full site generates in background
+      document.getElementById('gen-progress-bar').style.display = 'block';
+      startAutoPolling(data.generation_id);
 
       btn.disabled    = false;
       btn.textContent = 'Revive Again →';
@@ -3212,24 +3243,33 @@
   let unlockedSlug = '';
 
   async function applyUnlockedResult(data) {
-    unlockedHtml = data.html;
-    unlockedZip  = data.zip  || '';
-    unlockedSlug = data.slug || 'revived';
+    unlockedHtml = data.html  || unlockedHtml;
+    unlockedZip  = data.zip   || unlockedZip;
+    unlockedSlug = data.slug  || unlockedSlug || 'revived';
 
-    await parseZipPages(unlockedZip);
-    if (Object.keys(zipPages).length > 1) {
-      activeTab = 'index.html';
-      renderTabs();
-      loadPage('index.html');
-    } else {
-      activeTab = 'index.html';
-      const blob = new Blob([unlockedHtml], { type: 'text/html' });
-      document.getElementById('full-iframe').src = URL.createObjectURL(blob);
+    // Update zip pages if new data arrived
+    if (data.zip) {
+      await parseZipPages(data.zip);
     }
 
+    // Full site may already be displayed (auto-polling showed it); refresh if needed
+    if (data.html && document.getElementById('fullsite-wrap').style.display !== 'block') {
+      document.getElementById('preview-wrap').style.display  = 'none';
+      document.getElementById('fullsite-wrap').style.display = 'block';
+      if (Object.keys(zipPages).length > 1) {
+        activeTab = 'index.html';
+        renderTabs();
+        loadPage('index.html');
+      } else {
+        activeTab = 'index.html';
+        const blob = new Blob([unlockedHtml], { type: 'text/html' });
+        document.getElementById('full-iframe').src = URL.createObjectURL(blob);
+      }
+    }
+
+    // Always show editor toolbar and hide download bar after unlock
     document.getElementById('unlock-bar').style.display    = 'none';
-    document.getElementById('preview-wrap').style.display  = 'none';
-    document.getElementById('fullsite-wrap').style.display = 'block';
+    document.getElementById('gen-progress-bar').style.display = 'none';
     document.getElementById('editor-toolbar').style.display = 'flex';
     document.getElementById('unlock-status').style.display = 'none';
 
@@ -3283,46 +3323,82 @@
     }
   }
 
-  function startPolling(jobId) {
-    const btn      = document.getElementById('unlock-btn');
-    const statusEl = document.getElementById('unlock-status');
+  // Auto-polls /status after /generate — no user action needed
+  function startAutoPolling(jobId) {
+    const progressBar  = document.getElementById('gen-progress-bar');
+    const progressText = document.getElementById('gen-progress-text');
+    const progressFill = document.getElementById('gen-progress-fill');
     const msgs = [
       'Analysing your brand…',
       'Designing sections…',
-      'Writing content…',
+      'Writing your content…',
       'Styling & polishing…',
+      'Building sub-pages…',
       'Almost there…',
       'Finalising your website…',
     ];
+    const pcts = [10, 22, 38, 55, 70, 82, 92];
     let msgIdx = 0;
 
+    // Animate progress fill
+    setTimeout(() => { if (progressFill) progressFill.style.width = pcts[0] + '%'; }, 200);
+
     const interval = setInterval(async () => {
-      // Rotate progress messages
-      statusEl.textContent = msgs[msgIdx % msgs.length];
       msgIdx++;
+      if (progressText) progressText.textContent = msgs[msgIdx % msgs.length] + '…';
+      const pct = pcts[Math.min(msgIdx, pcts.length - 1)];
+      if (progressFill) progressFill.style.width = pct + '%';
 
       try {
-        const res  = await fetch(`${REVIVE_API_URL}/status/${jobId}`, { headers: authHeaders() });
+        // /status is open by generation_id — no auth needed for polling
+        const res  = await fetch(`${REVIVE_API_URL}/status/${jobId}`);
         const data = await res.json();
 
         if (data.status === 'done') {
           clearInterval(interval);
-          await applyUnlockedResult(data);
+          if (progressFill) progressFill.style.width = '100%';
+          if (progressText) progressText.textContent = '✅ Full website ready!';
+
+          // Store data for later download
+          unlockedHtml = data.html || '';
+          unlockedZip  = data.zip  || '';
+          unlockedSlug = data.slug || 'revived';
+          await parseZipPages(unlockedZip);
+
+          // Swap hero preview for full site in iframe
+          document.getElementById('preview-wrap').style.display = 'none';
+          document.getElementById('fullsite-wrap').style.display = 'block';
+          if (Object.keys(zipPages).length > 1) {
+            activeTab = 'index.html';
+            renderTabs();
+            loadPage('index.html');
+          } else {
+            activeTab = 'index.html';
+            const blob = new Blob([unlockedHtml], { type: 'text/html' });
+            document.getElementById('full-iframe').src = URL.createObjectURL(blob);
+          }
+
+          // Hide progress bar, show download/export bar
+          setTimeout(() => {
+            if (progressBar) progressBar.style.display = 'none';
+            document.getElementById('unlock-bar').style.display = 'block';
+          }, 1500);
+
         } else if (data.status === 'error') {
           clearInterval(interval);
-          statusEl.style.color = 'var(--red)';
-          statusEl.textContent = `Error: ${data.error}`;
-          btn.disabled    = false;
-          btn.textContent = 'Unlock Full Website — 1 Token';
+          if (progressText) {
+            progressText.style.color = 'var(--red)';
+            progressText.textContent = `⚠ Generation failed: ${data.error}`;
+          }
         }
         // status === 'generating' → keep polling
       } catch (e) {
-        // Network hiccup — keep polling silently
         console.warn('[poll] retrying…', e);
       }
-    }, 6000);
+    }, 7000);
   }
 
+  // Called when user clicks "Download ZIP — 1 Token"
   async function handleUnlock() {
     if (!getToken()) { openAuthModal(); return; }
 
@@ -3330,7 +3406,7 @@
     const statusEl = document.getElementById('unlock-status');
 
     btn.disabled    = true;
-    btn.textContent = 'Starting…';
+    btn.textContent = 'Processing…';
     statusEl.style.display = 'block';
     statusEl.style.color   = 'var(--mint)';
     statusEl.textContent   = 'Verifying token…';
@@ -3350,27 +3426,42 @@
         statusEl.style.color = 'var(--red)';
         statusEl.innerHTML   = 'No tokens left. <a href="#pricing" style="color:var(--mint);text-decoration:underline;">Buy more →</a>';
         btn.disabled    = false;
-        btn.textContent = 'Unlock Full Website — 1 Token';
+        btn.textContent = 'Download ZIP — 1 Token';
         return;
       }
       if (!res.ok || data.error) throw new Error(data.error || 'Unlock failed');
 
-      if (data.status === 'done') {
-        // Already generated (re-unlock) — apply immediately
-        await applyUnlockedResult(data);
-      } else {
-        // Generation started in background — poll every 6s
+      if (data.status === 'generating') {
+        // Generation started in background (legacy generate-new flow, or called too early)
         btn.textContent      = 'Generating…';
-        statusEl.textContent = 'Analysing your brand…';
-        startPolling(data.job_id);
+        statusEl.textContent = 'Generating your website — please wait…';
+        // Show progress bar and start polling
+        document.getElementById('gen-progress-bar').style.display = 'block';
+        startAutoPolling(data.job_id);
+        return;
       }
+
+      // Site is unlocked — apply result and trigger ZIP download
+      await applyUnlockedResult(data);
+      // Auto-trigger download
+      if (data.zip) downloadCurrentZip();
 
     } catch (err) {
       statusEl.style.color = 'var(--red)';
       statusEl.textContent = `Error: ${err.message}`;
       btn.disabled    = false;
-      btn.textContent = 'Unlock Full Website — 1 Token';
+      btn.textContent = 'Download ZIP — 1 Token';
     }
+  }
+
+  function downloadCurrentZip() {
+    if (!unlockedZip) return;
+    const bytes = Uint8Array.from(atob(unlockedZip), c => c.charCodeAt(0));
+    const blob  = new Blob([bytes], { type: 'application/zip' });
+    const a     = document.createElement('a');
+    a.href      = URL.createObjectURL(blob);
+    a.download  = `${unlockedSlug || 'website'}.zip`;
+    a.click();
   }
 
   // ── Editor ───────────────────────────────────────────────────────────────────

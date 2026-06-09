@@ -84,7 +84,7 @@ def _load_screenshot(path: str | None) -> dict | None:
             img.thumbnail((1280, 800), _Img.LANCZOS)
         buf = _io.BytesIO()
         img.save(buf, format="JPEG", quality=80)
-        data = base64.standard_b64encode(buf.getvalue()).decode()
+        data = _b64.standard_b64encode(buf.getvalue()).decode()
         print(f"[screenshot] Encoded for Claude: {len(buf.getvalue())//1024}KB")
         return {"data": data, "media_type": "image/jpeg"}
     except Exception as e:
@@ -537,19 +537,16 @@ def generate():
         logo_url = extract_logo_url(scraped["html"], url)
         print(f"[server] Logo URL: {logo_url or 'not found'}")
 
-        # Step 1: Generate hero only (cheap — full site generated later on unlock)
+        # Generate hero first (fast ~30s) — gives immediate visual feedback
         hero_html_full = generate_hero_only(analysis, references, site_images, raw_html=scraped["html"], site_images_data=site_images_data, logo_url=logo_url, screenshot_data=screenshot_data)
 
-        # Apply safety CSS to hero preview
         safety_css = _build_safety_css()
         hero_html_full = hero_html_full.replace('</head>', safety_css + '\n</head>', 1)
         hero_html_full = _fix_nav_contrast(hero_html_full)
-
         hero_html = extract_hero_html(hero_html_full)
 
-        # Store generation context as JSON in full_html field (full site generated on unlock)
-        # analysis + raw_html + hero_html_full stored inline so Render restarts don't break unlock
-        pending_context = json.dumps({
+        # Build full-site context
+        ctx = {
             "url":             url,
             "slug":            slug,
             "site_images":     site_images,
@@ -560,9 +557,16 @@ def generate():
             "raw_html":        scraped["html"][:200_000],
             "hero_html_full":  hero_html_full,
             "screenshot_data": screenshot_data,
-        }, ensure_ascii=False)
+        }
 
-        generation = db.save_generation(user_id, url, slug, hero_html, "##PENDING##:" + pending_context)
+        # Save generation — mark as generating immediately (no token required)
+        import time as _time
+        generation = db.save_generation(user_id, url, slug, hero_html,
+                                        f"##GENERATING##:{int(_time.time())}")
+
+        # Start full generation in background immediately — no paywall
+        _threading.Thread(target=_build_full_site, args=(generation["id"], ctx), daemon=True).start()
+        print(f"[server] Full-site background job started for {generation['id']}")
 
         # Determine form type for UI prompt
         _ind = analysis.get("industry", "").lower()
@@ -745,6 +749,11 @@ def _package_result(generation: dict, full_html: str) -> dict:
 @app.route("/unlock", methods=["POST"])
 @require_auth
 def unlock(user_id):
+    """
+    New model: full site is already generated for free.
+    /unlock just deducts 1 token and returns the download ZIP.
+    Also handles the legacy ##PENDING## path (from /generate-new).
+    """
     data               = request.get_json(silent=True) or {}
     generation_id      = (data.get("generation_id") or "").strip()
     notification_email = (data.get("notification_email") or "").strip()
@@ -758,39 +767,40 @@ def unlock(user_id):
 
     full_html = generation["full_html"]
 
-    # ── Already fully generated → return immediately (e.g. re-unlock) ────────
-    if not any(full_html.startswith(p) for p in ("##PENDING##:", "##GENERATING##", "##ERROR##:")):
-        return jsonify(_package_result(generation, full_html))
-
-    # ── Already generating in background → just return job_id ────────────────
+    # ── Still generating → tell frontend to keep polling /status ─────────────
     if full_html.startswith("##GENERATING##"):
         return jsonify({"status": "generating", "job_id": generation_id})
 
-    # ── Error from previous attempt → surface it ─────────────────────────────
+    # ── Legacy pending (from /generate-new) → deduct token + start job ───────
+    if full_html.startswith("##PENDING##:"):
+        if not db.deduct_token(user_id):
+            return jsonify({"error": "Not enough tokens"}), 402
+        db.mark_unlocked(generation_id)
+        ctx = json.loads(full_html[len("##PENDING##:"):])
+        if notification_email:
+            ctx["notification_email"] = notification_email
+            print(f"[unlock] Form submissions → {notification_email}")
+        import time as _time
+        db.update_full_html(generation_id, f"##GENERATING##:{int(_time.time())}")
+        _threading.Thread(target=_build_full_site, args=(generation_id, ctx), daemon=True).start()
+        print(f"[unlock] Background job started for {generation_id}")
+        return jsonify({"status": "generating", "job_id": generation_id})
+
+    # ── Error from previous attempt ───────────────────────────────────────────
     if full_html.startswith("##ERROR##:"):
         return jsonify({"error": full_html[len("##ERROR##:"):]}), 500
 
-    # ── Pending: deduct token and start background job ────────────────────────
+    # ── Already unlocked → no second charge (re-download) ────────────────────
+    if generation.get("unlocked"):
+        return jsonify(_package_result(generation, full_html))
+
+    # ── Site is ready — deduct 1 token to unlock download/export ─────────────
     if not db.deduct_token(user_id):
         return jsonify({"error": "Not enough tokens"}), 402
 
     db.mark_unlocked(generation_id)
-
-    ctx = json.loads(full_html[len("##PENDING##:"):])
-
-    # Inject notification_email from unlock request into context (set after hero was shown)
-    if notification_email:
-        ctx["notification_email"] = notification_email
-        print(f"[unlock] Form submissions → {notification_email}")
-
-    # Mark as generating with Unix timestamp so /status can detect stuck jobs
-    import time as _time
-    db.update_full_html(generation_id, f"##GENERATING##:{int(_time.time())}")
-
-    _threading.Thread(target=_build_full_site, args=(generation_id, ctx), daemon=True).start()
-    print(f"[unlock] Background job started for {generation_id}")
-
-    return jsonify({"status": "generating", "job_id": generation_id})
+    print(f"[unlock] Token deducted for download — generation {generation_id}")
+    return jsonify(_package_result(generation, full_html))
 
 
 @app.route("/refund", methods=["POST"])
@@ -819,8 +829,8 @@ def refund(user_id):
 
 
 @app.route("/status/<generation_id>", methods=["GET"])
-@require_auth
-def job_status(user_id, generation_id):
+def job_status(generation_id):
+    user_id = get_current_user_id()  # optional — status is public by generation_id
     import time as _time
     generation = db.get_generation(generation_id)
     if not generation:
