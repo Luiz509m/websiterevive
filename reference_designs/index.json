@@ -26,7 +26,14 @@
     {"file": "24.png", "tags": ["food", "restaurant", "pizza", "catering", "minimal", "light"]},
     {"file": "25.png", "tags": ["food", "restaurant", "pizza", "menu", "typography"]},
     {"file": "26.png", "tags": ["food", "restaurant", "luxury", "menu", "warm", "editorial"]},
-    {"file": "27.png", "tags": ["food", "bakery", "bread", "editorial", "bold", "minimal"]}
+    {"file": "27.png", "tags": ["food", "bakery", "bread", "editorial", "bold", "minimal"]},
+    {"file": "28.png", "tags": ["tech", "saas", "light", "ai", "generic"]},
+    {"file": "29.png", "tags": ["luxury", "product", "editorial", "fullcover", "light"]},
+    {"file": "30.png", "tags": ["real_estate", "luxury", "fullcover", "dark", "minimal"]},
+    {"file": "31.png", "tags": ["architecture", "interior", "brutalist", "bold", "typography", "light"]},
+    {"file": "32.png", "tags": ["luxury", "editorial", "minimal", "light", "muted"]},
+    {"file": "33.png", "tags": ["luxury", "interior", "architecture", "editorial", "fullcover", "minimal"]},
+    {"file": "34.png", "tags": ["beauty", "wellness", "luxury", "minimal", "light", "editorial"]}
   ],
   "industry_map": {
     "food":        ["24", "26", "23", "27", "15", "16", "02", "11"],
@@ -35,14 +42,16 @@
     "cafe":        ["27", "16", "24", "15", "26"],
     "bakery":      ["27", "16", "24", "15", "26"],
     "catering":    ["24", "23", "15", "26", "16"],
-    "tech":        ["01", "03", "08", "17", "10", "19"],
-    "saas":        ["03", "08", "17", "10", "01", "19"],
+    "tech":        ["28", "01", "03", "08", "17", "10", "19"],
+    "saas":        ["28", "03", "08", "17", "10", "01", "19"],
+    "ai":          ["28", "03", "08", "17"],
     "finance":     ["04", "05", "07", "18", "22", "20"],
     "legal":       ["18", "04", "09", "07"],
     "consulting":  ["18", "04", "08", "07"],
-    "real_estate": ["09", "12", "13", "19"],
-    "luxury":      ["09", "12", "13", "26"],
-    "architecture":["09", "13", "16"],
+    "real_estate": ["30", "09", "12", "13", "19"],
+    "luxury":      ["29", "30", "32", "33", "34", "09", "12", "13", "26"],
+    "architecture":["31", "33", "09", "13", "16"],
+    "interior":    ["31", "33", "09", "12"],
     "handwerk":    ["13", "16", "09"],
     "maler":       ["13", "16", "09"],
     "schreiner":   ["13", "16", "09"],
@@ -52,11 +61,11 @@
     "elektr":      ["16", "09", "13"],
     "sanitaer":    ["16", "09", "13"],
     "health":      ["06", "02", "11", "16"],
-    "wellness":    ["06", "11", "16", "02"],
+    "wellness":    ["34", "06", "11", "16", "02"],
     "medical":     ["06", "08", "16", "07"],
     "dental":      ["08", "06", "07", "16"],
-    "beauty":      ["06", "16", "12", "11"],
-    "product":     ["02", "11", "06", "16"],
-    "generic":     ["16", "24", "27", "09", "26", "13"]
+    "beauty":      ["34", "06", "16", "12", "11"],
+    "product":     ["29", "02", "11", "06", "16"],
+    "generic":     ["28", "16", "24", "27", "09", "26", "13"]
   }
 }
