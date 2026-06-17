@@ -35,6 +35,44 @@ MODEL_FULL  = "claude-opus-4-7" if _use_opus else "claude-sonnet-4-6"
 TEST_MODE   = os.environ.get("TEST_MODE", "true").lower() == "true"   # true = fewer images, skip critic
 
 
+# ── Shared design + quality principles (distilled from the frontend-design and
+#    ui-ux-pro-max skills — injected into every generation prompt so output is
+#    distinctive AND meets an accessibility/performance floor) ─────────────────
+
+# frontend-design: avoid templated AI defaults, give the page one signature.
+DESIGN_PRINCIPLES = """── DESIGN DIRECTION (make it look intentional, not AI-generated) ──────────
+• THE HERO IS A THESIS: open with the single most characteristic thing about
+  THIS business, not a generic "headline + button" template.
+• ONE SIGNATURE ELEMENT: give the page exactly one memorable, brand-specific
+  detail (a distinctive type treatment, an oversized number/word, an unusual
+  section transition, a custom divider). Spend your boldness there and keep
+  everything else quiet and disciplined.
+• AVOID THE THREE AI-DEFAULT LOOKS unless the brand truly calls for it:
+    1. cream/beige background (~#F4F1EA) + high-contrast serif + terracotta accent
+    2. near-black background + a single acid-green or vermilion accent
+    3. broadsheet layout with hairline rules, zero border-radius, dense columns
+  These read as "templated" — derive colors and type from the brand instead.
+• Structure must encode meaning: only use numbered markers (01/02/03) when the
+  content is genuinely a sequence (a real process), never as decoration."""
+
+# ui-ux-pro-max: the non-negotiable accessibility + performance floor.
+A11Y_PERF_FLOOR = """── ACCESSIBILITY & PERFORMANCE FLOOR (mandatory, no exceptions) ───────────
+• CONTRAST: every text/background pair ≥ 4.5:1. Accent-colored buttons must
+  have readable text (white on a dark-enough accent, dark on a light accent).
+• FOCUS: add a visible focus style for keyboard users —
+    a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible
+    {outline:2px solid var(--clr-primary,#2d6be4);outline-offset:2px;}
+  Never remove outlines without replacing them.
+• LABELS: the hamburger button and any icon-only button need aria-label.
+  Every <img> needs a real, descriptive alt (the business/section, not "image").
+• REDUCED MOTION: wrap all scroll/entrance animation so it respects
+    @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+  and the fade-up elements stay visible (opacity:1;transform:none) in that mode.
+• IMAGES: add loading="lazy" to every below-the-fold <img>, and set width/height
+  or aspect-ratio so the layout does not shift while images load.
+• FONTS: append &display=swap to every Google Fonts URL."""
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def extract_brand_colors(html: str) -> list[str]:
@@ -405,12 +443,20 @@ Check specifically:
 5. Nav: links invisible (white on white or dark on dark), logo too large on mobile
 6. Footer: contact info missing if it was in the business data
 
+ACCESSIBILITY & PERFORMANCE (priority order — fix in this order if found):
+A1. Contrast < 4.5:1 on any text (incl. text on accent-colored buttons)
+A2. No visible keyboard focus style (add a:focus-visible/button:focus-visible outline)
+A3. Hamburger or icon-only buttons missing aria-label; <img> missing/empty alt
+A4. Touch targets < 44px tall (nav links, buttons) on mobile
+A5. Animations not wrapped in @media (prefers-reduced-motion: reduce)
+A6. Below-the-fold <img> without loading="lazy", or images without width/height/aspect-ratio (causes layout shift)
+
 HTML to review:
 ```html
 {html_preview}
 ```
 
-If you find real issues: return ONLY a <style> block with CSS fixes, and optionally a small <script> block.
+If you find real issues: return ONLY a <style> block with CSS fixes, and optionally a small <script> block (e.g. to add a missing aria-label via JS).
 Keep fixes minimal and surgical — do not rewrite sections, only override what is broken.
 If no significant issues found: return exactly the text: <!-- NO_FIXES_NEEDED -->
 No explanation. No markdown fences. Just the fix or the comment."""
@@ -624,6 +670,8 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
 
     msg_content.append({"type": "text", "text": f"""You are an elite web designer. Generate a complete HTML page with ONLY a nav bar and hero section — this must look like it came from a top design studio.
 
+{DESIGN_PRINCIPLES}
+
 BUSINESS:
 Name:     {business_name}
 Industry: {industry}
@@ -675,6 +723,14 @@ IF no image (CSS-only):
 ✓ Google Fonts: 2 fonts matching the tone
 
 Add <!-- HERO_END --> immediately after the closing </section> of the hero.
+
+── ACCESSIBILITY FLOOR (mandatory) ───────────────────────────────────────
+✓ Hamburger button needs aria-label="Menü öffnen"; any icon-only button needs an aria-label
+✓ Every <img> needs a real descriptive alt; logo alt = business name
+✓ Add a visible keyboard focus style:
+    a:focus-visible,button:focus-visible{{outline:2px solid var(--clr-primary,#2d6be4);outline-offset:2px;}}
+✓ Append &display=swap to every Google Fonts URL
+✓ Wrap any animation so it respects @media (prefers-reduced-motion: reduce)
 
 Mobile-first. All CSS+JS inline.
 OUTPUT: Complete HTML <!DOCTYPE html> to </html>. Nothing below the hero. No markdown."""})
@@ -1561,6 +1617,8 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
         "type": "text",
         "text": f"""You are an elite web designer. Study the reference screenshots above carefully — your output must match their quality: typographic scale, whitespace, visual depth, section variety, and overall polish. Build something that looks like it came from a top design studio.
 
+{DESIGN_PRINCIPLES}
+
 CONTENT COMPLETENESS LAW — the most important rule:
 Every section must contain ALL the real content from the original website. Never omit services, products, team members, prices, menu items, opening hours, descriptions, or any other information provided in the SECTION CONTENT blocks below. If a service has a description, include it. If a menu has 20 dishes, list all 20. If there are 5 team members, show all 5. Do not summarize, thin out, or replace real content with placeholder text.
 
@@ -1687,6 +1745,8 @@ Replace BUSINESS_NAME in the subject with the actual business name.
 • NEVER invent any fact: no numbers, no stats, no prices not in the data
 • Missing info → omit entirely. Empty is better than made up.
 
+{A11Y_PERF_FLOOR}
+
 ── TECHNICAL ─────────────────────────────────────────────────────────────
 • Single HTML file, all CSS and JS inline
 • Google Fonts: pick the proven pair for the industry below — do not deviate:
@@ -1722,6 +1782,7 @@ SCROLL ANIMATIONS — add exactly this JS before </body>:
 And this CSS inside <style>:
 .fade-up{{opacity:0;transform:translateY(28px);transition:opacity 0.65s ease,transform 0.65s ease;}}
 .fade-up.visible{{opacity:1;transform:none;}}
+@media (prefers-reduced-motion: reduce){{.fade-up{{opacity:1;transform:none;transition:none;}}*{{animation:none!important;}}}}
 
 SEO — in <head>:
 <meta name="description" content="2-sentence description from scraped content">
