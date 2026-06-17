@@ -13,9 +13,12 @@ __pycache__/
 token.json
 credentials.json
 
-# Reference designs (large image files — store separately if needed)
-reference_designs/
+# Reference designs — keep index.json + web-compressed JPGs so they deploy to the
+# server (the generator sends them to the model as design inspiration). The large
+# source PNGs stay out of git; commit only the resized .jpg versions.
+reference_designs/*
 !reference_designs/index.json
+!reference_designs/*.jpg
 
 # Claude Code
 .claude/

@@ -43,6 +43,13 @@ TEST_MODE   = os.environ.get("TEST_MODE", "true").lower() == "true"   # true = f
 DESIGN_PRINCIPLES = """── DESIGN DIRECTION (make it look intentional, not AI-generated) ──────────
 • THE HERO IS A THESIS: open with the single most characteristic thing about
   THIS business, not a generic "headline + button" template.
+• A SIMPLE, QUIET HERO IS ENCOURAGED: a confident headline with very little text,
+  generous whitespace, and one strong image often beats a busy hero. Minimal ≠ empty.
+• MATCH THE TRADE, NOT TECH: a handwerk / craft / local-service business (painter,
+  carpenter, builder, gardener, bakery…) should feel grounded, human and real —
+  real work photography, warm/honest tones, tactile materials. Glowing gradients,
+  glassy cards, neon accents, abstract 3D blobs and floating UI mockups are TECH/SaaS
+  clichés: do NOT use them unless the business actually is software/tech.
 • ONE SIGNATURE ELEMENT: give the page exactly one memorable, brand-specific
   detail (a distinctive type treatment, an oversized number/word, an unusual
   section transition, a custom divider). Spend your boldness there and keep
@@ -172,7 +179,10 @@ def load_reference_images(n: int = 4, industry: str = "") -> list[dict]:
             priority = [
                 "food", "restaurant", "cafe", "bakery", "catering",
                 "tech", "saas", "finance", "legal", "consulting",
-                "real_estate", "luxury", "architecture", "handwerk",
+                "real_estate", "luxury", "architecture",
+                # specific trades before the generic "handwerk" fallback
+                "maler", "schreiner", "garten", "dach", "elektr", "sanitaer", "bau",
+                "handwerk",
                 "health", "wellness", "medical", "dental", "beauty", "product",
             ]
             for key in priority:
@@ -647,7 +657,7 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     msg_content = []
     if reference_images:
         msg_content.append({"type": "text", "text": (
-            f"REFERENCE DESIGNS ({len(reference_images)} examples) — study their layout, typography, spacing, and visual depth. Match this quality level."
+            f"REFERENCE DESIGNS ({len(reference_images)} examples) — for INSPIRATION ONLY. Absorb their craft level: typography, spacing, whitespace, visual depth, restraint. Then create something NEW that fits THIS business — do NOT copy their layout, colors, or content, and do NOT reproduce a generic tech/SaaS landing page unless the business actually is tech."
         )})
         for ref in reference_images:
             msg_content.append({"type": "image", "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}})
@@ -1337,7 +1347,7 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     if reference_images:
         content.append({
             "type": "text",
-            "text": f"REFERENCE DESIGNS ({len(reference_images)} examples) — study their layout, typography, spacing, and visual depth. Match this quality level."
+            "text": f"REFERENCE DESIGNS ({len(reference_images)} examples) — for INSPIRATION ONLY. Absorb their craft level: typography, spacing, whitespace, visual depth, restraint. Then create something NEW that fits THIS business — do NOT copy their layout, colors, or content, and do NOT reproduce a generic tech/SaaS landing page unless the business actually is tech."
         })
         for ref in reference_images:
             content.append({
