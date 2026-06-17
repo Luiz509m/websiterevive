@@ -130,16 +130,21 @@ def _css_lum(hex_or_rgb: str) -> float:
     return -1
 
 def _fix_nav_contrast(html: str) -> str:
-    """Force nav/header to always be dark with white text — no detection needed."""
+    """Guarantee the nav is a VISIBLE bar without forcing a colour on it.
+    The brand-coloured (or white) background the generator chose is kept; link/text
+    contrast is corrected adaptively by the revive-contrast-fix JS (fixNav), and the
+    logo image is never recoloured or hidden. This used to force a black bar, which
+    overrode every brand colour and is why generated sites ignored company colours."""
     override = (
         '<style id="revive-nav-fix">'
-        'nav,header,.navbar,.nav-wrapper,.site-header{'
-        'background:#111111 !important;backdrop-filter:blur(12px) !important;'
-        'border-bottom:none !important;}'
-        'nav a,nav a *,header a,header a *,.nav-link,.navbar a,'
-        'nav li a,nav li a *,nav span,header span,nav button.cta,'
-        'header .logo,header .logo *,nav .logo,nav .logo *{'
-        'color:#ffffff !important;}'
+        # Fallback background ONLY when the design left the nav transparent/unstyled
+        # (no !important → a brand-coloured nav from the generator still wins).
+        'nav,header,.navbar,.nav-wrapper,.site-header{background-color:#ffffff;'
+        'border-bottom:1px solid rgba(0,0,0,0.08);}'
+        # Forced subtle shadow so a light nav never visually disappears on a light hero.
+        'nav,header,.navbar,.nav-wrapper,.site-header{box-shadow:0 1px 10px rgba(0,0,0,0.06) !important;}'
+        # The logo image must never be recoloured or hidden.
+        'nav img,header img,.logo img,.navbar img{filter:none !important;opacity:1 !important;}'
         '</style>'
     )
     return html.replace('</head>', override + '\n</head>', 1)
@@ -151,12 +156,13 @@ def _build_safety_css() -> str:
         '<style id="revive-safety">'
         # Prevent horizontal overflow — text never cut off
         'html,body{overflow-x:hidden !important;max-width:100vw !important;}'
-        'body *{box-sizing:border-box !important;max-width:100% !important;word-break:break-word !important;}'
+        # overflow-wrap (not word-break) so long words wrap at sensible points
+        # instead of shattering character-by-character.
+        'body *{box-sizing:border-box !important;max-width:100% !important;overflow-wrap:break-word !important;}'
         # Prevent sections (not nav/header) from stacking on top of each other
         'body>section,body>main,body>div:not(nav):not(header){position:relative !important;z-index:auto !important;}'
-        # Nav always dark background + white text — unconditional
-        'nav,header,.navbar,.nav-wrapper,.site-header{background:#111111 !important;}'
-        'nav a,nav a *,header a,header a *,nav li a,nav li a *,nav span,header span,.nav-link{color:#ffffff !important;}'
+        # Nav colour is NOT forced here — the generator picks a brand-appropriate
+        # nav and the revive-contrast-fix JS (fixNav) keeps link contrast readable.
         # Nav spacing
         'nav .nav-inner,nav>div,.navbar-inner{gap:clamp(32px,4vw,64px);}'
         '</style>'

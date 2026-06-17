@@ -1687,7 +1687,10 @@ LAYOUT: Choose what fits the business — centered, or split 50/50 (text one sid
 
 CTA BUTTON: pill shape, brand primary color background, contrasting text, padding:14px 40px, no box-shadow.
 
-Add <!-- HERO_END --> on its own line immediately after the closing </section> of the hero.
+REQUIRED STRUCTURE — the page MUST begin with: (1) the <nav> bar with the logo + links, then
+(2) the hero <section>, then (3) the marker <!-- HERO_END --> on its own line, immediately after
+the hero's closing </section>. This marker is mandatory — never omit it, never move it. The nav and
+hero above this marker are reused verbatim from the approved preview, so they must be present.
 
 ── SECTIONS ──────────────────────────────────────────────────────────────
 Build one <section> per nav topic (Kontakt goes in the footer, not a section).
