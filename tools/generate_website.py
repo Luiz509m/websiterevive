@@ -1702,15 +1702,19 @@ LAYOUT — vary each section's design. Never repeat the same layout twice:
 ✓ Card grid (2–3 cols desktop, 1 col mobile) — only when items/services exist
 ✓ Timeline or numbered steps — for process-based content
 ✓ One contrasting-background section (brand color or dark) for rhythm — max one per page
-✓ A large number as a typographic element — ONLY if the number is REAL business data
-   (years in business, projects completed, etc. from the data above). Otherwise do not use one.
+✓ A large number as a typographic element — ONLY if it is a genuine SELLING POINT that builds trust
+   (e.g. years in business, projects completed, satisfied customers). Use editorial judgment: a real but
+   trivial/technical detail (e.g. "2050+ Farben", a product count, a catalogue figure) is NOT headline-worthy
+   and must never become a design centerpiece just because it appears in the source text.
 ✓ A mid-page call-to-action band before the footer — short invitation + a button linking to #kontakt
 
 NEVER:
 ✗ Three identical icon-cards in a row — this is the #1 AI tell
 ✗ Generic headings like "Our Services", "About Us", "Why Choose Us"
 ✗ All sections with identical padding and background
-✗ Placeholder or invented text — and NEVER invent a number, year, statistic or metric (e.g. "2050", "98%") that is not in the data
+✗ Placeholder or invented text — and never invent a number, year, statistic or metric not in the data
+✗ Featuring a trivial or irrelevant number prominently (in the hero or as a giant figure) just because it
+   was on the original site — every number you elevate must clearly help the visitor choose this business
 ✗ position:absolute or position:fixed on section containers — causes overlapping
 ✗ Elements that float outside their parent container
 
