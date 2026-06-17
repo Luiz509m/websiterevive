@@ -684,13 +684,15 @@ Phone:    {key_content.get('phone') or '—'}
 Services: {_s(services)}
 {colors_note}
 
-NAV: logo/brand far left, links right. ALWAYS dark background: background:#111111; Never transparent.
-LOGO (top-left): {"Use this logo image: <img src=\"" + logo_url + "\" alt=\"" + business_name + "\" style=\"height:36px;width:auto;object-fit:contain;\"> — place it as the first element in the nav, far left." if logo_url else "No logo image available — use the business name \"" + business_name + "\" as styled text (font-weight:700, color:#ffffff, font-size:1.1rem)."}
+NAV: logo/brand far left, links right. Min 48px gap. Never transparent.
+NAV BACKGROUND — pick what fits THIS brand, NOT a default black:
+{"  • There is a logo IMAGE. Most logos are drawn for a LIGHT background, so use a WHITE or very light nav (e.g. #ffffff / #faf9f7) unless the logo is clearly designed for dark. A colored logo (e.g. green) must stay clearly visible — never place it on near-black." if logo_url else "  • No logo image — you may use the brand's primary color, a clean white, or a dark tone, whichever fits the brand."}
+  • Whatever background you choose, set every nav link + the brand text to an explicitly contrasting color (dark text on a light nav, light text on a dark nav). Never rely on inheritance, never link-color = background-color.
+LOGO (top-left): {"Use this logo image: <img src=\"" + logo_url + "\" alt=\"" + business_name + "\" style=\"height:36px;width:auto;object-fit:contain;\"> — place it as the first element in the nav, far left." if logo_url else "No logo image available — use the business name \"" + business_name + "\" as styled text (font-weight:700, font-size:1.1rem, color contrasting the nav background)."}
 USE EXACTLY THESE LINKS:
   Home → #
 {nav_str}
-[CTA-BUTTON] = pill button, accent color bg, color:#ffffff, border-radius:100px.
-ALL nav links: color:#ffffff !important — nav is always #111111, text always white. Min 48px gap between logo/name and first link.
+[CTA-BUTTON] = pill button, brand primary color bg, contrasting text, border-radius:100px. Min 48px gap between logo/name and first link.
 
 ── HERO IMAGE DECISION ──────────────────────────────────────────────────
 {images_note}
@@ -1644,34 +1646,46 @@ Address:     {key_content.get('address') or '—'}
 {images_block}
 
 ── NAV ──────────────────────────────────────────────────────────────────
-ALWAYS dark background: background:#111111 — never transparent, never light.
-Logo far left, links right. Min 48px gap. Hamburger on mobile.
+Logo far left, links right. Min 48px gap. Hamburger on mobile (button needs aria-label). Never transparent.
+
+NAV BACKGROUND — pick what fits THIS brand, NOT a reflex black:
+  • If the brand's logo/mark is a colored image on transparent/white (e.g. a green logo),
+    use a WHITE or light nav (#ffffff / #faf9f7) so the logo stays visible — do NOT put it on near-black.
+  • Otherwise you may use the brand's primary color, a clean white, or a dark tone — whatever matches the brand.
+  • Whatever you choose, set every nav link + logo text to an explicitly contrasting color
+    (dark text on a light nav, light text on a dark nav). Never rely on inheritance; link color must differ from the nav background.
 
 USE EXACTLY THESE LINKS — no additions, no removals:
   Home → #
 {nav_topics_str}
 
-[CTA-BUTTON] = filled pill, accent color bg, color:#ffffff, border-radius:100px.
-All nav links and logo text: color:#ffffff !important — always, without exception.
-NEVER use a light background for nav. NEVER use dark text in nav.
+[CTA-BUTTON] = filled pill, brand primary color bg, contrasting text, border-radius:100px.
 
 ── HERO ──────────────────────────────────────────────────────────────────
 Full viewport height (min-height:100svh). overflow:hidden on #hero.
-All hero text: max-width:100%; word-break:break-word — nothing may overflow the screen.
+ALL hero content sits inside a padded container (max-width ~1200px, side padding clamp(20px,5vw,80px)).
+Nothing may touch or cross a screen edge. No text positioned absolutely off to one side, no giant single
+word bleeding past the viewport, no character-by-character stacking. Use overflow-wrap:break-word, and if a
+word is very long, REDUCE the font size so the whole word fits inside the container on mobile and desktop.
 
 CONTRAST LAW — most important rule, no exceptions ever:
   • Dark background (image+overlay OR dark gradient) → ALL text: color:#ffffff — set on EVERY element
-  • Light background → ALL text: color:#111111 — set on EVERY element
+  • Light background → ALL text: color:#111111 (or a dark brand tone) — set on EVERY element
   • NEVER rely on color inheritance — set color explicitly on every h1,h2,p,span,a,button
 
-BACKGROUND:
+BACKGROUND — make it feel like THIS brand, not a default dark gradient:
 {images_block}
+  • If there is NO hero image: the background may be a clean light tone, a tint of the brand color,
+    or a brand-colored gradient — a near-black gradient is only ONE option, not the default. Match the
+    brand and industry (e.g. a painter/handwerk brand can feel bright and clean, not corporate-dark).
 
-HEADLINE: Exact text from data above. clamp(3rem,8vw,7rem), bold, line-height:0.95–1.1, explicit color.
+HEADLINE: Exact text from data above. Size clamp(2.5rem,6vw,5rem), bold, line-height:1.0–1.1, explicit color.
+  It must wrap normally inside the container and stay fully visible — never clipped, never off-screen.
 SUBTEXT: clamp(1rem,2vw,1.25rem), max 2 lines, explicit color matching contrast law.
-LAYOUT: Choose best for industry — centered, split 50/50, or offset headline over image.
+LAYOUT: Choose what fits the business — centered, or split 50/50 (text one side, image the other).
+  Keep ALL text fully inside the viewport on every screen size.
 
-CTA BUTTON: pill shape, accent color background, color:#fff, padding:14px 40px, no box-shadow.
+CTA BUTTON: pill shape, brand primary color background, contrasting text, padding:14px 40px, no box-shadow.
 
 Add <!-- HERO_END --> on its own line immediately after the closing </section> of the hero.
 
@@ -1683,18 +1697,20 @@ CONTENT — use the scraped text below verbatim, do not invent or paraphrase:
 {section_content_blocks}
 {_section_design_hints(industry, nav_topics)}
 LAYOUT — vary each section's design. Never repeat the same layout twice:
-✓ Full-width editorial text with a large pull quote or number
+✓ Full-width editorial text with a large pull quote (quote must be real text from the content)
 ✓ 2-column split: image left + text right (or reversed)
 ✓ Card grid (2–3 cols desktop, 1 col mobile) — only when items/services exist
 ✓ Timeline or numbered steps — for process-based content
-✓ One dark-background section for contrast (max one per page)
-✓ Large stat, year, or metric as a typographic design element
+✓ One contrasting-background section (brand color or dark) for rhythm — max one per page
+✓ A large number as a typographic element — ONLY if the number is REAL business data
+   (years in business, projects completed, etc. from the data above). Otherwise do not use one.
+✓ A mid-page call-to-action band before the footer — short invitation + a button linking to #kontakt
 
 NEVER:
 ✗ Three identical icon-cards in a row — this is the #1 AI tell
 ✗ Generic headings like "Our Services", "About Us", "Why Choose Us"
 ✗ All sections with identical padding and background
-✗ Placeholder or invented text
+✗ Placeholder or invented text — and NEVER invent a number, year, statistic or metric (e.g. "2050", "98%") that is not in the data
 ✗ position:absolute or position:fixed on section containers — causes overlapping
 ✗ Elements that float outside their parent container
 
