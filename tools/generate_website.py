@@ -331,9 +331,9 @@ def load_illustration_svg(industry: str = "") -> str | None:
         "auto", "finance", "consulting", "legal",
     ]
     key = next((k for k in priority if k in ind), None)
-    files = imap.get(key, []) if key else []
-    if not files:
-        files = imap.get("generic", [])
+    if not key:
+        return None  # no fitting illustration → let the model use photo/graphic/typographic
+    files = imap.get(key, [])
     if not files:
         return None
     p = ILLUS_DIR / random.choice(files)
