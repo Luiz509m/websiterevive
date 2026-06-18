@@ -25,6 +25,7 @@ import anthropic
 from scrape_site import scrape, slugify
 
 REFERENCE_DIR = Path(__file__).parent.parent / "reference_designs"
+MOTIF_DIR = Path(__file__).parent.parent / "motifs"
 TMP = Path(__file__).parent.parent / ".tmp"
 TMP.mkdir(exist_ok=True)
 
@@ -269,6 +270,42 @@ def load_reference_images(n: int = 4, industry: str = "") -> list[dict]:
         result.append({"path": str(img_path), "data": data, "media_type": media_type})
         print(f"[refs] Using reference: {img_path.name} ({size_kb}KB)")
     return result
+
+
+def load_motifs(industry: str = "", n: int = 3) -> list[str]:
+    """Return up to n inline SVG motif strings (Lucide line icons) matched to the
+    industry. They use stroke=currentColor, so they recolor via the CSS `color`
+    property. Used only as an optional, subtle hero accent (graphic/typographic mode)."""
+    import re
+    idx = MOTIF_DIR / "index.json"
+    if not idx.exists() or not industry:
+        return []
+    try:
+        imap = json.loads(idx.read_text(encoding="utf-8")).get("industry_map", {})
+    except Exception as e:
+        print(f"[motifs] index.json error ({e})")
+        return []
+    ind = industry.lower()
+    priority = [
+        "maler", "schreiner", "bau", "dach", "sanitaer", "elektr", "garten", "handwerk",
+        "architecture", "interior", "real_estate",
+        "restaurant", "pizza", "cafe", "bakery", "catering", "food",
+        "beauty", "wellness", "fitness", "medical", "dental",
+        "legal", "consulting", "finance", "auto", "tech",
+    ]
+    key = next((k for k in priority if k in ind), None)
+    names = imap.get(key, []) if key else []
+    if not names:
+        names = imap.get("generic", [])
+    svgs = []
+    for nm in names[:n]:
+        p = MOTIF_DIR / f"{nm}.svg"
+        if p.exists():
+            svg = re.sub(r"<!--.*?-->", "", p.read_text(encoding="utf-8"), flags=re.DOTALL).strip()
+            svgs.append(svg)
+    if svgs:
+        print(f"[motifs] Industry '{key or 'generic'}' → {names[:n]}")
+    return svgs
 
 
 def extract_logo_url(html: str, base_url: str = "") -> str | None:
@@ -686,6 +723,13 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     else:
         images_note = "No usable site images were found — do NOT force a photo. Use a Graphic or Typographic hero (Mode B/C in HERO STYLE below)."
 
+    _motifs = load_motifs(industry, n=3)
+    motifs_block = ("\n── BRAND MOTIFS (optional inline-SVG line icons for THIS industry) ────────\n"
+        "You MAY use ONE of these as a small, subtle accent in a Graphic or Typographic hero "
+        "(e.g. beside or softly behind the headline). Recolor it via CSS color (a brand tone), size it "
+        "modestly, keep it tasteful — never scatter several icons, and skip them for a photo hero or "
+        "whenever they would clutter.\n" + "\n".join(_motifs)) if _motifs else ""
+
     msg_content = []
     if reference_images:
         msg_content.append({"type": "text", "text": (
@@ -752,6 +796,7 @@ CONTRAST LAW — most important rule, no exceptions ever:
   • NEVER rely on color inheritance — set color explicitly on h1,h2,p,span,a,button each
 
 {HERO_MODES}
+{motifs_block}
 
 ✓ Headline: clamp(2.5rem,7vw,6rem), bold, line-height:0.95–1.1, explicit color
 ✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, explicit color
@@ -1643,6 +1688,13 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
     else:
         colors_block = "Colors: derive a cohesive palette from the industry and tone — no generic blues or greys."
 
+    _motifs = load_motifs(industry, n=3)
+    motifs_block = ("\n── BRAND MOTIFS (optional inline-SVG line icons for THIS industry) ────────\n"
+        "You MAY use ONE of these as a small, subtle accent in a Graphic or Typographic hero "
+        "(e.g. beside or softly behind the headline). Recolor it via CSS color (a brand tone), size it "
+        "modestly, keep it tasteful — never scatter several icons, and skip them for a photo hero or "
+        "whenever they would clutter.\n" + "\n".join(_motifs)) if _motifs else ""
+
     # ── Claude prompt ──────────────────────────────────────────────────────────
     content.append({
         "type": "text",
@@ -1706,6 +1758,7 @@ BACKGROUND — make it feel like THIS brand, not a default dark gradient:
 {images_block}
 
 {HERO_MODES}
+{motifs_block}
 
 HEADLINE: Exact text from data above. Size clamp(2.5rem,6vw,5rem), bold, line-height:1.0–1.1, explicit color.
   It must wrap normally inside the container and stay fully visible — never clipped, never off-screen.

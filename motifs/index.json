@@ -1,0 +1,33 @@
+{
+  "_note": "Line-art SVG motifs (Lucide, ISC license). Recolorable via CSS color (stroke=currentColor). Used as an optional, subtle hero accent in graphic/typographic mode.",
+  "industry_map": {
+    "maler":       ["paintbrush", "paint-roller", "palette"],
+    "schreiner":   ["hammer", "ruler", "pen-tool"],
+    "bau":         ["hard-hat", "building-2", "ruler"],
+    "dach":        ["house", "hammer", "ruler"],
+    "sanitaer":    ["wrench", "droplet"],
+    "elektr":      ["zap", "plug-zap", "lightbulb"],
+    "garten":      ["sprout", "leaf", "tree-deciduous", "flower-2"],
+    "handwerk":    ["hammer", "wrench", "ruler"],
+    "architecture":["ruler", "compass", "pen-tool", "building-2"],
+    "interior":    ["house", "palette", "ruler"],
+    "real_estate": ["house", "key", "map-pin"],
+    "restaurant":  ["utensils", "chef-hat", "wine"],
+    "pizza":       ["pizza", "utensils"],
+    "cafe":        ["coffee", "croissant"],
+    "bakery":      ["croissant", "wheat", "cake-slice"],
+    "catering":    ["utensils-crossed", "chef-hat"],
+    "food":        ["utensils", "chef-hat"],
+    "beauty":      ["scissors", "sparkles"],
+    "wellness":    ["leaf", "flower-2", "droplet"],
+    "fitness":     ["dumbbell", "activity", "heart-pulse"],
+    "medical":     ["stethoscope", "heart-pulse", "pill"],
+    "dental":      ["smile", "sparkles", "pill"],
+    "legal":       ["scale", "landmark"],
+    "consulting":  ["briefcase", "trending-up"],
+    "finance":     ["coins", "trending-up", "landmark"],
+    "auto":        ["car", "wrench"],
+    "tech":        ["sparkles", "zap", "activity"],
+    "generic":     ["sparkles", "star"]
+  }
+}
