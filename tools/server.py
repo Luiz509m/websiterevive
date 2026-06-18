@@ -536,6 +536,21 @@ def generate():
         _industry = analysis.get("industry", "")
         references = load_reference_images(n=_N_REF_IMAGES, industry=_industry)
 
+        # If the scraped site has too few usable images, add industry-matched Pexels
+        # stock photos as candidates. The generator only uses one if it is genuinely
+        # good (the "perfect photo or none" rule) — otherwise it builds a graphic/
+        # typographic hero rather than forcing a weak photo.
+        if len(site_images) < 3:
+            try:
+                _pq = _industry_to_pexels_query(_industry, analysis.get("business_name", ""))
+                _stock = fetch_pexels_images(_pq, n=6)
+                for _u in _stock:
+                    if _u not in site_images:
+                        site_images.append(_u)
+                print(f"[server] Few site images ({len(site_images)} total) — added Pexels candidates for '{_pq}'")
+            except Exception as _e:
+                print(f"[server] Pexels fallback skipped: {_e}")
+
         # Download actual site images so Claude can SEE and visually select them
         site_images_data = download_site_images_for_claude(site_images, max_images=_N_SITE_IMAGES)
 

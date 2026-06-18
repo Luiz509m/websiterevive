@@ -47,9 +47,10 @@ DESIGN_PRINCIPLES = """── DESIGN DIRECTION (make it look intentional, not AI
   generous whitespace, and one strong image often beats a busy hero. Minimal ≠ empty.
 • MATCH THE TRADE, NOT TECH: a handwerk / craft / local-service business (painter,
   carpenter, builder, gardener, bakery…) should feel grounded, human and real —
-  real work photography, warm/honest tones, tactile materials. Glowing gradients,
-  glassy cards, neon accents, abstract 3D blobs and floating UI mockups are TECH/SaaS
-  clichés: do NOT use them unless the business actually is software/tech.
+  real work photography, warm/honest tones, tactile materials. The GLOSSY tech look
+  (neon/acid accents, glassy frosted cards, shiny 3D blobs, floating app/UI mockups)
+  is a SaaS cliché: do NOT use it unless the business is software/tech. Soft, flat,
+  on-brand gradients and simple geometric shapes are fine for anyone.
 • ONE SIGNATURE ELEMENT: give the page exactly one memorable, brand-specific
   detail (a distinctive type treatment, an oversized number/word, an unusual
   section transition, a custom divider). Spend your boldness there and keep
@@ -78,6 +79,37 @@ A11Y_PERF_FLOOR = """── ACCESSIBILITY & PERFORMANCE FLOOR (mandatory, no exc
 • IMAGES: add loading="lazy" to every below-the-fold <img>, and set width/height
   or aspect-ratio so the layout does not shift while images load.
 • FONTS: append &display=swap to every Google Fonts URL."""
+
+
+# Three hero modes — the model picks whichever fits the business. The guiding rule
+# is "a perfect photo or none": a weak photo is worse than a well-designed graphic.
+HERO_MODES = """── HERO STYLE — pick ONE of three modes, whichever is best for THIS business ──
+Never settle for a bare/empty dark gradient. Make the hero look intentional.
+
+PHOTO RULE (decisive): only build a PHOTO hero if a specific available image is
+genuinely high quality AND clearly relevant to this business. A mediocre, generic,
+low-resolution, watermarked, cluttered or off-topic image is WORSE than no photo.
+If you are not confident an image clears that bar, do NOT use a photo — switch to
+the Graphic or Typographic mode below. Empty is better than an ugly photo.
+
+MODE A — PHOTO (only with a strong, relevant image):
+  • Full-cover: CSS background-image on #hero (background-size:cover;background-position:center)
+    + dark overlay div (position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0);
+    content wrapper z-index:1; ALL text #ffffff. No <img> tag in a full-cover hero.
+  • Or split: text one side, a single <img> the other (width:100%;height:auto; NOT object-fit:cover).
+
+MODE B — GRAPHIC (no photo; a designed background):
+  • Build an on-brand background from CSS + inline SVG: a soft gradient/mesh, one or two large
+    BLURRED colour shapes ("blobs") in the brand colours, and/or tasteful geometric SVG shapes
+    or a subtle pattern (dots, grid, thin lines, arcs). Calm and elegant, not busy.
+  • Match the trade: keep a craft/handwerk/local business grounded and refined (muted brand
+    tones, simple shapes). No glossy/neon/glassy tech effects unless the business is tech.
+  • Inline SVG must be valid and simple — no broken paths, NO emoji, no random ornaments.
+
+MODE C — TYPOGRAPHIC (no image, type-led):
+  • A large, confident headline is the centrepiece, with generous whitespace and ONE quiet
+    accent (a coloured rule, a single shape, an oversized word, or an outline-text treatment).
+  • Clean solid or very subtly tinted background in the brand palette."""
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -605,7 +637,7 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     has_visual_images = bool(site_images_data)
 
     if is_tech:
-        images_note = "Tech/software business — use a dark CSS gradient for hero, no real image."
+        images_note = "Tech/software business — no photo. Use a Graphic or Typographic hero (Mode B/C in HERO STYLE below)."
     elif has_visual_images or site_image_urls:
         _layout = "fullcover" if is_food else _rnd.choice(["fullcover", "split-right", "split-left"])
         _food_hint = "PRIORITY: Use the most appetizing food/dish image for the hero — pizza, pasta, dish close-up.\n" if is_food else ""
@@ -652,7 +684,7 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
                 + ("" if has_visual_images else "\nAvailable images:\n" + "\n".join(f"- {u}" for u in (site_image_urls or [])[:6]))
             )
     else:
-        images_note = "No site images — use a dark gradient hero."
+        images_note = "No usable site images were found — do NOT force a photo. Use a Graphic or Typographic hero (Mode B/C in HERO STYLE below)."
 
     msg_content = []
     if reference_images:
@@ -671,8 +703,9 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     if site_images_data:
         msg_content.append({"type": "text", "text": (
             f"\nCUSTOMER SITE IMAGES ({len(site_images_data)} actual images from their website) — "
-            "visually evaluate each one. For the hero, pick the most stunning and relevant image. "
-            "Use the exact URL labeled above each image."
+            "visually evaluate each one. Use one in the hero ONLY if it is genuinely high quality "
+            "and clearly relevant (see the PHOTO RULE). If none clears that bar, do NOT use a photo — "
+            "build a Graphic or Typographic hero instead. Use the exact URL labeled above each image."
         )})
         for img_d in site_images_data:
             msg_content.append({"type": "text", "text": f"URL: {img_d['url']}"})
@@ -718,16 +751,7 @@ CONTRAST LAW — most important rule, no exceptions ever:
   • Light background → ALL text color:#111111 — set on EVERY element individually
   • NEVER rely on color inheritance — set color explicitly on h1,h2,p,span,a,button each
 
-IF using a real image:
-  ✓ CSS background-image on #hero with background-size:cover;background-position:center
-  ✓ Dark overlay div (position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:0)
-  ✓ Content div: position:relative;z-index:1
-  ✓ ALL text color:#ffffff (overlay makes bg dark)
-  ✗ No <img> tag in the hero
-
-IF no image (CSS-only):
-  ✓ Dark gradient hero — match reference design quality
-  ✗ No random symbols, decorative dots, or ornamental characters
+{HERO_MODES}
 
 ✓ Headline: clamp(2.5rem,7vw,6rem), bold, line-height:0.95–1.1, explicit color
 ✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, explicit color
@@ -1439,16 +1463,11 @@ IMAGE RULES (all sections):
 
 {_hero_layout_rule}
 
-If no suitable image — CSS-only dark gradient:
-  - Restaurant/Food: deep burgundy → warm amber gradient
-  - Dental/Medical: deep navy → teal gradient
-  - Legal/Finance: dark navy/charcoal, gold accent
-  - Beauty/Wellness: blush → mauve gradient
-  - Handwerk/Construction: dark slate, diagonal accent lines
-  - Generic: dark brand-color gradient, geometric accent
-  Hero must look like it came from a top design agency — not a placeholder.
+If NO image passes the quality check: do NOT force a photo and do NOT settle for a bare dark
+gradient. Build a Graphic or Typographic hero instead (see HERO STYLE below), on-brand and
+matched to the industry — it must look designed, not like a placeholder.
 
-Either way: hero min-height:100svh, overflow:hidden, ALL text color:#ffffff.
+Either way: hero min-height:100svh, overflow:hidden; text color follows the CONTRAST LAW.
 
 GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:auto;display:block;)"""
 
@@ -1685,9 +1704,8 @@ CONTRAST LAW — most important rule, no exceptions ever:
 
 BACKGROUND — make it feel like THIS brand, not a default dark gradient:
 {images_block}
-  • If there is NO hero image: the background may be a clean light tone, a tint of the brand color,
-    or a brand-colored gradient — a near-black gradient is only ONE option, not the default. Match the
-    brand and industry (e.g. a painter/handwerk brand can feel bright and clean, not corporate-dark).
+
+{HERO_MODES}
 
 HEADLINE: Exact text from data above. Size clamp(2.5rem,6vw,5rem), bold, line-height:1.0–1.1, explicit color.
   It must wrap normally inside the container and stay fully visible — never clipped, never off-screen.
