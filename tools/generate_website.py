@@ -53,6 +53,14 @@ DESIGN_PRINCIPLES = """── DESIGN DIRECTION (make it look intentional, not AI
   (neon/acid accents, glassy frosted cards, shiny 3D blobs, floating app/UI mockups)
   is a SaaS cliché: do NOT use it unless the business is software/tech. Soft, flat,
   on-brand gradients and simple geometric shapes are fine for anyone.
+• USE THE BRAND'S REAL COLOURS (critical): you can SEE the logo and the original
+  screenshot — read the brand's actual primary + accent colours from the LOGO and make
+  them the dominant palette. Define them as CSS variables on :root (--clr-primary and
+  --clr-accent) and apply them prominently: buttons, links, key accents, and one or two
+  section backgrounds. Do NOT fall back to a generic blue/navy or an all-black/grey
+  scheme just because it is easy or because the old site used it — the scraped colours
+  are only a hint. Only if the real brand colours genuinely clash or are unusable, pick
+  a tasteful palette that fits the industry instead. Never leave it defaulting to blue.
 • ONE SIGNATURE ELEMENT: give the page exactly one memorable, brand-specific
   detail (a distinctive type treatment, an oversized number/word, an unusual
   section transition, a custom divider). Spend your boldness there and keep
@@ -709,9 +717,11 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
                 "Use deep warm reds, burgundy, amber, or cream/dark-charcoal. NO blue, purple, or grey."
             )
     elif brand_colors:
-        colors_note = f"Use these exact brand colors: {', '.join(brand_colors[:4])}"
+        colors_note = (f"Colour hint from the old site CSS: {', '.join(brand_colors[:4])}. "
+                       "But trust the LOGO/screenshot for the true brand colours and set --clr-primary "
+                       "to the real brand colour — do not default to blue.")
     else:
-        colors_note = "Derive colors from industry/tone."
+        colors_note = "Read the brand colours from the logo/screenshot; set --clr-primary to the real brand colour. No generic blue/navy."
 
     # ── Images: if actual image data provided, Claude sees them visually ─────
     import random as _rnd
@@ -1748,10 +1758,13 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
             )
     elif brand_colors:
         colors_block = (
-            "BRAND COLORS — extracted from the original site. Use these EXACTLY.\n"
-            "Set as CSS custom properties on :root:\n"
+            "BRAND COLOUR HINT — extracted from the OLD site CSS (may be generic/outdated):\n"
             + "\n".join(f"  {c}" for c in brand_colors)
-            + "\nApply the most prominent as --clr-primary (buttons, links, accents)."
+            + "\nThese are a hint only. Trust the LOGO and screenshot for the TRUE brand colours. "
+            "Set --clr-primary and --clr-accent on :root to the real brand colours and use them "
+            "prominently (buttons, links, accents, 1-2 section backgrounds). Do NOT default to a "
+            "generic blue/navy or an all-black scheme — only the actual brand colours, or a tasteful "
+            "industry-fitting palette if the brand colours truly clash."
         )
     else:
         colors_block = "Colors: derive a cohesive palette from the industry and tone — no generic blues or greys."
