@@ -273,8 +273,8 @@ def load_reference_images(n: int = 4, industry: str = "") -> list[dict]:
 
 
 def load_motifs(industry: str = "", n: int = 3) -> list[str]:
-    """Return up to n inline SVG motif strings (Lucide line icons) matched to the
-    industry. They use stroke=currentColor, so they recolor via the CSS `color`
+    """Return up to n inline SVG motif strings (Phosphor filled icons) matched to the
+    industry. They use fill=currentColor, so they recolor via the CSS `color`
     property. Used only as an optional, subtle hero accent (graphic/typographic mode)."""
     import re
     idx = MOTIF_DIR / "index.json"
@@ -724,7 +724,7 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
         images_note = "No usable site images were found — do NOT force a photo. Use a Graphic or Typographic hero (Mode B/C in HERO STYLE below)."
 
     _motifs = load_motifs(industry, n=3)
-    motifs_block = ("\n── BRAND MOTIFS (optional inline-SVG line icons for THIS industry) ────────\n"
+    motifs_block = ("\n── BRAND MOTIFS (optional inline-SVG filled icons for THIS industry) ──────\n"
         "You MAY use ONE of these as a small, subtle accent in a Graphic or Typographic hero "
         "(e.g. beside or softly behind the headline). Recolor it via CSS color (a brand tone), size it "
         "modestly, keep it tasteful — never scatter several icons, and skip them for a photo hero or "
@@ -1689,7 +1689,7 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
         colors_block = "Colors: derive a cohesive palette from the industry and tone — no generic blues or greys."
 
     _motifs = load_motifs(industry, n=3)
-    motifs_block = ("\n── BRAND MOTIFS (optional inline-SVG line icons for THIS industry) ────────\n"
+    motifs_block = ("\n── BRAND MOTIFS (optional inline-SVG filled icons for THIS industry) ──────\n"
         "You MAY use ONE of these as a small, subtle accent in a Graphic or Typographic hero "
         "(e.g. beside or softly behind the headline). Recolor it via CSS color (a brand tone), size it "
         "modestly, keep it tasteful — never scatter several icons, and skip them for a photo hero or "
