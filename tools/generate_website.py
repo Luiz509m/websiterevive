@@ -26,6 +26,7 @@ from scrape_site import scrape, slugify
 
 REFERENCE_DIR = Path(__file__).parent.parent / "reference_designs"
 MOTIF_DIR = Path(__file__).parent.parent / "motifs"
+ILLUS_DIR = Path(__file__).parent.parent / "illustrations"
 TMP = Path(__file__).parent.parent / ".tmp"
 TMP.mkdir(exist_ok=True)
 
@@ -306,6 +307,49 @@ def load_motifs(industry: str = "", n: int = 3) -> list[str]:
     if svgs:
         print(f"[motifs] Industry '{key or 'generic'}' → {names[:n]}")
     return svgs
+
+
+def load_illustration_svg(industry: str = "") -> str | None:
+    """Return a brand-recolorable inline SVG spot illustration for the industry, or None.
+    The unDraw accent purple is swapped to var(--clr-primary) so the artwork takes the
+    client's brand color, and the root <svg> is made responsive. Injected into a
+    <div class="hero-art"></div> placeholder AFTER generation (never sent to the model)."""
+    import re, random
+    idx = ILLUS_DIR / "index.json"
+    if not idx.exists() or not industry:
+        return None
+    try:
+        imap = json.loads(idx.read_text(encoding="utf-8")).get("industry_map", {})
+    except Exception as e:
+        print(f"[illus] index.json error ({e})")
+        return None
+    ind = industry.lower()
+    priority = [
+        "maler", "schreiner", "bau", "dach", "sanitaer", "elektr", "handwerk",
+        "architecture", "interior", "real_estate",
+        "restaurant", "pizza", "cafe", "bakery", "catering", "food",
+        "auto", "finance", "consulting", "legal",
+    ]
+    key = next((k for k in priority if k in ind), None)
+    files = imap.get(key, []) if key else []
+    if not files:
+        files = imap.get("generic", [])
+    if not files:
+        return None
+    p = ILLUS_DIR / random.choice(files)
+    if not p.exists():
+        return None
+    svg = p.read_text(encoding="utf-8")
+    svg = re.sub(r"<\?xml.*?\?>", "", svg, flags=re.DOTALL)
+    svg = re.sub(r"<!--.*?-->", "", svg, flags=re.DOTALL)
+    for accent in ("#6c63ff", "#6C63FF", "#7f77ff", "#7F77FF"):
+        svg = svg.replace(accent, "var(--clr-primary,#6c63ff)")
+    # make the root <svg> scale to its container (drop fixed width/height, add style)
+    svg = re.sub(r'(<svg\b[^>]*?)\s+width="[^"]*"', r"\1", svg, count=1)
+    svg = re.sub(r'(<svg\b[^>]*?)\s+height="[^"]*"', r"\1", svg, count=1)
+    svg = re.sub(r"<svg\b", '<svg style="width:100%;height:auto;display:block;max-height:78vh" ', svg, count=1)
+    print(f"[illus] Industry '{key or 'generic'}' → {p.name}")
+    return svg.strip()
 
 
 def extract_logo_url(html: str, base_url: str = "") -> str | None:
@@ -730,6 +774,17 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
         "modestly, keep it tasteful — never scatter several icons, and skip them for a photo hero or "
         "whenever they would clutter.\n" + "\n".join(_motifs)) if _motifs else ""
 
+    illus_svg = load_illustration_svg(industry)
+    illus_block = ("\n── ILLUSTRATION MODE (optional, brand-colored spot illustration available) ─\n"
+        "A professional flat illustration for THIS industry is available. A SPLIT hero often looks "
+        "great here: headline + subtext + CTA on one side, the illustration on the other (≈50/50, "
+        "stack on mobile). To use it, place this EXACT empty tag where the artwork goes:\n"
+        "  <div class=\"hero-art\"></div>\n"
+        "Nothing inside it, no inline style on it. Size it via CSS class .hero-art (e.g. "
+        "flex:1 1 460px; max-width:540px; margin:auto). The illustration is injected automatically and "
+        "already uses the brand color — do NOT draw any SVG yourself. This counts as a photo-grade hero; "
+        "if a Graphic or Typographic hero fits better, simply omit the tag.\n") if illus_svg else ""
+
     msg_content = []
     if reference_images:
         msg_content.append({"type": "text", "text": (
@@ -797,6 +852,7 @@ CONTRAST LAW — most important rule, no exceptions ever:
 
 {HERO_MODES}
 {motifs_block}
+{illus_block}
 
 ✓ Headline: clamp(2.5rem,7vw,6rem), bold, line-height:0.95–1.1, explicit color
 ✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, explicit color
@@ -834,6 +890,18 @@ OUTPUT: Complete HTML <!DOCTYPE html> to </html>. Nothing below the hero. No mar
 
     if html.startswith("```"):
         html = html.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
+    # Inject the brand illustration into the placeholder the model left (if it chose
+    # the illustration hero). The SVG is never sent to the model — placed here.
+    if illus_svg and "hero-art" in html:
+        import re as _re_illus
+        html = _re_illus.sub(
+            r'(<div class="hero-art"[^>]*>)\s*(</div>)',
+            lambda m: m.group(1) + illus_svg + m.group(2),
+            html, count=1,
+        )
+        print("[hero] ✓ Injected brand illustration")
+
     print(f"[hero] ✓ Generated {len(html)} chars")
     return html
 

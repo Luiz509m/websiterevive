@@ -1,0 +1,26 @@
+{
+  "_note": "Flat spot illustrations (unDraw, free/no-attribution). The unDraw accent purple (#6c63ff/#7f77ff) is swapped to var(--clr-primary) at load so each illustration takes the client's brand color. Injected into a <div class=hero-art></div> placeholder after generation (never sent through the model).",
+  "industry_map": {
+    "maler":       ["undraw_painting-the-room_xuf4.svg"],
+    "schreiner":   ["undraw_under-construction_c2y1.svg"],
+    "bau":         ["undraw_under-construction_c2y1.svg"],
+    "dach":        ["undraw_under-construction_c2y1.svg"],
+    "sanitaer":    ["undraw_under-construction_c2y1.svg"],
+    "elektr":      ["undraw_under-construction_c2y1.svg"],
+    "handwerk":    ["undraw_under-construction_c2y1.svg", "undraw_painting-the-room_xuf4.svg"],
+    "architecture":["undraw_city-life_l74x.svg"],
+    "interior":    ["undraw_city-life_l74x.svg"],
+    "real_estate": ["undraw_city-life_l74x.svg"],
+    "restaurant":  ["restaurant.svg"],
+    "pizza":       ["restaurant.svg"],
+    "cafe":        ["restaurant.svg"],
+    "bakery":      ["restaurant.svg"],
+    "catering":    ["restaurant.svg"],
+    "food":        ["restaurant.svg"],
+    "auto":        ["undraw_car-repair_wski.svg"],
+    "finance":     ["undraw_online-banking_l9sn.svg"],
+    "consulting":  ["undraw_online-banking_l9sn.svg"],
+    "legal":       ["undraw_online-banking_l9sn.svg"],
+    "generic":     ["undraw_city-life_l74x.svg", "undraw_logistics_8vri.svg"]
+  }
+}
