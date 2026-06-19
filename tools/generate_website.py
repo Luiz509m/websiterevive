@@ -27,6 +27,7 @@ from scrape_site import scrape, slugify
 REFERENCE_DIR = Path(__file__).parent.parent / "reference_designs"
 MOTIF_DIR = Path(__file__).parent.parent / "motifs"
 ILLUS_DIR = Path(__file__).parent.parent / "illustrations"
+UX_DATA_DIR = Path(__file__).parent / "ux_data"  # ui-ux-pro-max font pairings + palettes
 TMP = Path(__file__).parent.parent / ".tmp"
 TMP.mkdir(exist_ok=True)
 
@@ -358,6 +359,129 @@ def load_illustration_svg(industry: str = "") -> str | None:
     svg = re.sub(r"<svg\b", '<svg style="width:100%;height:auto;display:block;max-height:78vh" ', svg, count=1)
     print(f"[illus] Industry '{key or 'generic'}' → {p.name}")
     return svg.strip()
+
+
+# ── ui-ux-pro-max font pairings + colour palettes ─────────────────────────────
+# English keywords per industry (the dataset is English; our industries are German).
+_FONT_QUERY = {
+    "maler": "premium elegant craft refined trustworthy",
+    "schreiner": "craft premium natural warm editorial",
+    "bau": "strong bold professional construction industrial",
+    "dach": "strong professional trustworthy construction",
+    "sanitaer": "professional clean trustworthy service",
+    "elektr": "modern professional bold tech",
+    "garten": "natural organic fresh calm editorial",
+    "handwerk": "professional strong trustworthy craft",
+    "architecture": "architecture minimal modern editorial luxury",
+    "interior": "interior elegant editorial premium luxury",
+    "real_estate": "real estate luxury premium elegant",
+    "restaurant": "restaurant food warm inviting editorial",
+    "pizza": "restaurant food casual bold warm",
+    "cafe": "cafe warm cozy friendly inviting",
+    "bakery": "bakery artisan warm editorial",
+    "catering": "food warm inviting elegant",
+    "food": "food restaurant warm inviting",
+    "beauty": "beauty spa elegant feminine luxury",
+    "wellness": "wellness spa calm natural soft",
+    "fitness": "fitness bold energetic strong modern",
+    "medical": "medical clean trustworthy professional health",
+    "dental": "medical clean trustworthy professional",
+    "legal": "legal corporate professional traditional trustworthy",
+    "consulting": "corporate professional modern business",
+    "finance": "finance corporate trustworthy professional",
+    "auto": "automotive bold modern strong",
+    "tech": "tech startup modern innovative bold",
+    "generic": "modern professional clean friendly",
+}
+# Exact "Product Type" values from colors.csv (industry-fitting palettes).
+_PALETTE_TYPE = {
+    "maler": "Home Services (Plumber/Electrician)",
+    "schreiner": "Construction/Architecture",
+    "bau": "Construction/Architecture",
+    "dach": "Construction/Architecture",
+    "sanitaer": "Home Services (Plumber/Electrician)",
+    "elektr": "Home Services (Plumber/Electrician)",
+    "handwerk": "Home Services (Plumber/Electrician)",
+    "garten": "Florist/Plant Shop",
+    "architecture": "Architecture / Interior",
+    "interior": "Home Decoration & Interior Design",
+    "real_estate": "Real Estate/Property",
+    "restaurant": "Restaurant/Food Service",
+    "pizza": "Restaurant/Food Service",
+    "catering": "Restaurant/Food Service",
+    "food": "Restaurant/Food Service",
+    "cafe": "Bakery/Cafe",
+    "bakery": "Bakery/Cafe",
+    "beauty": "Beauty/Spa/Wellness Service",
+    "wellness": "Beauty/Spa/Wellness Service",
+    "fitness": "Fitness/Gym App",
+    "medical": "Medical Clinic",
+    "dental": "Dental Practice",
+    "legal": "Legal Services",
+    "consulting": "B2B Service",
+    "finance": "Banking/Traditional Finance",
+    "auto": "Automotive/Car Dealership",
+    "tech": "SaaS (General)",
+    "generic": "B2B Service",
+}
+
+
+def _ux_industry_key(industry: str) -> str:
+    ind = (industry or "").lower()
+    for k in ("maler", "schreiner", "bau", "dach", "sanitaer", "elektr", "garten", "handwerk",
+              "architecture", "interior", "real_estate", "restaurant", "pizza", "cafe", "bakery",
+              "catering", "food", "beauty", "wellness", "fitness", "medical", "dental", "legal",
+              "consulting", "finance", "auto", "tech"):
+        if k in ind:
+            return k
+    return "generic"
+
+
+def _read_ux_csv(fname: str) -> list:
+    import csv
+    p = UX_DATA_DIR / fname
+    if not p.exists():
+        return []
+    try:
+        with open(p, encoding="utf-8") as f:
+            return list(csv.DictReader(f))
+    except Exception as e:
+        print(f"[ux] {fname} read error ({e})")
+        return []
+
+
+def pick_font_pairing(industry: str = "", tone: str = "") -> dict | None:
+    """Pick a Google-font heading/body pairing from the ui-ux-pro-max typography data,
+    matched to the industry + tone. Returns {heading, body, css, name} or None."""
+    import re
+    rows = _read_ux_csv("typography.csv")
+    if not rows:
+        return None
+    query = (_FONT_QUERY.get(_ux_industry_key(industry), "") + " " + (tone or "")).lower()
+    qwords = [w for w in re.findall(r"[a-z]+", query) if len(w) > 3]
+    best, best_score = rows[0], -1
+    for r in rows:
+        hay = (r.get("Best For", "") + " " + r.get("Mood/Style Keywords", "") + " " + r.get("Category", "")).lower()
+        s = sum(1 for w in qwords if w in hay)
+        if s > best_score:
+            best, best_score = r, s
+    print(f"[ux] Font pairing → {best.get('Font Pairing Name')}")
+    return {"heading": best.get("Heading Font", ""), "body": best.get("Body Font", ""),
+            "css": best.get("CSS Import", ""), "name": best.get("Font Pairing Name", "")}
+
+
+def pick_palette(industry: str = "") -> dict | None:
+    """Pick an industry-fitting, WCAG-safe colour palette from the ui-ux-pro-max colours
+    data. Used ONLY as a fallback when the real brand colours are unusable."""
+    rows = _read_ux_csv("colors.csv")
+    if not rows:
+        return None
+    want = _PALETTE_TYPE.get(_ux_industry_key(industry), "B2B Service").strip().lower()
+    for r in rows:
+        if r.get("Product Type", "").strip().lower() == want:
+            print(f"[ux] Palette → {r.get('Product Type')}")
+            return r
+    return None
 
 
 def extract_logo_url(html: str, base_url: str = "") -> str | None:
@@ -795,6 +919,13 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
         "already uses the brand color — do NOT draw any SVG yourself. This counts as a photo-grade hero; "
         "if a Graphic or Typographic hero fits better, simply omit the tag.\n") if illus_svg else ""
 
+    _fp = pick_font_pairing(industry, tone)
+    font_block = (f"Use this curated Google-font pairing: {_fp['heading']} for headings, {_fp['body']} for body. "
+        f"Load them in <head>: {_fp['css']}") if _fp else "Use 2 Google Fonts that fit the brand and tone."
+    _pal = pick_palette(industry)
+    palette_fallback = (f"\nFALLBACK PALETTE — use ONLY if the real brand colours are unusable (WCAG-safe, fits this industry): "
+        f"primary {_pal['Primary']}, accent {_pal['Accent']}, background {_pal['Background']}, text {_pal['Foreground']}.") if _pal else ""
+
     msg_content = []
     if reference_images:
         msg_content.append({"type": "text", "text": (
@@ -834,7 +965,7 @@ Subtext:  {key_content.get('hero_subtext') or '—'}
 CTA:      {key_content.get('cta_text') or 'Kontakt'}
 Phone:    {key_content.get('phone') or '—'}
 Services: {_s(services)}
-{colors_note}
+{colors_note}{palette_fallback}
 
 NAV: logo/brand far left, links right. Min 48px gap. Never transparent.
 NAV BACKGROUND — pick what fits THIS brand, NOT a default black:
@@ -867,7 +998,7 @@ CONTRAST LAW — most important rule, no exceptions ever:
 ✓ Headline: clamp(2.5rem,7vw,6rem), bold, line-height:0.95–1.1, explicit color
 ✓ Subtext: clamp(1rem,2vw,1.25rem), max-width:600px, explicit color
 ✓ CTA: pill, accent color bg, color:#fff, padding:14px 40px
-✓ Google Fonts: 2 fonts matching the tone
+✓ Fonts: {font_block}
 
 Add <!-- HERO_END --> immediately after the closing </section> of the hero.
 
@@ -1776,6 +1907,14 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
         "modestly, keep it tasteful — never scatter several icons, and skip them for a photo hero or "
         "whenever they would clutter.\n" + "\n".join(_motifs)) if _motifs else ""
 
+    _fp = pick_font_pairing(industry, tone)
+    font_block = (f"Use this curated Google-font pairing: {_fp['heading']} for headings, {_fp['body']} for body. "
+        f"Load them in <head>: {_fp['css']}") if _fp else "Use a proven 2-font Google pairing that fits the industry and tone."
+    _pal = pick_palette(industry)
+    palette_fallback = (f"\nFALLBACK PALETTE — use ONLY if the real brand colours are unusable (WCAG-safe, fits this industry): "
+        f"primary {_pal['Primary']}, accent {_pal['Accent']}, background {_pal['Background']}, "
+        f"text {_pal['Foreground']}, muted {_pal['Muted']}.") if _pal else ""
+
     # ── Claude prompt ──────────────────────────────────────────────────────────
     content.append({
         "type": "text",
@@ -1794,7 +1933,7 @@ Tone:        {tone}
 Tagline:     {tagline or '—'}
 Services:    {_s(services)}
 Audience:    {audience}
-{colors_block}
+{colors_block}{palette_fallback}
 Headline:    {key_content.get('hero_headline') or '—'}
 Subtext:     {key_content.get('hero_subtext') or '—'}
 CTA:         {key_content.get('cta_text') or 'Kontakt'}
@@ -1934,16 +2073,7 @@ Replace BUSINESS_NAME in the subject with the actual business name.
 
 ── TECHNICAL ─────────────────────────────────────────────────────────────
 • Single HTML file, all CSS and JS inline
-• Google Fonts: pick the proven pair for the industry below — do not deviate:
-    Restaurant/Food    → "Playfair Display" (headings) + "Lato" (body)
-    Café/Bakery        → "Cormorant Garamond" (headings) + "Nunito" (body)
-    Medical/Dental     → "DM Serif Display" (headings) + "DM Sans" (body)
-    Beauty/Wellness    → "Cormorant Garamond" (headings) + "Montserrat" (body)
-    Handwerk/Trade     → "Oswald" (headings) + "Open Sans" (body)
-    Legal/Finance      → "Libre Baskerville" (headings) + "Source Sans 3" (body)
-    Tech/SaaS          → "Inter" (headings + body, different weights)
-    Luxury/Hotel       → "Cormorant Garamond" (headings) + "Jost" (body)
-    Generic/Other      → "Syne" (headings) + "Inter" (body)
+• Fonts: {font_block}
 • CSS custom properties on :root for all brand colors
 • Mobile-first:
   - Nav: hamburger (☰) on mobile, JS toggles .open class
