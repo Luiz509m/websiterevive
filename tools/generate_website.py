@@ -43,7 +43,16 @@ TEST_MODE   = os.environ.get("TEST_MODE", "true").lower() == "true"   # true = f
 #    distinctive AND meets an accessibility/performance floor) ─────────────────
 
 # frontend-design: avoid templated AI defaults, give the page one signature.
-DESIGN_PRINCIPLES = """── DESIGN DIRECTION (make it look intentional, not AI-generated) ──────────
+DESIGN_PRINCIPLES = """── FACTUAL GROUNDING LAW (highest priority — overrides everything) ─────────
+• Use ONLY facts that appear in the provided business data / scraped content. NEVER
+  invent or guess a concrete fact: no years ("seit 1924"), no counts ("5 Generationen",
+  "200+ Projekte"), no statistics ("100%", "98%"), no awards, certifications, named
+  clients/partners/projects, prices, opening hours, or team names that are not in the data.
+• If a number/fact is not in the data, DO NOT state it — leave it out entirely. A design
+  element that needs a number you don't have (a big stat, a counter) must be dropped, not
+  filled with a plausible guess. Empty/generic is always better than invented.
+
+── DESIGN DIRECTION (make it look intentional, not AI-generated) ──────────
 • THE HERO IS A THESIS: open with the single most characteristic thing about
   THIS business, not a generic "headline + button" template.
 • A SIMPLE, QUIET HERO IS ENCOURAGED: a confident headline with very little text,
@@ -673,6 +682,58 @@ def download_site_images_for_claude(urls: list[str], max_images: int = 6, timeou
     return result
 
 
+def factcheck_pass(html: str, source_text: str, business_name: str) -> str:
+    """Compare the generated HTML against the scraped SOURCE text and remove INVENTED
+    facts. Returns the HTML with unsupported concrete claims neutralised. The model only
+    outputs find/replace edits (JSON) — never the whole HTML — so it cannot corrupt the
+    page; edits are applied deterministically and skipped if the snippet isn't found."""
+    if not source_text or not html:
+        return html
+    print("\n[factcheck] Verifying facts against scraped source...")
+    src = source_text[:30000]
+    html_preview = html[:60000] if len(html) > 60000 else html
+    prompt = f"""You are a STRICT fact-checker for a generated business website. The business is "{business_name}".
+
+SOURCE — the ONLY verified information (everything true about this business is in here):
+\"\"\"{src}\"\"\"
+
+GENERATED HTML (may contain invented claims):
+\"\"\"{html_preview}\"\"\"
+
+Find every CONCRETE, CHECKABLE claim in the HTML that is NOT clearly supported by the SOURCE. Concrete claims:
+- numbers, years, dates, durations ("seit 1924", "5 Generationen", "über 200 Projekte", "in 60 Sekunden")
+- statistics / percentages ("100% termingerecht", "98% zufrieden")
+- named awards, certifications, clients, partners, specific projects/places, team-member names
+- specific prices, opening hours, exact addresses or phone numbers not in the SOURCE
+Generic marketing language ("hochwertige Qualität", "individuelle Lösungen", "persönliche Beratung") is ALLOWED — do not touch it.
+
+For each unsupported claim, produce an edit that REMOVES the fake fact: rewrite the surrounding visible text into a true, generic statement, or drop the figure. Keep natural German and keep any HTML tags inside the snippet intact.
+
+Return ONLY a JSON array, no prose, no code fences:
+[{{"find":"<verbatim snippet copied EXACTLY from the HTML, long enough to be unique>","replace":"<corrected snippet>"}}]
+If every concrete claim is supported by the SOURCE, return exactly: []"""
+    try:
+        response = CLIENT.messages.create(
+            model=MODEL_FAST, max_tokens=4000,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        import json as _json
+        edits = _json.loads(raw)
+        applied = 0
+        for e in edits:
+            f, r = (e.get("find") or ""), (e.get("replace") or "")
+            if f and f in html:
+                html = html.replace(f, r, 1)
+                applied += 1
+        print(f"[factcheck] ✓ Removed {applied}/{len(edits)} invented claim(s)")
+    except Exception as e:
+        print(f"[factcheck] skipped ({e}) — HTML unchanged")
+    return html
+
+
 def critic_pass(html: str, industry: str, business_name: str) -> str:
     """
     Second Claude call (Sonnet, fast+cheap) that reviews the generated HTML
@@ -1195,7 +1256,7 @@ Homepage HTML:
 All scraped pages (verbatim text):
 {pages_context}
 
-STRICT RULE: Only extract information EXPLICITLY present above. NEVER invent prices, phone numbers, addresses, hours, names, or any factual details.
+STRICT RULE: Only extract information EXPLICITLY present above. NEVER invent or infer ANY concrete fact — no prices, phone numbers, addresses, hours, names, AND no numbers, years, founding dates, counts ("5 generations", "200+ projects"), statistics/percentages, awards, certifications, or named clients/partners that are not literally in the text. This applies to every field including hero_headline, about_summary and USPs/features: if a fact is not present, leave it out or leave the field empty. A missing field is correct; a guessed fact is a failure.
 
 Extract and return a JSON object with ALL of the following:
 {{

@@ -68,6 +68,7 @@ from generate_website import (
     load_reference_images, extract_image_urls, extract_text_content,
     validate_image_urls, download_site_images_for_claude, TEST_MODE,
     fetch_pexels_images, _industry_to_pexels_query, extract_logo_url,
+    factcheck_pass,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links, slugify
 
@@ -749,6 +750,10 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
             '</div>'
         )
         full_html = full_html.replace('</body>', watermark + '\n</body>')
+
+        # Fact-check the FINAL page (hero + sections) against the scraped source —
+        # strip any invented numbers/years/stats/awards so nothing is made up.
+        full_html = factcheck_pass(full_html, full_text, ctx.get("analysis", {}).get("business_name", ""))
 
         db.update_full_html(generation_id, full_html)
         print(f"[unlock] ✓ Job done — {len(full_html):,} chars saved")
