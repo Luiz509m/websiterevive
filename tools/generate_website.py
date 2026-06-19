@@ -54,14 +54,14 @@ DESIGN_PRINCIPLES = """── DESIGN DIRECTION (make it look intentional, not AI
   (neon/acid accents, glassy frosted cards, shiny 3D blobs, floating app/UI mockups)
   is a SaaS cliché: do NOT use it unless the business is software/tech. Soft, flat,
   on-brand gradients and simple geometric shapes are fine for anyone.
-• USE THE BRAND'S REAL COLOURS (critical): you can SEE the logo and the original
-  screenshot — read the brand's actual primary + accent colours from the LOGO and make
-  them the dominant palette. Define them as CSS variables on :root (--clr-primary and
-  --clr-accent) and apply them prominently: buttons, links, key accents, and one or two
-  section backgrounds. Do NOT fall back to a generic blue/navy or an all-black/grey
-  scheme just because it is easy or because the old site used it — the scraped colours
-  are only a hint. Only if the real brand colours genuinely clash or are unusable, pick
-  a tasteful palette that fits the industry instead. Never leave it defaulting to blue.
+• COLOURS — classic & restrained by default: build on a TIMELESS NEUTRAL base —
+  white, off-white, cream, beige, warm greys, charcoal, near-black. Read the brand's
+  REAL colours from the logo/screenshot and define them as CSS variables on :root
+  (--clr-primary, --clr-accent); use the brand colour as the ONE accent (buttons, links,
+  key highlights). A SATURATED colour (orange, yellow, teal, bright blue, green, etc.)
+  may appear ONLY if it is genuinely the brand's colour from the logo. If there is no
+  clear brand accent, STAY NEUTRAL — an elegant black/white/beige scheme beats anything
+  colourful. Never invent a loud accent, and never default to a generic blue.
 • ONE SIGNATURE ELEMENT: give the page exactly one memorable, brand-specific
   detail (a distinctive type treatment, an oversized number/word, an unusual
   section transition, a custom divider). Spend your boldness there and keep
@@ -922,9 +922,9 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     _fp = pick_font_pairing(industry, tone)
     font_block = (f"Use this curated Google-font pairing: {_fp['heading']} for headings, {_fp['body']} for body. "
         f"Load them in <head>: {_fp['css']}") if _fp else "Use 2 Google Fonts that fit the brand and tone."
-    _pal = pick_palette(industry)
-    palette_fallback = (f"\nFALLBACK PALETTE — use ONLY if the real brand colours are unusable (WCAG-safe, fits this industry): "
-        f"primary {_pal['Primary']}, accent {_pal['Accent']}, background {_pal['Background']}, text {_pal['Foreground']}.") if _pal else ""
+    palette_fallback = ("\nIf the brand has NO usable colour, use a CLASSIC NEUTRAL scheme: cream/off-white background "
+        "(e.g. #FAF9F6), near-black text (e.g. #1A1A1A), warm grey support tones, and at most ONE restrained accent — "
+        "only if the brand suggests one. No orange/yellow/bright colours unless they are the brand's own.")
 
     msg_content = []
     if reference_images:
@@ -1910,10 +1910,9 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
     _fp = pick_font_pairing(industry, tone)
     font_block = (f"Use this curated Google-font pairing: {_fp['heading']} for headings, {_fp['body']} for body. "
         f"Load them in <head>: {_fp['css']}") if _fp else "Use a proven 2-font Google pairing that fits the industry and tone."
-    _pal = pick_palette(industry)
-    palette_fallback = (f"\nFALLBACK PALETTE — use ONLY if the real brand colours are unusable (WCAG-safe, fits this industry): "
-        f"primary {_pal['Primary']}, accent {_pal['Accent']}, background {_pal['Background']}, "
-        f"text {_pal['Foreground']}, muted {_pal['Muted']}.") if _pal else ""
+    palette_fallback = ("\nIf the brand has NO usable colour, use a CLASSIC NEUTRAL scheme: cream/off-white background "
+        "(e.g. #FAF9F6), near-black text (e.g. #1A1A1A), warm grey support tones, and at most ONE restrained accent — "
+        "only if the brand suggests one. No orange/yellow/bright colours unless they are the brand's own.")
 
     # ── Claude prompt ──────────────────────────────────────────────────────────
     content.append({
