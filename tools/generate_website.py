@@ -34,7 +34,7 @@ TMP.mkdir(exist_ok=True)
 CLIENT = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 MODEL_FAST  = "claude-sonnet-4-6"
 _use_opus   = os.environ.get("USE_OPUS", "false").lower() == "true"
-MODEL_FULL  = "claude-opus-4-7" if _use_opus else "claude-sonnet-4-6"
+MODEL_FULL  = "claude-opus-4-8" if _use_opus else "claude-sonnet-4-6"  # Opus = Claude-level design
 TEST_MODE   = os.environ.get("TEST_MODE", "true").lower() == "true"   # true = fewer images, skip critic
 
 
@@ -1661,8 +1661,9 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     key_content     = analysis.get("key_content", {})
     features        = key_content.get("features", key_content.get("unique_selling_points", []))
     web3forms_key   = os.environ.get("WEB3FORMS_KEY", "")
-    # notification_email overrides the Web3Forms account default destination
-    form_to_email   = notification_email.strip() if notification_email else ""
+    # Form destination: the email the customer typed, else fall back to the email
+    # scraped from their own website, so contact requests always reach the business.
+    form_to_email   = (notification_email or "").strip() or (key_content.get("email") or "").strip()
 
     # Deterministic color extraction beats Claude's analysis (more reliable)
     brand_colors = extract_brand_colors(raw_html) if raw_html else []
