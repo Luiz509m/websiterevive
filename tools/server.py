@@ -68,7 +68,7 @@ from generate_website import (
     load_reference_images, extract_image_urls, extract_text_content,
     validate_image_urls, download_site_images_for_claude, TEST_MODE,
     fetch_pexels_images, _industry_to_pexels_query, extract_logo_url,
-    factcheck_pass,
+    factcheck_pass, inline_remote_images,
 )
 from scrape_site import scrape, scrape_subpages, extract_important_links, slugify
 
@@ -765,6 +765,9 @@ def _build_full_site(generation_id: str, ctx: dict) -> None:
 
 
 def _package_result(generation: dict, full_html: str) -> dict:
+    # Bundle images into the HTML at delivery so the downloaded/exported site is
+    # self-contained and never breaks if the original site goes offline.
+    full_html  = inline_remote_images(full_html)
     files      = parse_multifile_html(full_html)
     index_html = files.get("index.html") or next(iter(files.values()), full_html)
     zip_bytes  = create_zip(files)

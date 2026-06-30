@@ -81,7 +81,21 @@ DESIGN_PRINCIPLES = """── FACTUAL GROUNDING LAW (highest priority — overri
     3. broadsheet layout with hairline rules, zero border-radius, dense columns
   These read as "templated" — derive colors and type from the brand instead.
 • Structure must encode meaning: only use numbered markers (01/02/03) when the
-  content is genuinely a sequence (a real process), never as decoration."""
+  content is genuinely a sequence (a real process), never as decoration.
+
+── CONTENT & CLARITY (keep it clean and scannable — high priority) ─────────
+• LESS TEXT, MORE CLARITY: this is a marketing site, not a copy of the source's
+  full text. SUMMARISE — never paste long paragraphs from the original. Give each
+  section a short intro (1–2 sentences max), then concise bullets or cards. Cut
+  filler, pleasantries and repetition.
+• SCANNABLE: short headlines, tight bullet lists and compact service cards beat
+  dense prose. A visitor should grasp each section at a glance.
+• ONE NAVIGATION ONLY: a single top nav with a FEW human-readable labels
+  ("Leistungen", "Referenzen", "Kontakt"…). NEVER output a second nav/keyword bar
+  or a large cloud of duplicate tag chips. Nav labels are real words — never file
+  names, slugs, prefixes or ".html".
+• HEADLINES ARE CLEAN: write real, readable headlines; never merge words or leave
+  stray fragments (e.g. "Übermosimaler")."""
 
 # ui-ux-pro-max: the non-negotiable accessibility + performance floor.
 A11Y_PERF_FLOOR = """── ACCESSIBILITY & PERFORMANCE FLOOR (mandatory, no exceptions) ───────────
@@ -209,6 +223,83 @@ def compress_image(img_path: Path, max_bytes: int = 4_500_000) -> tuple[bytes, s
             return None, None
         media_type = "image/png" if img_path.suffix == ".png" else "image/jpeg"
         return raw, media_type
+
+
+def inline_remote_images(html: str, timeout: int = 8, max_images: int = 14,
+                         max_dim: int = 1600, per_img_bytes: int = 350_000) -> str:
+    """Make the page self-contained: download every remote image it references
+    (both <img src> and CSS url(...)) and embed it as a base64 data URI, so the
+    HTML no longer hot-links to the original site's server.
+
+    Fail-safe by design: any image that can't be fetched/encoded keeps its original
+    URL, and any unexpected error returns the HTML unchanged. Transparency (logos)
+    is preserved by keeping PNG; photos are recompressed to JPEG to limit size.
+    """
+    import re as _re, io as _io, base64 as _b64
+    try:
+        import requests as _rq
+    except Exception:
+        return html
+
+    urls = set()
+    for m in _re.finditer(r'src=["\'](https?://[^"\']+)["\']', html, _re.I):
+        urls.add(m.group(1))
+    for m in _re.finditer(r'url\((["\']?)(https?://[^)"\']+)\1\)', html, _re.I):
+        urls.add(m.group(2))
+    if not urls:
+        return html
+
+    try:
+        from PIL import Image
+        have_pil = True
+    except Exception:
+        have_pil = False
+
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                             "AppleWebKit/537.36 (KHTML, like Gecko) "
+                             "Chrome/120.0.0.0 Safari/537.36"}
+    replaced = 0
+    for url in list(urls):
+        if replaced >= max_images:
+            break
+        try:
+            r = _rq.get(url, headers=headers, timeout=timeout)
+            if not r.ok or not r.content:
+                continue
+            data, media = r.content, "image/jpeg"
+            if have_pil:
+                try:
+                    img = Image.open(_io.BytesIO(data))
+                    has_alpha = img.mode in ("RGBA", "LA") or (
+                        img.mode == "P" and "transparency" in img.info)
+                    if max(img.size) > max_dim:
+                        img.thumbnail((max_dim, max_dim), Image.LANCZOS)
+                    buf = _io.BytesIO()
+                    if has_alpha:
+                        img.convert("RGBA").save(buf, format="PNG", optimize=True)
+                        media = "image/png"
+                    else:
+                        rgb, q = img.convert("RGB"), 82
+                        while True:
+                            buf = _io.BytesIO()
+                            rgb.save(buf, format="JPEG", quality=q)
+                            if buf.tell() <= per_img_bytes or q <= 40:
+                                break
+                            q -= 12
+                        media = "image/jpeg"
+                    data = buf.getvalue()
+                except Exception:
+                    pass  # keep raw bytes + default media type
+            if len(data) > 1_500_000:   # skip oversized to avoid bloating the file
+                continue
+            data_uri = f"data:{media};base64,{_b64.b64encode(data).decode()}"
+            html = html.replace(url, data_uri)
+            replaced += 1
+        except Exception:
+            continue
+
+    print(f"[inline] Embedded {replaced}/{len(urls)} image(s) as data URIs")
+    return html
 
 
 def load_reference_images(n: int = 4, industry: str = "") -> list[dict]:
@@ -1155,8 +1246,26 @@ def _industry_to_pexels_query(industry: str, business_name: str = "") -> str:
         return "luxury spa wellness"
     if any(k in ind for k in ["friseur", "coiffeur", "hair"]):
         return "hair salon modern"
-    if any(k in ind for k in ["handwerk", "bau", "maler", "schreiner"]):
-        return "craftsman workshop"
+    # Trade-specific queries (order matters: specific trade before generic
+    # "handwerk"/"bau"). Pexels returns best results for clear English terms.
+    if any(k in ind for k in ["maler", "malerei", "anstrich", "painter", "painting"]):
+        return "house painter painting wall"
+    if any(k in ind for k in ["gipser", "gipserei", "verputz", "stuck", "plaster"]):
+        return "plasterer plastering wall"
+    if any(k in ind for k in ["schreiner", "tischler", "zimmer", "holzbau", "carpenter", "joiner"]):
+        return "carpenter woodworking workshop"
+    if any(k in ind for k in ["sanitär", "sanitaer", "klempner", "spengler", "heizung", "plumb"]):
+        return "plumber bathroom installation"
+    if any(k in ind for k in ["elektr", "electric"]):
+        return "electrician wiring installation"
+    if any(k in ind for k in ["garten", "gärtner", "gaertner", "landschaft", "garden", "landscap"]):
+        return "gardener landscaping garden"
+    if any(k in ind for k in ["dach", "roof", "bedach", "spengler"]):
+        return "roofer roof construction"
+    if any(k in ind for k in ["platten", "fliesen", "boden", "tiler", "tile"]):
+        return "tiler laying floor tiles"
+    if any(k in ind for k in ["handwerk", "bau", "construction", "renovat", "umbau"]):
+        return "construction worker building site"
     if any(k in ind for k in ["immobilien", "real estate", "wohnung"]):
         return "modern apartment architecture"
     if any(k in ind for k in ["fitness", "gym", "sport", "training"]):
@@ -2255,6 +2364,9 @@ def main():
 
     # Step 4: Generate
     generated_html = generate_website(analysis, references, site_images, full_text, raw_html=scraped["html"])
+
+    # Step 5: Bundle remote images as data URIs so the file is self-contained
+    generated_html = inline_remote_images(generated_html)
 
     # Save output
     output_path = TMP / f"{slug}_generated.html"

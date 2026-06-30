@@ -8,6 +8,11 @@
 __pycache__/
 *.pyc
 *.pyo
+.venv/
+venv/
+
+# Local agent context (may contain internal positioning notes — keep out of git)
+.agents/
 
 # Google OAuth
 token.json

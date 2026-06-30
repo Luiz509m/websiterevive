@@ -154,6 +154,23 @@ def fetch_sitemap_links(base_url: str, headers: dict) -> list[dict]:
     return priority + fallback
 
 
+def _clean_label(raw: str) -> str:
+    """Turn a URL filename/slug into a human-readable nav label.
+    e.g. 'kp_gipserei_verputze.html' -> 'Gipserei Verputze'."""
+    s = (raw or "").strip().strip("/").split("/")[-1]
+    s = re.sub(r"\.(html?|php|aspx?|jsp)$", "", s, flags=re.I)   # drop file extension
+    s = re.sub(r"%[0-9a-fA-F]{2}", " ", s)                        # leftover url-encoding
+    s = re.sub(r"[_\-+]+", " ", s)                                # separators -> space
+    s = re.sub(r"\s+", " ", s).strip()
+    parts = s.split(" ")
+    # drop a leading short code prefix (e.g. 'kp', 'pg', 'wp') but keep real words
+    if len(parts) > 1:
+        p0 = parts[0].lower()
+        if len(p0) <= 2 or (len(p0) <= 3 and not re.search(r"[aeiouäöü]", p0)):
+            parts = parts[1:]
+    return " ".join(w.capitalize() for w in parts)
+
+
 def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dict]:
     """Find links to important sub-pages. Priority links match known keywords;
     fallback collects any internal page link so we never return empty-handed."""
@@ -215,7 +232,11 @@ def find_subpage_links(html: str, base_url: str, max_links: int = 8) -> list[dic
             continue
 
         seen.add(path_key)
-        entry = {"url": absolute, "label": label or path.split("/")[-1]}
+        # If the link has no text, or its text is itself a file name, derive a
+        # clean human-readable label from the path (never expose ".html"/slugs).
+        if not label or re.search(r"\.(html?|php|aspx?|jsp)$", label, re.I):
+            label = _clean_label(path.split("/")[-1])
+        entry = {"url": absolute, "label": label}
         if any(kw in combined for kw in important):
             priority.append(entry)
         else:
