@@ -105,8 +105,8 @@ TMP.mkdir(exist_ok=True)
 # ── Token packages ────────────────────────────────────────────────────────────
 PACKAGES = {
     "test": {"tokens": 1,  "amount_chf": 19.90, "price_id": os.environ.get("STRIPE_PRICE_TEST")},
-    "1":    {"tokens": 1,  "amount_chf": 29.00, "price_id": os.environ.get("STRIPE_PRICE_1")},
-    "5":    {"tokens": 5,  "amount_chf": 49.00, "price_id": os.environ.get("STRIPE_PRICE_5")},
+    "1":    {"tokens": 1,  "amount_chf": 49.00,  "price_id": os.environ.get("STRIPE_PRICE_1")},
+    "5":    {"tokens": 5,  "amount_chf": 149.00, "price_id": os.environ.get("STRIPE_PRICE_5")},
 }
 
 
@@ -1028,6 +1028,7 @@ def hosting_checkout(user_id):
     data          = request.get_json(silent=True) or {}
     generation_id = (data.get("generation_id") or "").strip()
     subdomain_raw = (data.get("subdomain") or "").strip()
+    plan          = (data.get("plan") or "hosting").strip()  # "complete" = Create+Host, "hosting" = Host only
 
     if not generation_id:
         return jsonify({"error": "generation_id is required"}), 400
@@ -1035,8 +1036,17 @@ def hosting_checkout(user_id):
     generation = db.get_generation(generation_id)
     if not generation:
         return jsonify({"error": "Generation not found"}), 404
-    if not generation.get("unlocked"):
-        return jsonify({"error": "Unlock this website first"}), 403
+
+    # "complete" (Create + Host) bundles the unlock into the subscription — no
+    # prior token purchase needed. "hosting" (Host only) needs the site unlocked.
+    if plan == "complete":
+        price_id = os.environ.get("STRIPE_PRICE_COMPLETE", "")
+    else:
+        if not generation.get("unlocked"):
+            return jsonify({"error": "Unlock this website first"}), 403
+        price_id = os.environ.get("STRIPE_HOSTING_PRICE_ID", "")
+    if not price_id:
+        return jsonify({"error": "This plan is not configured"}), 503
 
     subdomain = _slugify_subdomain(subdomain_raw)
     if not subdomain:
@@ -1044,17 +1054,13 @@ def hosting_checkout(user_id):
     if db.subdomain_exists(subdomain):
         return jsonify({"error": "This subdomain is already taken"}), 409
 
-    price_id = os.environ.get("STRIPE_HOSTING_PRICE_ID", "")
-    if not price_id:
-        return jsonify({"error": "Hosting not configured"}), 503
-
     try:
         session = stripe.checkout.Session.create(
             mode="subscription",
             line_items=[{"price": price_id, "quantity": 1}],
             success_url=f"https://webisterevive.xyz/?hosting_session={{CHECKOUT_SESSION_ID}}&subdomain={subdomain}&generation_id={generation_id}",
             cancel_url="https://webisterevive.xyz/",
-            metadata={"generation_id": generation_id, "subdomain": subdomain, "user_id": user_id},
+            metadata={"generation_id": generation_id, "subdomain": subdomain, "user_id": user_id, "plan": plan},
             client_reference_id=user_id,
         )
         return jsonify({"checkout_url": session.url})
@@ -1095,6 +1101,10 @@ def hosting_verify(user_id):
         return jsonify({"error": "Missing subdomain or generation_id"}), 400
 
     try:
+        # Create + Host bundles the unlock into the subscription, so mark the
+        # generation owned/unlocked before deploying.
+        if session.metadata.get("plan") == "complete":
+            db.mark_unlocked(generation_id)
         site_id = _netlify_deploy_with_domain(generation_id, subdomain)
         db.create_hosted_site(user_id, generation_id, subdomain, site_id, session_id)
         return jsonify({"url": f"https://{subdomain}.webisterevive.xyz"})
