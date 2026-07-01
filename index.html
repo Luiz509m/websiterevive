@@ -1816,13 +1816,7 @@
       Paste your URL. Get a faster, smarter, higher-converting website — no agency, no developer, no waiting.
     </p>
 
-    <!-- Mode toggle -->
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="mode-url" onclick="switchMode('url')">Optimize URL</button>
-      <button class="mode-btn" id="mode-scratch" onclick="switchMode('scratch')">Create New</button>
-    </div>
-
-    <!-- URL optimizer form (existing, untouched) -->
+    <!-- URL optimizer form -->
     <form id="hero-input" class="url-form revive-form" onsubmit="handleRevive(event);">
       <div class="url-input-wrap">
         <span class="url-prefix">https://</span>
@@ -1835,27 +1829,6 @@
         <button class="btn-revive" type="submit">Revive Website →</button>
       </div>
     </form>
-
-    <!-- Create from scratch form (hidden by default) -->
-    <div id="scratch-form-wrap" class="scratch-form" style="display:none;">
-      <textarea
-        id="scratch-prompt"
-        class="scratch-textarea"
-        placeholder="Beschreibe dein Business: Name, Branche, Dienstleistungen, Zielgruppe, Standort, Tonalität...&#10;&#10;Beispiel: Wir sind Zahnarzt Müller in Zürich. Unsere Leistungen sind Implantate, Bleaching und Zahnreinigung. Wir sind modern, freundlich und für die ganze Familie."
-      ></textarea>
-      <div class="color-row">
-        <div class="color-pick">
-          <label>Primärfarbe</label>
-          <input type="color" id="color1" value="#3DFFD0">
-        </div>
-        <div class="color-pick">
-          <label>Sekundärfarbe</label>
-          <input type="color" id="color2" value="#0D1A16">
-        </div>
-      </div>
-      <button class="btn-create" onclick="handleCreate(event)">Website erstellen →</button>
-      <div id="scratch-error" style="display:none;color:#ff7070;font-size:13px;margin-top:10px;padding:10px 14px;background:rgba(255,90,90,0.1);border:1px solid rgba(255,90,90,0.3);border-radius:6px;line-height:1.5;"></div>
-    </div>
 
     <p class="hero-note" id="hero-note-default">
       Generate your full website for free — pay only to download or host it
@@ -2994,76 +2967,10 @@
   }
 
   // ── Mode toggle ──────────────────────────────────────────────────────────────
-  function switchMode(mode) {
-    const isUrl = mode === 'url';
-    document.getElementById('hero-input').style.display      = isUrl ? '' : 'none';
-    document.getElementById('scratch-form-wrap').style.display = isUrl ? 'none' : '';
-    document.getElementById('mode-url').classList.toggle('active', isUrl);
-    document.getElementById('mode-scratch').classList.toggle('active', !isUrl);
-  }
+  /* switchMode removed — "Create New" mode dropped, URL input only. */
 
   // ── Create from scratch ───────────────────────────────────────────────────
-  async function handleCreate(e) {
-    e.preventDefault();
-    const prompt = (document.getElementById('scratch-prompt').value || '').trim();
-    const color1 = document.getElementById('color1').value;
-    const color2 = document.getElementById('color2').value;
-
-    if (!prompt) { alert('Bitte beschreibe dein Business.'); return; }
-
-    const btn = e.currentTarget;
-    btn.disabled    = true;
-    btn.textContent = 'Generiere…';
-    document.getElementById('scratch-error').style.display = 'none';
-
-    // Reuse the same result section as URL mode
-    const fakeForm = document.getElementById('hero-input');
-    setStatus(fakeForm, 'Analysiere Beschreibung…', 15);
-
-    const steps = [
-      { text: 'Erstelle Design-Konzept…',    pct: 30, after: 8000  },
-      { text: 'Generiere Hero-Sektion…',     pct: 55, after: 25000 },
-      { text: 'Finalisiere Design…',          pct: 78, after: 50000 },
-      { text: 'Fast fertig…',                pct: 90, after: 70000 },
-    ];
-    const timers = steps.map(s => setTimeout(() => setStatus(fakeForm, s.text, s.pct), s.after));
-
-    try {
-      const res  = await fetch(`${REVIVE_API_URL}/generate-new`, {
-        method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ prompt, color1, color2 }),
-      });
-      const data = await res.json();
-      timers.forEach(t => clearTimeout(t));
-      if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
-
-      currentGenerationId = data.generation_id;
-
-      const blob   = new Blob([data.hero_html], { type: 'text/html' });
-      const iframe = document.getElementById('hero-iframe');
-      iframe.src   = URL.createObjectURL(blob);
-
-      document.getElementById('result-section').style.display = 'block';
-      document.getElementById('hero-note-default').style.display = 'none';
-      setStatus(fakeForm, `${data.business_name || 'Deine Website'} ist bereit — jetzt freischalten`, 100);
-
-      // For generate-new, generation starts after unlock (legacy ##PENDING## flow) — show unlock bar
-      document.getElementById('gen-progress-bar').style.display = 'none';
-      const unlockBar = document.getElementById('unlock-bar');
-      unlockBar.style.display = 'block';
-      document.getElementById('unlock-btn').textContent = 'Freischalten — 1 Token';
-
-      btn.disabled    = false;
-      btn.textContent = 'Nochmal erstellen →';
-    } catch (err) {
-      timers.forEach(t => clearTimeout(t));
-      const errEl = document.getElementById('scratch-error');
-      errEl.textContent = `Fehler: ${err.message}`;
-      errEl.style.display = 'block';
-      btn.disabled    = false;
-      btn.textContent = 'Website erstellen →';
-    }
-  }
+  /* handleCreate removed — the prompt-based "Create New" flow was dropped (URL input only). */
 
   async function handleRevive(e) {
     e.preventDefault();
@@ -3413,6 +3320,13 @@
           setTimeout(() => {
             if (progressBar) progressBar.style.display = 'none';
             document.getElementById('unlock-bar').style.display = 'block';
+            // Reset the unlock button + status: the deferred generate-new flow
+            // leaves them stuck on "Generating…/please wait" even though the
+            // site is already finished. Clear them so it no longer looks stuck.
+            const ub = document.getElementById('unlock-btn');
+            if (ub) { ub.disabled = false; ub.textContent = 'Download — 1 Token'; }
+            const us = document.getElementById('unlock-status');
+            if (us) us.style.display = 'none';
           }, 1500);
 
         } else if (data.status === 'error') {
