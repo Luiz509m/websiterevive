@@ -135,6 +135,9 @@ top studio made it by hand.
 PHOTO RULE (decisive): use a photo ONLY where a provided image is genuinely high quality
 AND clearly relevant. A weak, generic, off-topic or low-res image is WORSE than none — then
 use a typographic or graphic treatment instead. Never use random stock that doesn't fit.
+PREFER THE COMPANY'S OWN PHOTOS: a real, relevant image from the business (even if plain)
+beats polished stock every time — it makes the site feel authentic and not AI-generated.
+Use stock only as a last resort, and only if it is clearly on-topic and high quality.
 
 FIT & PROPORTION (never break the layout — this overrides boldness):
 • The FULL headline must fit and WRAP inside the padded container — NEVER clipped by
@@ -1212,7 +1215,7 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     msg_content = []
     if reference_images:
         msg_content.append({"type": "text", "text": (
-            f"REFERENCE DESIGNS ({len(reference_images)} examples) — for INSPIRATION ONLY. Absorb their craft level: typography, spacing, whitespace, visual depth, restraint. Then create something NEW that fits THIS business — do NOT copy their layout, colors, or content, and do NOT reproduce a generic tech/SaaS landing page unless the business actually is tech."
+            f"REFERENCE DESIGNS ({len(reference_images)} examples) — THIS IS YOUR QUALITY BAR, not just inspiration. Your output MUST match their level of craft: bold typographic scale and contrast, generous whitespace, visual depth, confident art direction and polish. If your result would look flatter, more generic or more templated than these, it is NOT good enough — raise it to this bar. Match the QUALITY, not the layout: create something NEW that fits THIS business (do NOT copy their layout, colours or content, and do NOT default to a generic tech/SaaS landing page unless the business is actually tech)."
         )})
         for ref in reference_images:
             msg_content.append({"type": "image", "source": {"type": "base64", "media_type": ref["media_type"], "data": ref["data"]}})
@@ -1879,7 +1882,7 @@ def generate_website(analysis: dict, reference_images: list[dict], site_image_ur
     if reference_images:
         content.append({
             "type": "text",
-            "text": f"REFERENCE DESIGNS ({len(reference_images)} examples) — for INSPIRATION ONLY. Absorb their craft level: typography, spacing, whitespace, visual depth, restraint. Then create something NEW that fits THIS business — do NOT copy their layout, colors, or content, and do NOT reproduce a generic tech/SaaS landing page unless the business actually is tech."
+            "text": f"REFERENCE DESIGNS ({len(reference_images)} examples) — THIS IS YOUR QUALITY BAR, not just inspiration. Your output MUST match their level of craft: bold typographic scale and contrast, generous whitespace, visual depth, confident art direction and polish. If your result would look flatter, more generic or more templated than these, it is NOT good enough — raise it to this bar. Match the QUALITY, not the layout: create something NEW that fits THIS business (do NOT copy their layout, colours or content, and do NOT default to a generic tech/SaaS landing page unless the business is actually tech)."
         })
         for ref in reference_images:
             content.append({
