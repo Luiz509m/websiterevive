@@ -135,16 +135,29 @@ top studio made it by hand.
 PHOTO RULE (decisive): use a photo ONLY where a provided image is genuinely high quality
 AND clearly relevant. A weak, generic, off-topic or low-res image is WORSE than none — then
 use a typographic or graphic treatment instead. Never use random stock that doesn't fit.
+
+FIT & PROPORTION (never break the layout — this overrides boldness):
+• The FULL headline must fit and WRAP inside the padded container — NEVER clipped by
+  overflow, never bleeding off the left/right edge, never one letter/word per line with the
+  rest cut off. If a headline or a single word is long, REDUCE its font-size until every word
+  is fully visible on mobile AND desktop. A readable headline beats a giant clipped one.
+• The hero fills roughly one screen and feels balanced — NOT an over-stretched, very tall,
+  mostly-empty band. If there is little hero content, make the hero shorter; never pad it
+  out with empty space.
+• Every section stays balanced: never a tiny text block floating in a large empty area —
+  size the section to its content.
 """
 
 # Six distinct art directions. The picker commits to ONE per business so the output looks
 # intentional and hand-designed, not like a templated AI default.
 DESIGN_DIRECTIONS = {
 "editorial_oversized": """DIRECTION: Editorial / Oversized Type — bold, confident, modern.
-• HERO: massive display typography is the centrepiece — a huge headline
-  (clamp(3rem,10vw,8rem), line-height ~0.95, heavy weight) that owns the first screen.
-  Optionally a full-bleed image BEHIND or BESIDE the type (with a subtle tonal overlay so
-  text stays legible). Lots of negative space around it.
+• HERO: bold display typography is the centrepiece — a large headline
+  (clamp(2.2rem,6vw,4.5rem), line-height ~1.02, heavy weight) that owns the first screen.
+  The FULL headline MUST wrap and stay fully visible inside the padded container — never
+  clipped, never bleeding off an edge; reduce the size for long headlines.
+  Optionally a full-bleed image BEHIND or BESIDE the type (subtle tonal overlay so text stays
+  legible). Confident negative space — but never an over-tall, mostly-empty hero.
 • LAYOUT: asymmetric, grid-driven, offset (not everything centred). Big type + small
   uppercase eyebrow labels with wide letter-spacing.
 • TYPE: one strong grotesk/sans for the giant headline (Archivo, Space Grotesk, Inter-like)
@@ -1253,9 +1266,9 @@ USE EXACTLY THESE LINKS:
 {images_note}
 
 ── HERO DESIGN ──────────────────────────────────────────────────────────
-✓ min-height:100svh, full viewport, immersive
+✓ min-height:100svh — but the hero CONTENT must fit inside it; if content is tall let the hero grow rather than clip, and never leave a mostly-empty over-stretched band
 ✓ ALWAYS set an explicit background on #hero — never leave it unset
-✓ overflow:hidden on #hero — no content may be cut off on any screen size
+✓ overflow-x:hidden on #hero to prevent horizontal scroll — but NEVER clip the headline or any text; every word of the headline must stay fully visible
 ✓ All text: max-width:100%; word-break:break-word; no element wider than viewport
 
 CONTRAST LAW — most important rule, no exceptions ever:
@@ -1962,7 +1975,7 @@ If NO image passes the quality check: do NOT force a photo and do NOT settle for
 gradient. Build a bold typographic or graphic hero instead (see the ART DIRECTION below), on-brand and
 matched to the industry — it must look designed, not like a placeholder.
 
-Either way: hero min-height:100svh, overflow:hidden; text color follows the CONTRAST LAW.
+Either way: hero min-height:100svh, overflow-x:hidden (never clip the headline — it must fit fully); text color follows the CONTRAST LAW.
 
 GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:auto;display:block;)"""
 
@@ -2205,7 +2218,7 @@ USE EXACTLY THESE LINKS — no additions, no removals:
 [CTA-BUTTON] = filled pill, brand primary color bg, contrasting text, border-radius:100px.
 
 ── HERO ──────────────────────────────────────────────────────────────────
-Full viewport height (min-height:100svh). overflow:hidden on #hero.
+Hero min-height:100svh, but the content must FIT — if it is tall, let the hero grow rather than clip, and never leave a mostly-empty over-stretched band. Use overflow-x:hidden (prevent horizontal scroll) but NEVER clip the headline; every word must stay fully visible.
 ALL hero content sits inside a padded container (max-width ~1200px, side padding clamp(20px,5vw,80px)).
 Nothing may touch or cross a screen edge. No text positioned absolutely off to one side, no giant single
 word bleeding past the viewport, no character-by-character stacking. Use overflow-wrap:break-word, and if a
