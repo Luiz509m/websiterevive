@@ -52,36 +52,15 @@ DESIGN_PRINCIPLES = """── FACTUAL GROUNDING LAW (highest priority — overri
   element that needs a number you don't have (a big stat, a counter) must be dropped, not
   filled with a plausible guess. Empty/generic is always better than invented.
 
-── DESIGN DIRECTION (make it look intentional, not AI-generated) ──────────
-• THE HERO IS A THESIS: open with the single most characteristic thing about
-  THIS business, not a generic "headline + button" template.
-• A SIMPLE, QUIET HERO IS ENCOURAGED: a confident headline with very little text,
-  generous whitespace, and one strong image often beats a busy hero. Minimal ≠ empty.
-• MATCH THE TRADE, NOT TECH: a handwerk / craft / local-service business (painter,
-  carpenter, builder, gardener, bakery…) should feel grounded, human and real —
-  real work photography, warm/honest tones, tactile materials. The GLOSSY tech look
-  (neon/acid accents, glassy frosted cards, shiny 3D blobs, floating app/UI mockups)
-  is a SaaS cliché: do NOT use it unless the business is software/tech. Soft, flat,
-  on-brand gradients and simple geometric shapes are fine for anyone.
-• COLOURS — classic & restrained by default: build on a TIMELESS NEUTRAL base —
-  white, off-white, cream, beige, warm greys, charcoal, near-black. Read the brand's
-  REAL colours from the logo/screenshot and define them as CSS variables on :root
-  (--clr-primary, --clr-accent); use the brand colour as the ONE accent (buttons, links,
-  key highlights). A SATURATED colour (orange, yellow, teal, bright blue, green, etc.)
-  may appear ONLY if it is genuinely the brand's colour from the logo. If there is no
-  clear brand accent, STAY NEUTRAL — an elegant black/white/beige scheme beats anything
-  colourful. Never invent a loud accent, and never default to a generic blue.
-• ONE SIGNATURE ELEMENT: give the page exactly one memorable, brand-specific
-  detail (a distinctive type treatment, an oversized number/word, an unusual
-  section transition, a custom divider). Spend your boldness there and keep
-  everything else quiet and disciplined.
-• AVOID THE THREE AI-DEFAULT LOOKS unless the brand truly calls for it:
-    1. cream/beige background (~#F4F1EA) + high-contrast serif + terracotta accent
-    2. near-black background + a single acid-green or vermilion accent
-    3. broadsheet layout with hairline rules, zero border-radius, dense columns
-  These read as "templated" — derive colors and type from the brand instead.
-• Structure must encode meaning: only use numbered markers (01/02/03) when the
-  content is genuinely a sequence (a real process), never as decoration.
+── DESIGN DIRECTION ──────────────────────────────────────────────────────
+• Execute the ONE committed ART DIRECTION provided below precisely — never dilute it
+  into a safe, generic, centred hero+button template. It must look intentional, bold and
+  studio-made, NOT AI-generated. (The specific direction is in the ART DIRECTION block.)
+• COLOURS come from the brand's REAL colours (logo/screenshot) as CSS variables on :root
+  (--clr-primary, --clr-accent). If there is no clear brand colour, follow the art
+  direction's palette guidance. Never invent a loud accent, never default to a generic blue.
+• ONE SIGNATURE ELEMENT: one memorable, brand-specific detail — spend your boldness there.
+• Structure encodes meaning: numbered markers (01/02/03) only for a genuine sequence.
 
 ── CONTENT & CLARITY (keep it clean and scannable — high priority) ─────────
 • LESS TEXT, MORE CLARITY: this is a marketing site, not a copy of the source's
@@ -147,6 +126,134 @@ MODE C — TYPOGRAPHIC (no image, type-led):
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
+_ART_DIRECTION_HEADER = """── ART DIRECTION (execute precisely — the site must NOT look AI-generated) ──
+This business gets ONE committed visual direction. Commit to it fully; never dilute it
+into a safe, generic, centred hero+button template. Bold, intentional, cohesive — like a
+top studio made it by hand.
+
+PHOTO RULE (decisive): use a photo ONLY where a provided image is genuinely high quality
+AND clearly relevant. A weak, generic, off-topic or low-res image is WORSE than none — then
+use a typographic or graphic treatment instead. Never use random stock that doesn't fit.
+"""
+
+# Six distinct art directions. The picker commits to ONE per business so the output looks
+# intentional and hand-designed, not like a templated AI default.
+DESIGN_DIRECTIONS = {
+"editorial_oversized": """DIRECTION: Editorial / Oversized Type — bold, confident, modern.
+• HERO: massive display typography is the centrepiece — a huge headline
+  (clamp(3rem,10vw,8rem), line-height ~0.95, heavy weight) that owns the first screen.
+  Optionally a full-bleed image BEHIND or BESIDE the type (with a subtle tonal overlay so
+  text stays legible). Lots of negative space around it.
+• LAYOUT: asymmetric, grid-driven, offset (not everything centred). Big type + small
+  uppercase eyebrow labels with wide letter-spacing.
+• TYPE: one strong grotesk/sans for the giant headline (Archivo, Space Grotesk, Inter-like)
+  + a clean body. Type IS the design.
+• COLOUR: mostly monochrome/neutral canvas + ONE decisive brand accent. High contrast.
+• SIGNATURE: the oversized headline itself; maybe one word set apart or in the accent.
+• AVOID: card soup, generic centred hero+button, shadows everywhere, rainbow colours.""",
+
+"luxe_minimal": """DIRECTION: Luxe Minimal — understated, expensive, calm.
+• HERO: airy and restrained. A refined display SERIF headline at a large but elegant size,
+  lots of whitespace, one calm full-bleed or framed image. Small uppercase eyebrow with wide
+  tracking above it. Quiet outlined/underlined CTA — no loud buttons.
+• LAYOUT: generous margins, slow editorial rhythm, thin hairline dividers, a narrow well-set
+  column. Nothing shouts.
+• TYPE: an elegant display serif (Cormorant, Playfair, Fraunces) for headings + a quiet sans
+  for body. Refined type scale.
+• COLOUR: muted and sophisticated — ivory/off-white or deep charcoal/forest/navy monochrome,
+  at most one subtle deep accent. Never bright or saturated.
+• SIGNATURE: exquisite typographic detail + whitespace. Restraint is the flex.
+• AVOID: neon, decorative gradients, busy cards, anything that reads cheap or templated.""",
+
+"warm_editorial": """DIRECTION: Warm Editorial — magazine warmth, appetite, character.
+• HERO: a big, characterful / appetising full-bleed image (or a strong split) with a
+  confident headline. Warm, inviting, human.
+• LAYOUT: magazine-like — alternating text/image rows, generous imagery, comfortable reading
+  measure, editorial captions.
+• TYPE: a characterful display (a warm serif or distinctive display face) for headlines +
+  friendly readable body. Personality in the headline.
+• COLOUR: warm neutrals (cream, warm grey, black) + the brand's real colour as accent.
+  Cozy, not corporate.
+• SIGNATURE: one distinctive editorial touch (an oversized word, a hand-set headline, a bold
+  divider).
+• AVOID: sterile tech look, glassy cards, cold blues, stock that doesn't match the craft.""",
+
+"product_hero": """DIRECTION: Product Hero — the product is the star.
+• HERO: a large, crisp product image (from the provided images if good) beside or behind a
+  bold, benefit-led headline. Clean commerce feel, ONE clear primary CTA. The product feels
+  premium and in focus.
+• LAYOUT: confident and conversion-minded — hero → benefits → how-it-works → real proof only
+  → CTA. Roomy but purposeful.
+• TYPE: a strong modern sans for headlines + clean body. Big benefit headline.
+• COLOUR: let the product/brand colour lead; a clean background that makes the product pop.
+• SIGNATURE: the art-directed hero product shot (generous space, subtle backdrop).
+• AVOID: cluttered hero, weak/tiny product image, generic lifestyle stock that isn't the product.""",
+
+"grounded_craft": """DIRECTION: Grounded Craft — honest, tactile, trustworthy.
+• HERO: real work photography if available (a clean shot of the actual craft/result) with a
+  confident, plain-spoken headline — OR, if photos are weak, a strong typographic hero in
+  warm/solid brand tones. Human and real, never glossy.
+• LAYOUT: sturdy and clear — the work, the services, real trust signals only, contact.
+  Solid blocks, comfortable spacing.
+• TYPE: a sturdy, honest sans (or a solid slab/serif) for headings + very readable body.
+  Nothing delicate or techy.
+• COLOUR: grounded neutrals + the real brand colour; warm/earthy or clean — never neon or
+  SaaS gradients.
+• SIGNATURE: one confident detail (a big service word, a strong divider, a local reference).
+• AVOID: glossy tech clichés (neon, glassy cards, 3D blobs, app mockups), corporate stock.""",
+
+"clean_professional": """DIRECTION: Clean Professional — calm, structured, trustworthy.
+• HERO: calm and clear — a confident but not flashy headline, a single reassuring image or a
+  clean tonal background, ONE clear CTA (Termin, Kontakt). Instils trust and competence.
+• LAYOUT: well-structured, generous whitespace, clear hierarchy, logical section order.
+  Legible above all.
+• TYPE: a clean professional sans (Inter, Source Sans) — or a restrained serif for a more
+  established feel — with excellent readability.
+• COLOUR: restrained and calm — clean neutrals + one trustworthy brand accent. No loud or
+  trendy colours.
+• SIGNATURE: impeccable clarity and spacing — polish through restraint.
+• AVOID: hype, loud gradients, busy layouts, anything that undermines trust.""",
+}
+
+
+def pick_design_direction(analysis: dict) -> tuple[str, str]:
+    """Deterministically pick ONE art direction for this business (industry + tone).
+    Returns (key, full_art_direction_text). Rule-based — no API cost."""
+    ind = ((analysis.get("industry") or "") + " " + (analysis.get("tone") or "")).lower()
+
+    def has(*kw):
+        return any(k in ind for k in kw)
+
+    if has("restaurant", "pizz", "bäcker", "baker", "brot", "café", "cafe", "catering",
+           "gastro", "food", "küche", "kueche", "hotel", "bistro", "trattoria", "metzger",
+           "confiser", "bar ", "diner", "kaffee"):
+        key = "warm_editorial"
+    elif has("immobil", "real estate", "fund", "finanz", "invest", "versicher", "anwalt",
+             "kanzlei", "recht", "notar", "architek", "treuhand", "consult", "beratung",
+             "advisory", "law"):
+        key = "luxe_minimal"
+    elif has("beauty", "kosmetik", "lash", "wimper", "nagel", "nail", "coiffeur", "friseur",
+             "hair", "spa", "wellness", "massage", "aesthetic", "brow"):
+        key = "luxe_minimal"
+    elif has("shop", "store", "ecommerce", "e-commerce", "produkt", "product", "supplement",
+             "fashion", "kleider", "modehaus", "cosmetic", "getränk", "drink", "onlineshop"):
+        key = "product_hero"
+    elif has("maler", "gipser", "schreiner", "sanitär", "sanitaer", "elektr", "garten",
+             "gärtner", "dach", "bau", "handwerk", "platten", "boden", "zimmer", "spengler",
+             "plumb", "carpenter", "painter", "renovat"):
+        key = "grounded_craft"
+    elif has("arzt", "zahn", "dental", "klinik", "praxis", "physio", "medizin", "health",
+             "therap", "psycholog", "spital", "medical"):
+        key = "clean_professional"
+    elif has("tech", "software", "saas", "app", "digital", "startup", " ki", " ai", "daten",
+             "cloud", "platform", "agentur", "agency", "studio"):
+        key = "editorial_oversized"
+    else:
+        key = "editorial_oversized"
+
+    return key, _ART_DIRECTION_HEADER + "\n" + DESIGN_DIRECTIONS[key]
+
 
 def extract_brand_colors(html: str) -> list[str]:
     """Deterministically extract the dominant brand colors from a page's CSS, skipping neutrals."""
@@ -825,7 +932,7 @@ If every concrete claim is supported by the SOURCE, return exactly: []"""
     return html
 
 
-def critic_pass(html: str, industry: str, business_name: str) -> str:
+def critic_pass(html: str, industry: str, business_name: str, direction_key: str = "") -> str:
     """
     Second Claude call (Sonnet, fast+cheap) that reviews the generated HTML
     and injects targeted CSS/JS fixes for real quality issues found.
@@ -836,12 +943,14 @@ def critic_pass(html: str, industry: str, business_name: str) -> str:
     # Send first 60K chars — enough to see structure, nav, hero, first sections
     html_preview = html[:60000] if len(html) > 60000 else html
 
-    prompt = f"""You are a senior web developer doing a quality review of a generated website.
+    prompt = f"""You are a senior design engineer doing a quality + design review of a generated website.
+It must look like a hand-crafted studio site — premium and intentional — NOT AI-generated or templated.
 
 Business: {business_name}
 Industry: {industry}
+Intended art direction: {direction_key or "(unspecified)"}
 
-Review this HTML for real problems that hurt user experience or visual quality.
+Review this HTML for real problems that hurt user experience OR make it look cheap / AI-generated.
 Check specifically:
 1. Mobile: text overflowing, no hamburger menu JS, elements wider than viewport
 2. Hero: text invisible (bad contrast), overlay missing on bg image, CTA not clickable
@@ -849,6 +958,15 @@ Check specifically:
 4. Images: img tags without max-width:100%, images overflowing their container
 5. Nav: links invisible (white on white or dark on dark), logo too large on mobile
 6. Footer: contact info missing if it was in the business data
+
+DESIGN POLISH (make it look premium — only what CSS overrides can fix, do NOT restructure):
+D1. Timid hero — if the headline is small/weak, scale it to a confident editorial size
+    (e.g. clamp(2.5rem,6vw,5rem)+, tight line-height ~1.0, strong weight).
+D2. Cramped/inconsistent spacing — add generous, consistent section padding and rhythm.
+D3. "AI/templated" tells — too many drop-shadows, heavy borders everywhere, more than ONE
+    loud accent colour, rainbow buttons: calm to a single accent + flat, clean surfaces.
+D4. Weak type hierarchy — clear scale between H1/H2/body; add letter-spacing to small
+    uppercase eyebrow labels.
 
 ACCESSIBILITY & PERFORMANCE (priority order — fix in this order if found):
 A1. Contrast < 4.5:1 on any text (incl. text on accent-colored buttons)
@@ -1004,7 +1122,7 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
     has_visual_images = bool(site_images_data)
 
     if is_tech:
-        images_note = "Tech/software business — no photo. Use a Graphic or Typographic hero (Mode B/C in HERO STYLE below)."
+        images_note = "Tech/software business — no photo. Use a bold typographic or graphic hero as described in the ART DIRECTION below — never a generic stock photo."
     elif has_visual_images or site_image_urls:
         _layout = "fullcover" if is_food else _rnd.choice(["fullcover", "split-right", "split-left"])
         _food_hint = "PRIORITY: Use the most appetizing food/dish image for the hero — pizza, pasta, dish close-up.\n" if is_food else ""
@@ -1051,7 +1169,7 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
                 + ("" if has_visual_images else "\nAvailable images:\n" + "\n".join(f"- {u}" for u in (site_image_urls or [])[:6]))
             )
     else:
-        images_note = "No usable site images were found — do NOT force a photo. Use a Graphic or Typographic hero (Mode B/C in HERO STYLE below)."
+        images_note = "No usable site images were found — do NOT force a photo (a generic or off-topic stock photo is the #1 AI tell). Use a bold typographic or graphic hero as described in the ART DIRECTION below."
 
     _motifs = load_motifs(industry, n=3)
     motifs_block = ("\n── BRAND MOTIFS (optional inline-SVG filled icons for THIS industry) ──────\n"
@@ -1103,6 +1221,8 @@ def generate_hero_only(analysis: dict, reference_images: list[dict], site_image_
             msg_content.append({"type": "text", "text": f"URL: {img_d['url']}"})
             msg_content.append({"type": "image", "source": {"type": "base64", "media_type": img_d["media_type"], "data": img_d["data"]}})
 
+    _dirkey, design_direction = pick_design_direction(analysis)
+    print(f"[design] Hero art direction: {_dirkey}")
     msg_content.append({"type": "text", "text": f"""You are an elite web designer. Generate a complete HTML page with ONLY a nav bar and hero section — this must look like it came from a top design studio.
 
 {DESIGN_PRINCIPLES}
@@ -1143,7 +1263,7 @@ CONTRAST LAW — most important rule, no exceptions ever:
   • Light background → ALL text color:#111111 — set on EVERY element individually
   • NEVER rely on color inheritance — set color explicitly on h1,h2,p,span,a,button each
 
-{HERO_MODES}
+{design_direction}
 {motifs_block}
 {illus_block}
 
@@ -1242,7 +1362,9 @@ def _industry_to_pexels_query(industry: str, business_name: str = "") -> str:
         return "dental clinic modern"
     if any(k in ind for k in ["arzt", "klinik", "medizin", "praxis", "health"]):
         return "modern medical clinic"
-    if any(k in ind for k in ["beauty", "kosmetik", "spa", "wellness", "massage"]):
+    if any(k in ind for k in ["beauty", "kosmetik", "lash", "wimper", "nagel", "nail", "brow", "cosmetic", "aesthetic"]):
+        return "manicure nails beauty salon"
+    if any(k in ind for k in ["spa", "wellness", "massage"]):
         return "luxury spa wellness"
     if any(k in ind for k in ["friseur", "coiffeur", "hair"]):
         return "hair salon modern"
@@ -1837,7 +1959,7 @@ IMAGE RULES (all sections):
 {_hero_layout_rule}
 
 If NO image passes the quality check: do NOT force a photo and do NOT settle for a bare dark
-gradient. Build a Graphic or Typographic hero instead (see HERO STYLE below), on-brand and
+gradient. Build a bold typographic or graphic hero instead (see the ART DIRECTION below), on-brand and
 matched to the industry — it must look designed, not like a placeholder.
 
 Either way: hero min-height:100svh, overflow:hidden; text color follows the CONTRAST LAW.
@@ -2034,6 +2156,8 @@ GALLERY / ABOUT: use remaining images with <img> tags (max-width:100%;height:aut
         "only if the brand suggests one. No orange/yellow/bright colours unless they are the brand's own.")
 
     # ── Claude prompt ──────────────────────────────────────────────────────────
+    _dirkey, design_direction = pick_design_direction(analysis)
+    print(f"[design] Full-site art direction: {_dirkey}")
     content.append({
         "type": "text",
         "text": f"""You are an elite web designer. Study the reference screenshots above carefully — your output must match their quality: typographic scale, whitespace, visual depth, section variety, and overall polish. Build something that looks like it came from a top design studio.
@@ -2095,7 +2219,7 @@ CONTRAST LAW — most important rule, no exceptions ever:
 BACKGROUND — make it feel like THIS brand, not a default dark gradient:
 {images_block}
 
-{HERO_MODES}
+{design_direction}
 {motifs_block}
 
 HEADLINE: Exact text from data above. Size clamp(2.5rem,6vw,5rem), bold, line-height:1.0–1.1, explicit color.
@@ -2266,7 +2390,7 @@ OUTPUT: One complete HTML file from <!DOCTYPE html> to </html>. No markdown fenc
 
     # ── Critic pass: review + fix quality issues (skipped in TEST_MODE) ─────────
     if not TEST_MODE:
-        html = critic_pass(html, industry, business_name)
+        html = critic_pass(html, industry, business_name, _dirkey)
     else:
         print("[generate] TEST_MODE: skipping critic pass")
 
